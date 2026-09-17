@@ -9,11 +9,11 @@ spring:
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}`
+    password: ${DB_PASSWORD}
   jpa:
     show-sql: true
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     properties:
       hibernate:
         format_sql: true
@@ -50,7 +50,7 @@ logging:
   level:
     root: INFO
     com.backend: DEBUG
-    org.springframework.security: DEBUG
+    org.springframework: INFO
 
 management:
   endpoints:

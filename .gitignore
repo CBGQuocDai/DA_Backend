@@ -42,3 +42,6 @@ Thumbs.db
 
 # Gradle
 .gradle/
+storage_key.json
+
+.mcp.json

@@ -1,0 +1,16 @@
+package com.backend.infrastructure.security;
+
+import com.backend.domain.adapter.PasswordEncoder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Component;
+
+@Component
+public class PasswordEncoderAdapter implements PasswordEncoder {
+
+    private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
+
+    @Override
+    public boolean matches(String rawPassword, String encodedPassword) {
+        return encoder.matches(rawPassword, encodedPassword);
+    }
+}
