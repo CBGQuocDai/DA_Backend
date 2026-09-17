@@ -6,7 +6,7 @@ import jakarta.persistence.PrimaryKeyJoinColumn;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "admins")
+@Table(name = "tbl_admin")
 @PrimaryKeyJoinColumn(name = "user_id")
 @DiscriminatorValue("ADMIN")
 public class JpaAdminEntity extends JpaUserEntity {

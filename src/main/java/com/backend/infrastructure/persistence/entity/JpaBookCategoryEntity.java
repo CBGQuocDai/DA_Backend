@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "book_categories")
+@Table(name = "tbl_book_category")
 @Getter
 @Setter
 public class JpaBookCategoryEntity {

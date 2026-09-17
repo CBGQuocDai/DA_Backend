@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "book_authors")
+@Table(name = "tbl_book_author")
 @Getter
 @Setter
 public class JpaBookAuthorEntity {

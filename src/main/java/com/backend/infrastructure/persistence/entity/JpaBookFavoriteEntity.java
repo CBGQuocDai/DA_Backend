@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "book_favorites")
+@Table(name = "tbl_book_favorite")
 @Getter
 @Setter
 public class JpaBookFavoriteEntity {

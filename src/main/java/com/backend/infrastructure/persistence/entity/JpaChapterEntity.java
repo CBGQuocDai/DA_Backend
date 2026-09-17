@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "chapters")
+@Table(name = "tbl_chapter")
 @Getter
 @Setter
 public class JpaChapterEntity {

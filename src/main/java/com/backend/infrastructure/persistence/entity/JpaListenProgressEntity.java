@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "listen_progress")
+@Table(name = "tbl_listen_progress")
 @Getter
 @Setter
 public class JpaListenProgressEntity {

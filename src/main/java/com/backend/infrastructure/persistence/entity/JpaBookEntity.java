@@ -7,7 +7,7 @@ import lombok.Setter;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "books")
+@Table(name = "tbl_book")
 @Getter
 @Setter
 public class JpaBookEntity {

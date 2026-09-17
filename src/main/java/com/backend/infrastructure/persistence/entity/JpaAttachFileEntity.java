@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "attach_files")
+@Table(name = "tbl_attach_file")
 @Getter
 @Setter
 public class JpaAttachFileEntity {

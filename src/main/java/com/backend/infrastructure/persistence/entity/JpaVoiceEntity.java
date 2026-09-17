@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "vocices")
+@Table(name = "tbl_voice")
 @Getter
 @Setter
 public class JpaVoiceEntity {

@@ -8,7 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "customers")
+@Table(name = "tbl_customer")
 @PrimaryKeyJoinColumn(name = "user_id")
 @DiscriminatorValue("CUSTOMER")
 @Getter

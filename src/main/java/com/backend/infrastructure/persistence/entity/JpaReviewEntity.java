@@ -7,7 +7,7 @@ import lombok.Setter;
 import java.time.Instant;
 
 @Entity
-@Table(name = "reviews")
+@Table(name = "tbl_review")
 @Getter
 @Setter
 public class JpaReviewEntity {
