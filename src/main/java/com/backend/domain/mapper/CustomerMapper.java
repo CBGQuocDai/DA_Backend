@@ -2,21 +2,12 @@ package com.backend.domain.mapper;
 
 import com.backend.domain.model.Customer;
 import com.backend.infrastructure.persistence.entity.JpaCustomerEntity;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
 
-@Component
-public class CustomerMapper {
+@Mapper(componentModel = "spring", unmappedTargetPolicy = org.mapstruct.ReportingPolicy.IGNORE)
+public interface CustomerMapper {
 
-    public Customer toDomain(JpaCustomerEntity entity) {
-        if (entity == null) return null;
-        return Customer.builder()
-                .id(entity.getId())
-                .email(entity.getEmail())
-                .password(entity.getPassword())
-                .fullName(entity.getFullName())
-                .avatar(entity.getAvatarUrl() != null
-                        ? com.backend.domain.model.MediaFile.builder().path(entity.getAvatarUrl()).build()
-                        : null)
-                .build();
-    }
+    Customer toDomain(JpaCustomerEntity entity);
+
+    JpaCustomerEntity toEntity(Customer domain);
 }

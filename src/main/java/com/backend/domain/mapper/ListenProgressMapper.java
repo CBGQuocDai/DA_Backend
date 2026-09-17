@@ -5,9 +5,10 @@ import com.backend.infrastructure.persistence.entity.JpaListenProgressEntity;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring", uses = {BookMapper.class, ChapterMapper.class, UserMapper.class})
+@Mapper(componentModel = "spring", uses = {BookMapper.class, ChapterMapper.class, CustomerMapper.class})
 public interface ListenProgressMapper {
 
+    @Mapping(target = "customer", ignore = true)
     ListenProgress toDomain(JpaListenProgressEntity entity);
 
     @Mapping(target = "customerId", source = "customer.id")
@@ -15,4 +16,3 @@ public interface ListenProgressMapper {
     @Mapping(target = "chapterId", source = "chapter.id")
     JpaListenProgressEntity toEntity(ListenProgress domain);
 }
-

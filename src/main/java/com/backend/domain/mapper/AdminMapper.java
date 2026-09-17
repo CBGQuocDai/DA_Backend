@@ -2,21 +2,14 @@ package com.backend.domain.mapper;
 
 import com.backend.domain.model.Admin;
 import com.backend.infrastructure.persistence.entity.JpaAdminEntity;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 
-@Component
-public class AdminMapper {
+@Mapper(componentModel = "spring", unmappedTargetPolicy = org.mapstruct.ReportingPolicy.IGNORE)
+public interface AdminMapper {
 
-    public Admin toDomain(JpaAdminEntity entity) {
-        if (entity == null) return null;
-        return Admin.builder()
-                .id(entity.getId())
-                .email(entity.getEmail())
-                .password(entity.getPassword())
-                .fullName(entity.getFullName())
-                .avatar(entity.getAvatarUrl() != null
-                        ? com.backend.domain.model.MediaFile.builder().path(entity.getAvatarUrl()).build()
-                        : null)
-                .build();
-    }
+    Admin toDomain(JpaAdminEntity entity);
+
+    JpaAdminEntity toEntity(Admin domain);
 }
