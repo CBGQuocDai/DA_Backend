@@ -12,6 +12,7 @@ public enum BusinessError {
     USER_NOT_FOUND(4001, "Email không tồn tại trong hệ thống", HttpStatus.NOT_FOUND),
     INVALID_CREDENTIALS(4002, "Email hoặc mật khẩu không đúng", HttpStatus.UNAUTHORIZED),
     LOGIN_FAIL(4003, "Email hoặc mật khẩu không đúng", HttpStatus.BAD_REQUEST),
+    USER_EXISTED(4004, "Email đã tồn tại", HttpStatus.BAD_REQUEST),
     ;
     private final Integer code;
     private final String message;

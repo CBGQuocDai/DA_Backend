@@ -41,7 +41,9 @@ public class SecurityConfig {
     private static final String[] WHITELIST = {
             "/health",
             "/admin/login",
-            "/customer/login"
+            "/customer/login",
+            "/admin/register",
+            "/customer/register"
     };
 
     @Bean

@@ -1,16 +1,20 @@
 package com.backend.application.impl;
 
 import com.backend.application.AdminService;
+import com.backend.domain.adapter.PasswordEncoder;
+import com.backend.domain.adapter.TokenProvider;
 import com.backend.domain.dto.request.user.LoginRequest;
+import com.backend.domain.dto.request.user.RegisterRequest;
 import com.backend.domain.dto.response.user.LoginResponse;
+import com.backend.domain.dto.response.user.RegisterResponse;
 import com.backend.domain.exception.BusinessException;
 import com.backend.domain.model.Admin;
-import com.backend.domain.adapter.TokenProvider;
 import com.backend.domain.repository.AdminRepository;
+import com.backend.domain.repository.UserRepository;
 import com.backend.domain.valueobject.BusinessError;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -18,6 +22,7 @@ public class AdminServiceImpl implements AdminService {
     private final AdminRepository adminRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenProvider tokenProvider;
+    private final UserRepository userRepository;
 
     @Override
     public LoginResponse login(LoginRequest req) {
@@ -32,6 +37,27 @@ public class AdminServiceImpl implements AdminService {
         String token = tokenProvider.generateToken(user);
         return LoginResponse.builder()
                 .accessToken(token)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public RegisterResponse register(RegisterRequest req) {
+        if (userRepository.existsByEmail(req.getEmail())) {
+            throw new BusinessException(BusinessError.USER_EXISTED);
+        }
+
+        Admin admin = Admin.builder()
+                .email(req.getEmail())
+                .password(passwordEncoder.encode(req.getPassword()))
+                .fullName(req.getFullname())
+                .build();
+
+        Admin saved = adminRepository.save(admin);
+        return RegisterResponse.builder()
+                .email(saved.getEmail())
+                .fullname(saved.getFullName())
+                .role("ADMIN")
                 .build();
     }
 }
