@@ -6,7 +6,7 @@ import com.backend.domain.dto.response.user.LoginResponse;
 import com.backend.domain.exception.BusinessException;
 import com.backend.domain.model.Admin;
 import com.backend.domain.adapter.TokenProvider;
-import com.backend.domain.repository.AdminRepository;
+import com.backend.domain.adapter.repository.AdminRepository;
 import com.backend.domain.valueobject.BusinessError;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;

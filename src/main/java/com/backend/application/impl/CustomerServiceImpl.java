@@ -7,7 +7,7 @@ import com.backend.domain.exception.BusinessException;
 import com.backend.domain.model.Customer;
 import com.backend.domain.adapter.PasswordEncoder;
 import com.backend.domain.adapter.TokenProvider;
-import com.backend.domain.repository.CustomerRepository;
+import com.backend.domain.adapter.repository.CustomerRepository;
 import com.backend.domain.valueobject.BusinessError;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

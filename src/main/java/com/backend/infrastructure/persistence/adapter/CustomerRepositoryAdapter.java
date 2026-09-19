@@ -2,7 +2,7 @@ package com.backend.infrastructure.persistence.adapter;
 
 import com.backend.domain.mapper.CustomerMapper;
 import com.backend.domain.model.Customer;
-import com.backend.domain.repository.CustomerRepository;
+import com.backend.domain.adapter.repository.CustomerRepository;
 import com.backend.infrastructure.persistence.repository.JpaCustomerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
