@@ -25,14 +25,13 @@ spring:
   cloud:
     gcp:
       project-id: ${GCP_PROJECT_ID}
-      credentials:
-        location: file:${GCS_CREDENTIALS_FILE}
       storage:
         enabled: true
 
 # GCP Storage
 gcs:
   bucket: ${GCS_BUCKET}
+
 
 # JWT Configuration
 jwt:

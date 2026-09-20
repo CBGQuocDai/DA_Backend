@@ -7,6 +7,7 @@
 gcloud.json
 *service-account*.json
 credentials.json
+storage_key.json
 
 logs/
 
@@ -42,6 +43,7 @@ Thumbs.db
 
 # Gradle
 .gradle/
-storage_key.json
+src/main/resources/storage_key.json
 
 .mcp.json
+.remember

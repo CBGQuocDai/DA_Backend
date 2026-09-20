@@ -25,6 +25,9 @@ public class JwtTokenProvider implements TokenProvider {
     @Value("${jwt.expiration}")
     private long jwtExpiration;
 
+    @Value("${jwt.issuer}")
+    private String jwtIssuer;
+
     @Override
     public String generateToken(User user) {
         Date now = new Date();
@@ -34,6 +37,7 @@ public class JwtTokenProvider implements TokenProvider {
         return Jwts.builder()
                 .subject(String.valueOf(user.getId()))
                 .claim("email", user.getEmail())
+                .issuer(jwtIssuer)
 //                .claim("role", user.getRole())
                 .issuedAt(now)
                 .expiration(expiryDate)

@@ -5,7 +5,7 @@ import com.backend.infrastructure.persistence.entity.JpaVoiceEntity;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
-public interface VocieMapper {
+public interface VoiceMapper {
 
     Voice toDomain(JpaVoiceEntity entity);
 

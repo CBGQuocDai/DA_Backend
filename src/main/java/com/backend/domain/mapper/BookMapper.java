@@ -5,7 +5,7 @@ import com.backend.infrastructure.persistence.entity.JpaBookEntity;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring", uses = {VocieMapper.class})
+@Mapper(componentModel = "spring", uses = {VoiceMapper.class})
 public interface BookMapper {
 
     Book toDomain(JpaBookEntity entity);
