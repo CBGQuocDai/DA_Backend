@@ -7,6 +7,7 @@ import com.backend.domain.adapter.repository.CustomerRepository;
 import com.backend.domain.adapter.repository.UserRepository;
 import com.backend.domain.dto.request.user.LoginRequest;
 import com.backend.domain.dto.request.user.RegisterRequest;
+import com.backend.domain.dto.request.user.customer.CustomerChangePasswordRequest;
 import com.backend.domain.dto.request.user.customer.CustomerUpdateProfileRequest;
 import com.backend.domain.dto.response.customer.CustomerProfileResponse;
 import com.backend.domain.dto.response.user.LoginResponse;
@@ -79,7 +80,7 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public CustomerProfileResponse updateProfile(Long userId,
         CustomerUpdateProfileRequest request) {
         Customer customer = customerRepository.findById(userId)
@@ -97,5 +98,22 @@ public class CustomerServiceImpl implements CustomerService {
             .email(customer.getEmail())
             .fullName(customer.getFullName()).avatarUrl(customer.getAvatarUrl()).build();
         return response;
+    }
+
+    @Override
+    @Transactional
+    public void changePassword(Long userId,
+        CustomerChangePasswordRequest request) {
+        Customer customer = customerRepository.findById(userId)
+            .orElseThrow(() -> new BusinessException(BusinessError.USER_NOT_FOUND));
+            
+        if (!passwordEncoder.matches(request.getOldPassword(), customer.getPassword())) {
+            throw new BusinessException(BusinessError.PASSWORD_WRONG);
+        }
+        if (request.getNewPassword() != null) {
+            customer.setPassword(passwordEncoder.encode(request.getNewPassword()));
+      customerRepository.save(customer);
+        }
+        
     }
 }
