@@ -1,5 +1,6 @@
 package com.backend.domain.model;
 
+import com.backend.domain.valueobject.ChapterStatus;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -13,7 +14,8 @@ public class Chapter {
     private Integer chapterOrder;
     private Integer duration;
     private String audioUrl;
-    private String textContext;
+    private String rawText;
+    private ChapterStatus status;
     private Book book;
     private AttachFile attachFile;
 }

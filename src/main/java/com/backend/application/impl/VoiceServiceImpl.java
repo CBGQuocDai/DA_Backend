@@ -11,10 +11,7 @@ import com.backend.domain.model.Voice;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import tools.jackson.databind.ObjectMapper;
-
-import java.io.IOException;
 
 @Service
 @RequiredArgsConstructor
@@ -42,11 +39,7 @@ public class VoiceServiceImpl implements VoiceService {
         //        TODO: validate type of file
         String fileName = exampleAudio.getOriginalFilename();
         String filePath = VOICE_EXAMPLE_PATH + fileName;
-        try {
-            storageService.store(exampleAudio, filePath);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to store file", e);
-        }
+        storageService.store(exampleAudio, filePath);
         Voice v = Voice.builder()
                 .name(req.getName())
                 .description(req.getDescription())

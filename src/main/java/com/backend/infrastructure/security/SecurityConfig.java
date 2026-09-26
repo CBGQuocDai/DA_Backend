@@ -65,8 +65,8 @@ public class SecurityConfig {
                                     Map.of("success", false, "message", "Access denied: " + accessDeniedException.getMessage()));
                         }))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(WHITELIST).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(WHITELIST).permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 

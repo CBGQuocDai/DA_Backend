@@ -45,5 +45,4 @@ public class VoiceController {
         voiceService.deleteVoice(voiceId);
         return ResponseEntity.ok(ApiResponse.<Void>builder().build());
     }
-
 }

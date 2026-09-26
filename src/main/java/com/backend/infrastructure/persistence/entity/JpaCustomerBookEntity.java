@@ -7,7 +7,7 @@ import lombok.Setter;
 import java.time.Instant;
 
 @Entity
-@Table(name = "tbl_ustomer_book")
+@Table(name = "tbl_customer_book")
 @Getter
 @Setter
 public class JpaCustomerBookEntity {
