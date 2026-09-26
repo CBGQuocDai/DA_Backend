@@ -9,4 +9,5 @@ import java.util.Optional;
 @Repository
 public interface JpaAdminRepository extends JpaRepository<JpaAdminEntity, Long> {
     Optional<JpaAdminEntity> findByEmail(String email);
+    boolean existsByEmail(String email);
 }

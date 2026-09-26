@@ -28,4 +28,16 @@ public class CustomerRepositoryAdapter implements CustomerRepository {
         JpaCustomerEntity saved = jpaCustomerRepository.save(customerMapper.toEntity(customer));
         return customerMapper.toDomain(saved);
     }
+
+    @Override
+    public boolean existsByEmail(String email) {
+        return jpaCustomerRepository.existsByEmail(email);
+    }
+
+    @Override
+    public Optional<Customer> findById(Long id) {
+        return jpaCustomerRepository.findById(id).map(customerMapper::toDomain);
+    }
+
+
 }

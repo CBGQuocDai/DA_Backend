@@ -28,4 +28,9 @@ public class AdminRepositoryAdapter implements AdminRepository {
         JpaAdminEntity saved = jpaAdminRepository.save(adminMapper.toEntity(admin));
         return adminMapper.toDomain(saved);
     }
+
+    @Override
+    public boolean existsByEmail(String email) {
+        return jpaAdminRepository.existsByEmail(email);
+    }
 }

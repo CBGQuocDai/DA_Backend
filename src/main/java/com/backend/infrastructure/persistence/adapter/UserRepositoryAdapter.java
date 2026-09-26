@@ -1,6 +1,6 @@
 package com.backend.infrastructure.persistence.adapter;
 
-import com.backend.domain.repository.UserRepository;
+import com.backend.domain.adapter.repository.UserRepository;
 import com.backend.infrastructure.persistence.repository.JpaUserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
