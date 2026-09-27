@@ -12,4 +12,6 @@ public interface BookRepository {
     Optional<Book> findById(Long id);
 
     PageResponse<Book> findAll(int page, int size);
+
+    java.util.List<Book> findAllById(java.util.List<Long> ids);
 }

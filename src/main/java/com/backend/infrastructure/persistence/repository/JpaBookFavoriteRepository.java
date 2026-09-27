@@ -16,4 +16,6 @@ public interface JpaBookFavoriteRepository extends JpaRepository<JpaBookFavorite
     Optional<JpaBookFavoriteEntity> findByCustomerIdAndBookId(Long customerId, Long bookId);
 
     boolean existsByCustomerIdAndBookId(Long customerId, Long bookId);
+
+    void deleteByCustomerIdAndBookId(Long customerId, Long bookId);
 }

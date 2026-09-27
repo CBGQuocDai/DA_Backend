@@ -97,4 +97,15 @@ public class BookRepositoryAdapter implements BookRepository {
                 .pageSize(size)
                 .build();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Book> findAllById(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return jpaBookRepository.findAllById(ids).stream()
+                .map(bookMapper::toDomain)
+                .toList();
+    }
 }

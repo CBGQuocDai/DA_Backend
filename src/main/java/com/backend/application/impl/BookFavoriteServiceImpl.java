@@ -13,6 +13,7 @@ import com.backend.domain.valueobject.BusinessError;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +24,7 @@ public class BookFavoriteServiceImpl implements BookFavoriteService {
     private final BookRepository bookRepository;
 
     @Override
+    @Transactional
     public BookFavoriteResponse addFavorite(Long userId, Long bookId) {
         if (bookFavoriteRepository.existsByCustomerIdAndBookId(userId, bookId)) {
             throw new BusinessException(BusinessError.BOOK_ALREADY_FAVORITED);
@@ -45,12 +47,26 @@ public class BookFavoriteServiceImpl implements BookFavoriteService {
     }
 
     @Override
+    @Transactional
     public Void removeFavorite(Long userId, Long bookId) {
+        customerRepository.findById(userId)
+            .orElseThrow(() -> new BusinessException(BusinessError.USER_NOT_FOUND));
+
+        if (!bookFavoriteRepository.existsByCustomerIdAndBookId(userId, bookId)) {
+            throw new BusinessException(BusinessError.BOOK_FAVORITE_NOT_FOUND);
+        }
+
+        bookFavoriteRepository.deleteByCustomerIdAndBookId(userId, bookId);
         return null;
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Book> list(Long userId) {
-        return List.of();
+        customerRepository.findById(userId)
+            .orElseThrow(() -> new BusinessException(BusinessError.USER_NOT_FOUND));
+
+        List<Long> bookIds = bookFavoriteRepository.findBookIdsByCustomerId(userId);
+        return bookRepository.findAllById(bookIds);
     }
 }

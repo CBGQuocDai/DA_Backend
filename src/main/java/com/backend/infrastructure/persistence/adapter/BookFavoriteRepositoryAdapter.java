@@ -44,5 +44,16 @@ public class BookFavoriteRepositoryAdapter implements BookFavoriteRepository {
         return jpaBookFavoriteRepository.existsByCustomerIdAndBookId(customerId, bookId);
     }
 
+    @Override
+    public void deleteByCustomerIdAndBookId(Long customerId, Long bookId) {
+        jpaBookFavoriteRepository.findByCustomerIdAndBookId(customerId, bookId)
+            .ifPresent(jpaBookFavoriteRepository::delete);
+    }
 
+    @Override
+    public List<Long> findBookIdsByCustomerId(Long customerId) {
+        return jpaBookFavoriteRepository.findByCustomerId(customerId).stream()
+            .map(JpaBookFavoriteEntity::getBookId)
+            .toList();
+    }
 }

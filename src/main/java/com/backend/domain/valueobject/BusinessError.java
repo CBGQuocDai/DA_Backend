@@ -16,7 +16,8 @@ public enum BusinessError {
     USER_EXISTED(4004, "Email đã tồn tại", HttpStatus.BAD_REQUEST),
     PASSWORD_WRONG(4005, "Mật khẩu không đúng", HttpStatus.BAD_REQUEST),
     BOOK_NOT_FOUND(4006, "Không tìm thấy sách", HttpStatus.BAD_REQUEST),
-    BOOK_ALREADY_FAVORITED(4007, "Sách đã có trong danh sách yêu thích", HttpStatus.BAD_REQUEST);
+    BOOK_ALREADY_FAVORITED(4007, "Sách đã có trong danh sách yêu thích", HttpStatus.BAD_REQUEST),
+    BOOK_FAVORITE_NOT_FOUND(4008, "Sách không có trong danh sách yêu thích", HttpStatus.BAD_REQUEST);
     private final Integer code;
     private final String message;
     private final HttpStatus httpStatus;
