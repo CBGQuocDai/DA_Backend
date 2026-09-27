@@ -8,6 +8,9 @@ import java.util.List;
 
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class BookCreateRequest {
     private String title;
     private BigDecimal price;

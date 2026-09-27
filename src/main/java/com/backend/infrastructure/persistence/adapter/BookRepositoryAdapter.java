@@ -2,20 +2,17 @@ package com.backend.infrastructure.persistence.adapter;
 
 import com.backend.domain.adapter.repository.BookRepository;
 import com.backend.domain.dto.response.PageResponse;
-import com.backend.domain.mapper.BookAuthorMapper;
-import com.backend.domain.mapper.BookCategoryMapper;
 import com.backend.domain.mapper.BookMapper;
 import com.backend.domain.model.Book;
 import com.backend.domain.model.BookAuthor;
 import com.backend.domain.model.BookCategory;
-import com.backend.domain.model.Voice;
 import com.backend.infrastructure.persistence.entity.JpaBookAuthorEntity;
 import com.backend.infrastructure.persistence.entity.JpaBookCategoryEntity;
 import com.backend.infrastructure.persistence.entity.JpaBookEntity;
 import com.backend.infrastructure.persistence.repository.JpaBookAuthorRepository;
 import com.backend.infrastructure.persistence.repository.JpaBookCategoryRepository;
 import com.backend.infrastructure.persistence.repository.JpaBookRepository;
-import com.backend.infrastructure.persistence.repository.JpaVoiceRepository;
+import com.backend.infrastructure.persistence.repository.JpaBookUpdateRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -30,23 +27,22 @@ import java.util.Optional;
 public class BookRepositoryAdapter implements BookRepository {
 
     private final JpaBookRepository jpaBookRepository;
+    private final JpaBookUpdateRepository jpaBookUpdateRepository;
     private final JpaBookAuthorRepository jpaBookAuthorRepository;
     private final JpaBookCategoryRepository jpaBookCategoryRepository;
-    private final JpaVoiceRepository jpaVoiceRepository;
-    private final BookAuthorMapper bookAuthorMapper;
-    private final BookCategoryMapper bookCategoryMapper;
     private final BookMapper bookMapper;
 
     @Override
     @Transactional
-    public Book save(Book book) {
+    public Book insert(Book book) {
         JpaBookEntity entity = JpaBookEntity.builder()
                 .title(book.getTitle())
                 .price(book.getPrice())
                 .description(book.getDescription())
                 .coverImage(book.getCoverImage())
-                .isPublish(book.getIsPublish())
+                .contentFile(book.getContentFile())
                 .voiceId(book.getVoice() != null ? book.getVoice().getId() : null)
+                .status(book.getStatus())
                 .build();
 
         JpaBookEntity savedEntity = jpaBookRepository.save(entity);
@@ -76,6 +72,21 @@ public class BookRepositoryAdapter implements BookRepository {
     }
 
     @Override
+    @Transactional
+    public void update(Book book) {
+        jpaBookUpdateRepository.updateBook(
+                book.getId(),
+                book.getTitle(),
+                book.getPrice(),
+                book.getDescription(),
+                book.getCoverImage(),
+                book.getContentFile(),
+                book.getVoice() != null ? book.getVoice().getId() : null,
+                book.getStatus()
+        );
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public Optional<Book> findById(Long id) {
         return jpaBookRepository.findById(id)
@@ -96,5 +107,19 @@ public class BookRepositoryAdapter implements BookRepository {
                 .page(page)
                 .pageSize(size)
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public void delete(Book book) {
+        if (book.getId() != null) {
+            jpaBookRepository.deleteById(book.getId());
+        }
+    }
+
+    @Override
+    @Transactional
+    public void deleteById(Long id) {
+        jpaBookRepository.deleteById(id);
     }
 }

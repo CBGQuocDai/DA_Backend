@@ -38,6 +38,9 @@ public class GoogleCloudStorageService implements StorageService {
 
     @Override
     public String createSignUrl(String filePath, Long minutes) {
+        if (filePath == null || filePath.isBlank()) {
+            return "";
+        }
         BlobId blobId = BlobId.of(bucket, filePath);
         BlobInfo blobInfo = BlobInfo.newBuilder(blobId).build();
         try {

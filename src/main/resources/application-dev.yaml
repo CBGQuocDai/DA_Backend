@@ -32,6 +32,13 @@ spring:
 gcs:
   bucket: ${GCS_BUCKET}
 
+# GCP Document AI
+gcp:
+  documentai:
+    project-id: ${GCP_PROJECT_ID:656391058796}
+    location: ${GCP_DOCUMENT_AI_LOCATION:us}
+    processor-id: ${GCP_DOCUMENT_AI_PROCESSOR_ID:87aeb4b494bee8e}
+
 
 # JWT Configuration
 jwt:

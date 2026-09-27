@@ -7,9 +7,15 @@ import com.backend.domain.model.Book;
 import java.util.Optional;
 
 public interface BookRepository {
-    Book save(Book book);
+    Book insert(Book book);
+
+    void update(Book book);
 
     Optional<Book> findById(Long id);
 
     PageResponse<Book> findAll(int page, int size);
+
+    void delete(Book book);
+
+    void deleteById(Long id);
 }

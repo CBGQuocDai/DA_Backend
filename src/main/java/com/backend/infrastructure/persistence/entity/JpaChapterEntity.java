@@ -26,8 +26,8 @@ public class JpaChapterEntity {
     @Column(name = "audio_url")
     private String audioUrl;
 
-    @Column(name = "text_context", columnDefinition = "TEXT")
-    private String textContext;
+    @Column(name = "raw_text", columnDefinition = "TEXT")
+    private String rawText;
 
     @Enumerated(EnumType.STRING)
     private ChapterStatus status;
