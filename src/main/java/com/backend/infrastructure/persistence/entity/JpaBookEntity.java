@@ -1,8 +1,8 @@
 package com.backend.infrastructure.persistence.entity;
 
+import com.backend.domain.valueobject.BookStatus;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.math.BigDecimal;
 
@@ -10,6 +10,9 @@ import java.math.BigDecimal;
 @Table(name = "tbl_book")
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class JpaBookEntity {
 
     @Id
@@ -36,4 +39,7 @@ public class JpaBookEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "voice_id", insertable = false, updatable = false)
     private JpaVoiceEntity voice;
+
+    @Enumerated(EnumType.STRING)
+    private BookStatus status;
 }
