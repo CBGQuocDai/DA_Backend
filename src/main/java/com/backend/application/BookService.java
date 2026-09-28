@@ -12,8 +12,8 @@ public interface BookService {
 //  chức năng của admin
     PageResponse<Book> getBooks(int page, int size);
     Book createBook(BookCreateRequest book, MultipartFile pdfFile, MultipartFile bookCover) throws IOException;
-    Book updateBook(Book book);
-    void deleteBook(Book book);
+    void updateBook(Book book);
+    void deleteBook(Long bookId);
     void publishBook(Long bookId);
     void unpublishBook(Long bookId);
 // chức năng của client

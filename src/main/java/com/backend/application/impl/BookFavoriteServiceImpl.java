@@ -26,6 +26,13 @@ public class BookFavoriteServiceImpl implements BookFavoriteService {
     @Override
     @Transactional
     public BookFavoriteResponse addFavorite(Long userId, Long bookId) {
+        if (userId == null) {
+            throw new BusinessException(BusinessError.USER_NOT_FOUND);
+        }
+        if (bookId == null) {
+            throw new BusinessException(BusinessError.BOOK_NOT_FOUND);
+        }
+
         if (bookFavoriteRepository.existsByCustomerIdAndBookId(userId, bookId)) {
             throw new BusinessException(BusinessError.BOOK_ALREADY_FAVORITED);
         }
@@ -48,7 +55,14 @@ public class BookFavoriteServiceImpl implements BookFavoriteService {
 
     @Override
     @Transactional
-    public Void removeFavorite(Long userId, Long bookId) {
+    public void removeFavorite(Long userId, Long bookId) {
+        if (userId == null) {
+            throw new BusinessException(BusinessError.USER_NOT_FOUND);
+        }
+        if (bookId == null) {
+            throw new BusinessException(BusinessError.BOOK_NOT_FOUND);
+        }
+
         customerRepository.findById(userId)
             .orElseThrow(() -> new BusinessException(BusinessError.USER_NOT_FOUND));
 
@@ -57,16 +71,22 @@ public class BookFavoriteServiceImpl implements BookFavoriteService {
         }
 
         bookFavoriteRepository.deleteByCustomerIdAndBookId(userId, bookId);
-        return null;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Book> list(Long userId) {
+        if (userId == null) {
+            throw new BusinessException(BusinessError.USER_NOT_FOUND);
+        }
+
         customerRepository.findById(userId)
             .orElseThrow(() -> new BusinessException(BusinessError.USER_NOT_FOUND));
 
         List<Long> bookIds = bookFavoriteRepository.findBookIdsByCustomerId(userId);
+        if (bookIds == null || bookIds.isEmpty()) {
+            return List.of();
+        }
         return bookRepository.findAllById(bookIds);
     }
 }

@@ -12,7 +12,6 @@ public interface BookMapper {
     Book toDomain(JpaBookEntity entity);
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "isPublish", ignore = true)
     @Mapping(target = "coverImage", ignore = true)
     @Mapping(target = "bookCategories", ignore = true)
     @Mapping(target = "bookAuthors", ignore = true)

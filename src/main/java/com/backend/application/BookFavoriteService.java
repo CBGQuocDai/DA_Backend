@@ -8,7 +8,7 @@ public interface BookFavoriteService {
 
     BookFavoriteResponse addFavorite(Long userId, Long bookId);
 
-    Void removeFavorite(Long userId, Long bookId);
+    void removeFavorite(Long userId, Long bookId);
 
     List<Book> list(Long userId);
 }

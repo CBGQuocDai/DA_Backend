@@ -8,9 +8,11 @@ import com.backend.domain.model.Book;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -24,6 +26,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class BookController {
 
     private final BookService bookService;
+    private final com.backend.application.CategoryService categoryService;
 
     @GetMapping
     public ResponseEntity<PageResponse<Book>> getListBooks(
@@ -32,6 +35,13 @@ public class BookController {
     ) {
 
         return ResponseEntity.ok(bookService.getBooks(page, size));
+    }
+
+    @GetMapping("/categories")
+    public ResponseEntity<com.backend.domain.dto.response.ApiResponse<List<com.backend.domain.model.Category>>> getCategories() {
+        return ResponseEntity.ok(com.backend.domain.dto.response.ApiResponse.<List<com.backend.domain.model.Category>>builder()
+                .data(categoryService.getCategories())
+                .build());
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -47,5 +57,17 @@ public class BookController {
     public ResponseEntity<Void> publishBook(@PathVariable Long bookId) {
         bookService.publishBook(bookId);
         return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/{bookId}/unpublish")
+    public ResponseEntity<Void> unpublishBook(@PathVariable Long bookId) {
+        bookService.unpublishBook(bookId);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{bookId}")
+    public ResponseEntity<Void> deleteBook(@PathVariable Long bookId) {
+        bookService.deleteBook(bookId);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -4,14 +4,22 @@ package com.backend.domain.adapter.repository;
 import com.backend.domain.dto.response.PageResponse;
 import com.backend.domain.model.Book;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface BookRepository {
-    Book save(Book book);
+
+    Book insert(Book book);
+
+    void update(Book book);
 
     Optional<Book> findById(Long id);
 
     PageResponse<Book> findAll(int page, int size);
 
-    java.util.List<Book> findAllById(java.util.List<Long> ids);
+    void delete(Book book);
+
+    void deleteById(Long id);
+
+    List<Book> findAllById(List<Long> bookIds);
 }

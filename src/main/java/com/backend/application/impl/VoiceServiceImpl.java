@@ -25,7 +25,11 @@ public class VoiceServiceImpl implements VoiceService {
     private String VOICE_EXAMPLE_PATH = "/voice-example/";
     @Override
     public PageResponse<Voice> getListVoice() {
-        return voiceRepository.findAll(0,10);
+        PageResponse<Voice> v = voiceRepository.findAll(0,10);
+        v.getContent().forEach(voice -> {
+           voice.setExampleAudio(storageService.createSignUrl(voice.getExampleAudio(), 60L));
+        });
+        return v;
     }
 
     @Override

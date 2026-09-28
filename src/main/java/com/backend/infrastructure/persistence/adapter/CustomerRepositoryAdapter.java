@@ -36,6 +36,9 @@ public class CustomerRepositoryAdapter implements CustomerRepository {
 
     @Override
     public Optional<Customer> findById(Long id) {
+        if (id == null) {
+            return Optional.empty();
+        }
         return jpaCustomerRepository.findById(id).map(customerMapper::toDomain);
     }
 

@@ -22,9 +22,6 @@ public class JpaBookEntity {
     @Column(nullable = false)
     private String title;
 
-    @Column(name = "is_publish", nullable = false)
-    private Boolean isPublish;
-
     @Column(nullable = false)
     private BigDecimal price;
 
@@ -32,6 +29,9 @@ public class JpaBookEntity {
 
     @Column(name = "cover_image")
     private String coverImage;
+
+    @Column(name = "content_file")
+    private String contentFile;
 
     @Column(name = "voice_id")
     private Long voiceId;
