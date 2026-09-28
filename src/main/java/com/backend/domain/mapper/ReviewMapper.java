@@ -8,7 +8,6 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring", uses = {BookMapper.class, CustomerMapper.class})
 public interface ReviewMapper {
 
-    @Mapping(target = "customer", ignore = true)
     Review toDomain(JpaReviewEntity entity);
 
     @Mapping(target = "customerId", source = "customer.id")

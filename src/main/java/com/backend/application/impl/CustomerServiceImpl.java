@@ -106,14 +106,14 @@ public class CustomerServiceImpl implements CustomerService {
         CustomerChangePasswordRequest request) {
         Customer customer = customerRepository.findById(userId)
             .orElseThrow(() -> new BusinessException(BusinessError.USER_NOT_FOUND));
-            
+
         if (!passwordEncoder.matches(request.getOldPassword(), customer.getPassword())) {
             throw new BusinessException(BusinessError.PASSWORD_WRONG);
         }
         if (request.getNewPassword() != null) {
             customer.setPassword(passwordEncoder.encode(request.getNewPassword()));
-      customerRepository.save(customer);
+            customerRepository.save(customer);
         }
-        
+
     }
 }

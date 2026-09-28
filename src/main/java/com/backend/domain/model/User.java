@@ -1,5 +1,6 @@
 package com.backend.domain.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -15,6 +16,7 @@ import lombok.experimental.SuperBuilder;
 public abstract class User {
     private Long id;
     private String email;
+    @JsonIgnore
     private String password;
     private String fullName;
     private String avatarUrl;
