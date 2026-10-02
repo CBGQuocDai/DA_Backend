@@ -12,4 +12,5 @@ public interface JpaBookAuthorRepository extends JpaRepository<JpaBookAuthorEnti
     List<JpaBookAuthorEntity> findByBookId(Long bookId);
     List<JpaBookAuthorEntity> findByAuthorId(Long authorId);
     Optional<JpaBookAuthorEntity> findByBookIdAndAuthorId(Long bookId, Long authorId);
+    void deleteByBookId(Long bookId);
 }

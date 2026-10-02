@@ -4,6 +4,7 @@ import com.backend.domain.adapter.storage.StorageService;
 import com.google.cloud.storage.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,6 +25,7 @@ public class GoogleCloudStorageService implements StorageService {
     }
 
     @Override
+    @Async
     public void store(MultipartFile file, String filePath) {
         BlobId blobId = BlobId.of(bucket, filePath);
         BlobInfo blobInfo = BlobInfo.newBuilder(blobId)

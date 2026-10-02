@@ -1,22 +1,18 @@
 package com.backend.application;
 
-
-import com.backend.domain.dto.request.book.BookCreateRequest;
 import com.backend.domain.dto.response.PageResponse;
 import com.backend.domain.model.Book;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 
 public interface BookService {
 //  chức năng của admin
     PageResponse<Book> getBooks(int page, int size);
-    Book createBook(BookCreateRequest book, MultipartFile pdfFile, MultipartFile bookCover) throws IOException;
-    void updateBook(Book book);
+    Book getBookById(Long bookId);
+    Book createBook(String book, MultipartFile pdfFile, MultipartFile bookCover);
+    Book updateBook(Long bookId, String book, MultipartFile bookCover);
     void deleteBook(Long bookId);
     void publishBook(Long bookId);
     void unpublishBook(Long bookId);
 // chức năng của client
-
-
 }

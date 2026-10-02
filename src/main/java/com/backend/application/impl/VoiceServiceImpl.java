@@ -6,7 +6,6 @@ import com.backend.domain.adapter.repository.VoiceRepository;
 import com.backend.domain.adapter.storage.StorageService;
 import com.backend.domain.dto.request.voice.VoiceCreateRequest;
 import com.backend.domain.dto.response.PageResponse;
-import com.backend.domain.mapper.VoiceMapper;
 import com.backend.domain.model.Voice;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,9 +19,8 @@ public class VoiceServiceImpl implements VoiceService {
     private final VoiceRepository voiceRepository;
     private final ObjectMapper objectMapper;
     private final StorageService storageService;
-    private final VoiceMapper voiceMapper;
 
-    private String VOICE_EXAMPLE_PATH = "/voice-example/";
+    private static final String VOICE_EXAMPLE_PATH = "voice-example/";
     @Override
     public PageResponse<Voice> getListVoice() {
         PageResponse<Voice> v = voiceRepository.findAll(0,10);

@@ -33,8 +33,14 @@ public class BookController {
             @RequestParam Integer page,
             @RequestParam Integer size
     ) {
-
         return ResponseEntity.ok(bookService.getBooks(page, size));
+    }
+
+    @GetMapping("/{bookId}")
+    public ResponseEntity<com.backend.domain.dto.response.ApiResponse<Book>> getBookById(@PathVariable Long bookId) {
+        return ResponseEntity.ok(com.backend.domain.dto.response.ApiResponse.<Book>builder()
+                .data(bookService.getBookById(bookId))
+                .build());
     }
 
     @GetMapping("/categories")
@@ -46,11 +52,22 @@ public class BookController {
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Book> createBook(
-            @RequestPart("book") BookCreateRequest request,
+            @RequestPart("book") String request,
             @RequestPart("pdfFile") MultipartFile pdfFile,
             @RequestPart(value = "bookCover", required = false) MultipartFile bookCover
-    ) throws java.io.IOException {
+    ) {
         return ResponseEntity.ok(bookService.createBook(request, pdfFile, bookCover));
+    }
+
+    @PutMapping(value = "/{bookId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<com.backend.domain.dto.response.ApiResponse<Book>> updateBook(
+            @PathVariable Long bookId,
+            @RequestPart("book") String request,
+            @RequestPart(value = "bookCover", required = false) MultipartFile bookCover
+    ) {
+        return ResponseEntity.ok(com.backend.domain.dto.response.ApiResponse.<Book>builder()
+                .data(bookService.updateBook(bookId, request, bookCover))
+                .build());
     }
 
     @PutMapping("/{bookId}/publish")

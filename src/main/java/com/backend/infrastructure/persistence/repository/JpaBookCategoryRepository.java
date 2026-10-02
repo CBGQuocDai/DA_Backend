@@ -12,4 +12,5 @@ public interface JpaBookCategoryRepository extends JpaRepository<JpaBookCategory
     List<JpaBookCategoryEntity> findByBookId(Long bookId);
     List<JpaBookCategoryEntity> findByCategoryId(Long categoryId);
     Optional<JpaBookCategoryEntity> findByBookIdAndCategoryId(Long bookId, Long categoryId);
+    void deleteByBookId(Long bookId);
 }

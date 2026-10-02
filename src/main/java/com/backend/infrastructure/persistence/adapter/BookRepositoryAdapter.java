@@ -84,6 +84,28 @@ public class BookRepositoryAdapter implements BookRepository {
                 book.getVoice() != null ? book.getVoice().getId() : null,
                 book.getStatus()
         );
+
+        if (book.getBookAuthors() != null) {
+            jpaBookAuthorRepository.deleteByBookId(book.getId());
+            for (BookAuthor bookAuthor : book.getBookAuthors()) {
+                JpaBookAuthorEntity authorEntity = JpaBookAuthorEntity.builder()
+                        .bookId(book.getId())
+                        .authorId(bookAuthor.getAuthor() != null ? bookAuthor.getAuthor().getId() : null)
+                        .build();
+                jpaBookAuthorRepository.save(authorEntity);
+            }
+        }
+
+        if (book.getBookCategories() != null) {
+            jpaBookCategoryRepository.deleteByBookId(book.getId());
+            for (BookCategory bookCategory : book.getBookCategories()) {
+                JpaBookCategoryEntity categoryEntity = JpaBookCategoryEntity.builder()
+                        .bookId(book.getId())
+                        .categoryId(bookCategory.getCategory() != null ? bookCategory.getCategory().getId() : null)
+                        .build();
+                jpaBookCategoryRepository.save(categoryEntity);
+            }
+        }
     }
 
     @Override
@@ -100,6 +122,7 @@ public class BookRepositoryAdapter implements BookRepository {
         List<Book> books = entityPage.getContent().stream()
                 .map(bookMapper::toDomain)
                 .toList();
+
         return PageResponse.<Book>builder()
                 .content(books)
                 .total((int) entityPage.getTotalElements())

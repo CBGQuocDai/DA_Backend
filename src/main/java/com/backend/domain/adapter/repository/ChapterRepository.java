@@ -8,5 +8,7 @@ public interface ChapterRepository {
     List<Chapter> findByBookId(Long bookId);
     Optional<Chapter> findById(Long id);
     Chapter save(Chapter chapter);
+    Chapter update(Chapter chapter);
+    List<Chapter> saveAll(List<Chapter> chapters);
     void delete(Long id);
 }
