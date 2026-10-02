@@ -5,6 +5,7 @@ import com.backend.application.BookService;
 import com.backend.domain.dto.request.book.BookCreateRequest;
 import com.backend.domain.dto.response.PageResponse;
 import com.backend.domain.model.Book;
+import com.backend.domain.model.BookStat;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -29,7 +30,7 @@ public class BookController {
     private final com.backend.application.CategoryService categoryService;
 
     @GetMapping
-    public ResponseEntity<PageResponse<Book>> getListBooks(
+    public ResponseEntity<PageResponse<BookStat>> getListBooks(
             @RequestParam Integer page,
             @RequestParam Integer size
     ) {

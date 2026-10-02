@@ -1,20 +1,16 @@
 package com.backend.domain.model;
 
 import com.backend.domain.valueobject.BookStatus;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 @Getter
 @Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@SuperBuilder
 public class Book {
     private Long id;
     private String title;
@@ -24,7 +20,10 @@ public class Book {
     private String contentFile;
     private Voice voice;
     private BookStatus status;
-    private List<BookCategory> bookCategories;
-    private List<BookAuthor> bookAuthors;
+    private List<BookCategory> categories;
+    private List<BookAuthor> authors;
     private List<Chapter> chapters;
+
+    public Book() {
+    }
 }

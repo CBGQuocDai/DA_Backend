@@ -2,6 +2,7 @@ package com.backend.infrastructure.persistence.adapter;
 
 import com.backend.domain.adapter.repository.ChapterRepository;
 import com.backend.domain.mapper.ChapterMapper;
+import com.backend.domain.model.Book;
 import com.backend.domain.model.Chapter;
 import com.backend.infrastructure.persistence.entity.JpaChapterEntity;
 import com.backend.infrastructure.persistence.repository.JpaChapterRepository;
@@ -64,10 +65,11 @@ public class ChapterRepositoryAdapter implements ChapterRepository {
 
     @Override
     @Transactional
-    public List<Chapter> saveAll(List<Chapter> chapters) {
+    public List<Chapter> saveAll(List<Chapter> chapters, Book b) {
         List<JpaChapterEntity> entities = chapters.stream()
                 .map(chapterMapper::toEntity)
                 .toList();
+        entities.forEach(entity -> entity.setBookId(b.getId()));
         List<JpaChapterEntity> savedEntities = jpaChapterRepository.saveAll(entities);
         for (int i = 0; i < chapters.size(); i++) {
             chapters.get(i).setId(savedEntities.get(i).getId());

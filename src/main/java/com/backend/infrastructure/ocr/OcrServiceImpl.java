@@ -95,10 +95,9 @@ public class OcrServiceImpl implements OcrService {
                 temp.setTitle(textBlock.getText());
                 temp.setRawText(textBlock.getBlocks(0).getTextBlock().getText());
                 temp.setStatus(ChapterStatus.TEXT_READY);
-                temp.setBook(b);
                 chapters.add(temp);
             }
-            chapterRepository.saveAll(chapters);
+            chapterRepository.saveAll(chapters, b);
         } catch (IOException e) {
             log.error("Error processing document for book: {}", b != null ? b.getId() : "null", e);
             throw new RuntimeException(e);

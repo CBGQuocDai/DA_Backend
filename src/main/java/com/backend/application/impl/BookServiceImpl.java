@@ -11,6 +11,7 @@ import com.backend.domain.mapper.BookMapper;
 import com.backend.domain.model.Book;
 import com.backend.domain.model.BookAuthor;
 import com.backend.domain.model.BookCategory;
+import com.backend.domain.model.BookStat;
 import com.backend.domain.valueobject.BookStatus;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -31,13 +32,22 @@ public class BookServiceImpl implements BookService {
     private final ObjectMapper objectMapper;
 
     @Override
-    public PageResponse<Book> getBooks(int page, int size) {
-        PageResponse<Book> books = bookRepository.findAll(page, size);
-        books.getContent().forEach(book -> {
-            book.setCoverImage(storageService.createSignUrl(book.getCoverImage(),60L));
-            book.setContentFile(storageService.createSignUrl(book.getContentFile(),60L));
+    public PageResponse<BookStat> getBooks(int page, int size) {
+        PageResponse<BookStat> bookStats = bookRepository.findAllWithStats(page, size);
+
+        bookStats.getContent().forEach(bookStat -> {
+            if (bookStat.getCoverImage() != null) {
+                bookStat.setCoverImage(storageService.createSignUrl(bookStat.getCoverImage(), 60L));
+            }
+            if (bookStat.getContentFile() != null) {
+                bookStat.setContentFile(storageService.createSignUrl(bookStat.getContentFile(), 60L));
+            }
+            if (bookStat.getVoice() != null && bookStat.getVoice().getExampleAudio() != null) {
+                bookStat.getVoice().setExampleAudio(
+                        storageService.createSignUrl(bookStat.getVoice().getExampleAudio(), 60L));
+            }
         });
-        return books;
+        return bookStats;
     }
 
     @Override
@@ -74,14 +84,14 @@ public class BookServiceImpl implements BookService {
 
         // Set categories
         if (Objects.nonNull(req.getCategories())) {
-            book.setBookCategories(req.getCategories().stream()
+            book.setCategories(req.getCategories().stream()
                     .map(cat -> BookCategory.builder().category(cat).build())
                     .toList());
         }
 
         // Set authors
         if (Objects.nonNull(req.getAuthors())) {
-            book.setBookAuthors(req.getAuthors().stream()
+            book.setAuthors(req.getAuthors().stream()
                     .map(author -> BookAuthor.builder().author(author).build())
                     .toList());
         }
@@ -136,12 +146,12 @@ public class BookServiceImpl implements BookService {
             book.setVoice(req.getVoice());
         }
         if (req.getCategories() != null) {
-            book.setBookCategories(req.getCategories().stream()
+            book.setCategories(req.getCategories().stream()
                     .map(cat -> BookCategory.builder().category(cat).build())
                     .toList());
         }
         if (req.getAuthors() != null) {
-            book.setBookAuthors(req.getAuthors().stream()
+            book.setAuthors(req.getAuthors().stream()
                     .map(author -> BookAuthor.builder().author(author).build())
                     .toList());
         }
