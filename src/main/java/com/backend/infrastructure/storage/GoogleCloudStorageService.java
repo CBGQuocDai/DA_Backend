@@ -1,6 +1,7 @@
 package com.backend.infrastructure.storage;
 
 import com.backend.domain.adapter.storage.StorageService;
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.storage.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,11 +22,8 @@ public class GoogleCloudStorageService implements StorageService {
     @Value("${gcs.bucket:}")
     private String bucket;
 
-    public GoogleCloudStorageService(@Autowired(required = false) Storage storage) {
-        this.storage = storage;
-        if (storage == null) {
-            log.warn("GCP Storage bean is not configured or disabled. Storage service will operate in safe mode.");
-        }
+    public GoogleCloudStorageService() {
+        this.storage = StorageOptions.getDefaultInstance().getService();
     }
 
     @Override

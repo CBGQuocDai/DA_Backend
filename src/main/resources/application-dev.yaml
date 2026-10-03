@@ -26,7 +26,7 @@ spring:
     gcp:
       project-id: ${GCP_PROJECT_ID}
       credentials:
-        location: file:${GCS_CREDENTIALS_FILE}
+        location: file:${GOOGLE_APPLICATION_CREDENTIALS}
       storage:
         enabled: true
 
