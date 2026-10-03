@@ -13,7 +13,7 @@ spring:
   jpa:
     show-sql: true
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     properties:
       hibernate:
         format_sql: true
@@ -25,14 +25,19 @@ spring:
   cloud:
     gcp:
       project-id: ${GCP_PROJECT_ID}
-      credentials:
-        location: file:${GCS_CREDENTIALS_FILE}
       storage:
         enabled: true
 
 # GCP Storage
 gcs:
   bucket: ${GCS_BUCKET}
+
+# GCP Document AI
+gcp:
+  documentai:
+    project-id: ${GCP_PROJECT_ID}
+    location: ${GCP_DOCUMENT_AI_LOCATION}
+    processor-id: ${GCP_DOCUMENT_AI_PROCESSOR_ID}
 
 # JWT Configuration
 jwt:

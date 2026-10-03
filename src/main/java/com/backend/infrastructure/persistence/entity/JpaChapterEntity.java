@@ -1,5 +1,6 @@
 package com.backend.infrastructure.persistence.entity;
 
+import com.backend.domain.valueobject.ChapterStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -25,8 +26,11 @@ public class JpaChapterEntity {
     @Column(name = "audio_url")
     private String audioUrl;
 
-    @Column(name = "text_context", columnDefinition = "TEXT")
-    private String textContext;
+    @Column(name = "raw_text", columnDefinition = "TEXT")
+    private String rawText;
+
+    @Enumerated(EnumType.STRING)
+    private ChapterStatus status;
 
     @Column(name = "book_id", nullable = false)
     private Long bookId;
