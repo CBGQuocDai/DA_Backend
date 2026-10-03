@@ -13,7 +13,7 @@ spring:
   jpa:
     show-sql: true
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     properties:
       hibernate:
         format_sql: true
@@ -25,6 +25,8 @@ spring:
   cloud:
     gcp:
       project-id: ${GCP_PROJECT_ID}
+      credentials:
+        location: file:${GCS_CREDENTIALS_FILE}
       storage:
         enabled: true
 

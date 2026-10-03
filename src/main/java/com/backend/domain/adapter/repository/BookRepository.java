@@ -5,9 +5,11 @@ import com.backend.domain.dto.response.PageResponse;
 import com.backend.domain.model.Book;
 import com.backend.domain.model.BookStat;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface BookRepository {
+
     Book insert(Book book);
 
     void update(Book book);
@@ -21,4 +23,6 @@ public interface BookRepository {
     void delete(Book book);
 
     void deleteById(Long id);
+
+    List<Book> findAllById(List<Long> bookIds);
 }

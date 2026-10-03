@@ -3,6 +3,7 @@ package com.backend.infrastructure.storage;
 import com.backend.domain.adapter.storage.StorageService;
 import com.google.cloud.storage.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -17,16 +18,23 @@ public class GoogleCloudStorageService implements StorageService {
 
     private final Storage storage;
 
-    @Value("${gcs.bucket}")
+    @Value("${gcs.bucket:}")
     private String bucket;
 
-    public GoogleCloudStorageService() {
-        this.storage = StorageOptions.getDefaultInstance().getService();
+    public GoogleCloudStorageService(@Autowired(required = false) Storage storage) {
+        this.storage = storage;
+        if (storage == null) {
+            log.warn("GCP Storage bean is not configured or disabled. Storage service will operate in safe mode.");
+        }
     }
 
     @Override
     @Async
     public void store(MultipartFile file, String filePath) {
+        if (storage == null) {
+            log.warn("Storage is disabled or not configured. Skipping upload for {}", filePath);
+            return;
+        }
         BlobId blobId = BlobId.of(bucket, filePath);
         BlobInfo blobInfo = BlobInfo.newBuilder(blobId)
                 .setContentType(file.getContentType())
@@ -43,13 +51,17 @@ public class GoogleCloudStorageService implements StorageService {
         if (filePath == null || filePath.isBlank()) {
             return "";
         }
+        if (storage == null) {
+            log.debug("Storage is disabled. Returning raw file path: {}", filePath);
+            return filePath;
+        }
         BlobId blobId = BlobId.of(bucket, filePath);
         BlobInfo blobInfo = BlobInfo.newBuilder(blobId).build();
         try {
             return storage.signUrl(blobInfo, minutes, TimeUnit.MINUTES).toString();
         } catch (StorageException e) {
             log.error("Failed to generate signed URL for {}: {}", filePath, e.getMessage());
-            return "";
+            return filePath;
         }
     }
 

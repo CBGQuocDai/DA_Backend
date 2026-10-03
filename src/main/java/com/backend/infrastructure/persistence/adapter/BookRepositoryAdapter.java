@@ -16,6 +16,7 @@ import com.backend.infrastructure.persistence.repository.JpaBookAuthorRepository
 import com.backend.infrastructure.persistence.repository.JpaBookCategoryRepository;
 import com.backend.infrastructure.persistence.repository.JpaBookRepository;
 import com.backend.infrastructure.persistence.repository.JpaBookUpdateRepository;
+import java.util.ArrayList;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -114,6 +115,9 @@ public class BookRepositoryAdapter implements BookRepository {
     @Override
     @Transactional(readOnly = true)
     public Optional<Book> findById(Long id) {
+        if (id == null) {
+            return Optional.empty();
+        }
         return jpaBookRepository.findById(id)
                 .map(bookMapper::toDomain);
     }
@@ -176,5 +180,16 @@ public class BookRepositoryAdapter implements BookRepository {
     @Transactional
     public void deleteById(Long id) {
         jpaBookRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Book> findAllById(List<Long> bookIds) {
+        if (bookIds == null || bookIds.isEmpty()) {
+            return List.of();
+        }
+        return jpaBookRepository.findAllById(bookIds).stream()
+                .map(bookMapper::toDomain)
+                .toList();
     }
 }
