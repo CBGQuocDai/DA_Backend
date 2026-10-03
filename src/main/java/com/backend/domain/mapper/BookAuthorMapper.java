@@ -10,7 +10,6 @@ public interface BookAuthorMapper {
 
     BookAuthor toDomain(JpaBookAuthorEntity entity);
 
-    @Mapping(target = "bookId", source = "book.id")
     @Mapping(target = "authorId", source = "author.id")
     JpaBookAuthorEntity toEntity(BookAuthor domain);
 }

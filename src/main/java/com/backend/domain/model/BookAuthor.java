@@ -13,6 +13,5 @@ import lombok.Setter;
 @AllArgsConstructor
 public class BookAuthor {
     private Long id;
-    private Book book;
     private Author author;
 }

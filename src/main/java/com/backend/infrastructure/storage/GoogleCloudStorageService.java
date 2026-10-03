@@ -5,6 +5,7 @@ import com.google.cloud.storage.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -28,6 +29,7 @@ public class GoogleCloudStorageService implements StorageService {
     }
 
     @Override
+    @Async
     public void store(MultipartFile file, String filePath) {
         if (storage == null) {
             log.warn("Storage is disabled or not configured. Skipping upload for {}", filePath);

@@ -13,8 +13,8 @@ public interface BookMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "coverImage", ignore = true)
-    @Mapping(target = "bookCategories", ignore = true)
-    @Mapping(target = "bookAuthors", ignore = true)
+    @Mapping(target = "categories", ignore = true)
+    @Mapping(target = "authors", ignore = true)
     @Mapping(target = "voice", source = "voice")
     Book toDomain(BookCreateRequest request);
 

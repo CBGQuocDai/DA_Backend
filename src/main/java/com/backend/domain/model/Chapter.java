@@ -20,6 +20,5 @@ public class Chapter {
     private String audioUrl;
     private String rawText;
     private ChapterStatus status;
-    private Book book;
     private AttachFile attachFile;
 }

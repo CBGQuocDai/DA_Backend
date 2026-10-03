@@ -11,6 +11,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 @RequiredArgsConstructor
 public class VoiceRepositoryAdapter implements VoiceRepository {
@@ -39,6 +41,16 @@ public class VoiceRepositoryAdapter implements VoiceRepository {
 
     @Override
     public void delete(Voice v) {
+        jpaVoiceRepository.delete(voiceMapper.toEntity(v));
+    }
 
+    @Override
+    public Optional<Voice> findById(Long id) {
+        return jpaVoiceRepository.findById(id).map(voiceMapper::toDomain);
+    }
+
+    @Override
+    public void deleteById(Long id) {
+        jpaVoiceRepository.deleteById(id);
     }
 }

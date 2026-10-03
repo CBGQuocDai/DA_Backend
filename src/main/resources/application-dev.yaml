@@ -34,6 +34,12 @@ spring:
 gcs:
   bucket: ${GCS_BUCKET}
 
+# GCP Document AI
+gcp:
+  documentai:
+    project-id: ${GCP_PROJECT_ID}
+    location: ${GCP_DOCUMENT_AI_LOCATION}
+    processor-id: ${GCP_DOCUMENT_AI_PROCESSOR_ID}
 # JWT Configuration
 jwt:
   secret: ${JWT_SECRET}
@@ -59,4 +65,3 @@ management:
         include:
           - health
       base-path: /
-

@@ -6,7 +6,6 @@ import com.backend.domain.adapter.repository.VoiceRepository;
 import com.backend.domain.adapter.storage.StorageService;
 import com.backend.domain.dto.request.voice.VoiceCreateRequest;
 import com.backend.domain.dto.response.PageResponse;
-import com.backend.domain.mapper.VoiceMapper;
 import com.backend.domain.model.Voice;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,9 +19,8 @@ public class VoiceServiceImpl implements VoiceService {
     private final VoiceRepository voiceRepository;
     private final ObjectMapper objectMapper;
     private final StorageService storageService;
-    private final VoiceMapper voiceMapper;
 
-    private String VOICE_EXAMPLE_PATH = "/voice-example/";
+    private static final String VOICE_EXAMPLE_PATH = "voice-example/";
     @Override
     public PageResponse<Voice> getListVoice() {
         PageResponse<Voice> v = voiceRepository.findAll(0,10);
@@ -54,11 +52,23 @@ public class VoiceServiceImpl implements VoiceService {
 
     @Override
     public Voice updateVoice(Long voiceId, Voice v) {
-        return null;
+        Voice existing = voiceRepository.findById(voiceId)
+                .orElseThrow(() -> new RuntimeException("Voice not found with id: " + voiceId));
+        if (v.getName() != null) {
+            existing.setName(v.getName());
+        }
+        if (v.getDescription() != null) {
+            existing.setDescription(v.getDescription());
+        }
+        Voice updated = voiceRepository.save(existing);
+        if (updated.getExampleAudio() != null) {
+            updated.setExampleAudio(storageService.createSignUrl(updated.getExampleAudio(), 60L));
+        }
+        return updated;
     }
 
     @Override
     public void deleteVoice(Long voiceId) {
-
+        voiceRepository.deleteById(voiceId);
     }
 }
