@@ -1,7 +1,7 @@
 package com.backend.domain.adapter.textToSpeech;
 
-import java.util.Map;
+import com.backend.domain.dto.request.book.chapter.GenerateAudioRequest;
 
 public interface TextToSpeechService {
-    Map<String, Object> generateAudio();
+    String generateAudio(GenerateAudioRequest request);
 }

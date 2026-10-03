@@ -2,9 +2,11 @@ package com.backend.infrastructure.persistence.adapter;
 
 import com.backend.domain.adapter.repository.ChapterRepository;
 import com.backend.domain.mapper.ChapterMapper;
+import com.backend.domain.model.Book;
 import com.backend.domain.model.Chapter;
 import com.backend.infrastructure.persistence.entity.JpaChapterEntity;
 import com.backend.infrastructure.persistence.repository.JpaChapterRepository;
+import com.backend.infrastructure.persistence.repository.JpaChapterUpdateRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +19,7 @@ import java.util.Optional;
 public class ChapterRepositoryAdapter implements ChapterRepository {
 
     private final JpaChapterRepository jpaChapterRepository;
+    private final JpaChapterUpdateRepository jpaChapterUpdateRepository;
     private final ChapterMapper chapterMapper;
 
     @Override
@@ -42,6 +45,36 @@ public class ChapterRepositoryAdapter implements ChapterRepository {
         JpaChapterEntity savedEntity = jpaChapterRepository.save(entity);
         chapter.setId(savedEntity.getId());
         return chapter;
+    }
+
+    @Override
+    @Transactional
+    public Chapter update(Chapter chapter) {
+        jpaChapterUpdateRepository.updateChapter(
+                chapter.getId(),
+                chapter.getTitle(),
+                chapter.getChapterOrder(),
+                chapter.getDuration(),
+                chapter.getAudioUrl(),
+                chapter.getRawText(),
+                chapter.getStatus(),
+                chapter.getAttachFile() != null ? chapter.getAttachFile().getId() : null
+        );
+        return chapter;
+    }
+
+    @Override
+    @Transactional
+    public List<Chapter> saveAll(List<Chapter> chapters, Book b) {
+        List<JpaChapterEntity> entities = chapters.stream()
+                .map(chapterMapper::toEntity)
+                .toList();
+        entities.forEach(entity -> entity.setBookId(b.getId()));
+        List<JpaChapterEntity> savedEntities = jpaChapterRepository.saveAll(entities);
+        for (int i = 0; i < chapters.size(); i++) {
+            chapters.get(i).setId(savedEntities.get(i).getId());
+        }
+        return chapters;
     }
 
     @Override

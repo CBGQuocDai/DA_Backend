@@ -2,7 +2,6 @@ package com.backend.domain.valueobject;
 
 public enum BookStatus {
     PROCESSING,      // Đang OCR
-    READY_FOR_EDIT, // OCR xong, đang edit chapters
-    READY,          // Tất cả chapters có audio
+    UNPUBLISHED,    // Ocr xong, sẵn sàng để chỉnh sửa. chưa được publish cho khách hàng
     PUBLISHED       // Đã publish
 }
