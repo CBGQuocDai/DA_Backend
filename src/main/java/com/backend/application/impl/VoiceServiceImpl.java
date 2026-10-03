@@ -52,11 +52,23 @@ public class VoiceServiceImpl implements VoiceService {
 
     @Override
     public Voice updateVoice(Long voiceId, Voice v) {
-        return null;
+        Voice existing = voiceRepository.findById(voiceId)
+                .orElseThrow(() -> new RuntimeException("Voice not found with id: " + voiceId));
+        if (v.getName() != null) {
+            existing.setName(v.getName());
+        }
+        if (v.getDescription() != null) {
+            existing.setDescription(v.getDescription());
+        }
+        Voice updated = voiceRepository.save(existing);
+        if (updated.getExampleAudio() != null) {
+            updated.setExampleAudio(storageService.createSignUrl(updated.getExampleAudio(), 60L));
+        }
+        return updated;
     }
 
     @Override
     public void deleteVoice(Long voiceId) {
-
+        voiceRepository.deleteById(voiceId);
     }
 }
