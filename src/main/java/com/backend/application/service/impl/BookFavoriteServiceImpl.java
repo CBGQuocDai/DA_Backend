@@ -1,6 +1,6 @@
-package com.backend.application.impl;
+package com.backend.application.service.impl;
 
-import com.backend.application.BookFavoriteService;
+import com.backend.application.service.BookFavoriteService;
 import com.backend.domain.adapter.repository.BookFavoriteRepository;
 import com.backend.domain.adapter.repository.BookRepository;
 import com.backend.domain.adapter.repository.CustomerRepository;

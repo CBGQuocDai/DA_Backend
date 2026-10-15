@@ -1,13 +1,11 @@
-package com.backend.application.impl;
+package com.backend.application.service.impl;
 
-import com.backend.application.ReviewService;
+import com.backend.application.service.ReviewService;
 import com.backend.domain.adapter.repository.BookRepository;
 import com.backend.domain.adapter.repository.CustomerRepository;
 import com.backend.domain.adapter.repository.ReviewRepository;
 import com.backend.domain.dto.request.review.ReviewCreateRequest;
 
-import com.backend.domain.dto.request.user.customer.CustomerChangePasswordRequest;
-import com.backend.domain.dto.response.customer.CustomerProfileResponse;
 import com.backend.domain.dto.response.review.ReviewCreateResponse;
 import com.backend.domain.exception.BusinessException;
 import com.backend.domain.model.Book;

@@ -2,7 +2,7 @@ server:
   servlet:
     context-path: /api
   port: ${PORT:8080}
-
+  
 spring:
   application:
     name: backend
@@ -13,7 +13,7 @@ spring:
   jpa:
     show-sql: true
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     properties:
       hibernate:
         format_sql: true
@@ -29,7 +29,10 @@ spring:
         location: file:${GOOGLE_APPLICATION_CREDENTIALS}
       storage:
         enabled: true
-
+  servlet:
+    multipart:
+      file-size-threshold: 10MB
+      max-file-size: 10MB
 # GCP Storage
 gcs:
   bucket: ${GCS_BUCKET}
@@ -66,4 +69,3 @@ management:
         include:
           - health
       base-path: /
-

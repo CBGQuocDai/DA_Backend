@@ -1,6 +1,6 @@
-package com.backend.application.impl;
+package com.backend.application.service.impl;
 
-import com.backend.application.CategoryService;
+import com.backend.application.service.CategoryService;
 import com.backend.domain.adapter.repository.CategoryRepository;
 import com.backend.domain.model.Category;
 import lombok.RequiredArgsConstructor;

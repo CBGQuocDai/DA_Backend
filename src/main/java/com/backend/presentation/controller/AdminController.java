@@ -5,7 +5,7 @@ import com.backend.domain.dto.request.user.RegisterRequest;
 import com.backend.domain.dto.response.ApiResponse;
 import com.backend.domain.dto.response.user.LoginResponse;
 import com.backend.domain.dto.response.user.RegisterResponse;
-import com.backend.application.AdminService;
+import com.backend.application.service.AdminService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;

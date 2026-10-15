@@ -1,8 +1,8 @@
 package com.backend.presentation.controller;
 
 
-import com.backend.application.BookService;
-import com.backend.domain.dto.request.book.BookCreateRequest;
+import com.backend.application.service.BookService;
+import com.backend.application.service.CategoryService;
 import com.backend.domain.dto.response.PageResponse;
 import com.backend.domain.model.Book;
 import com.backend.domain.model.BookStat;
@@ -27,7 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class BookController {
 
     private final BookService bookService;
-    private final com.backend.application.CategoryService categoryService;
+    private final CategoryService categoryService;
 
     @GetMapping
     public ResponseEntity<PageResponse<BookStat>> getListBooks(

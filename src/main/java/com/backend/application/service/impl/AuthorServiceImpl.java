@@ -1,6 +1,6 @@
-package com.backend.application.impl;
+package com.backend.application.service.impl;
 
-import com.backend.application.AuthorService;
+import com.backend.application.service.AuthorService;
 import com.backend.domain.adapter.repository.AuthorRepository;
 import com.backend.domain.model.Author;
 import lombok.RequiredArgsConstructor;

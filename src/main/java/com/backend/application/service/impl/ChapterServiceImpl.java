@@ -1,6 +1,6 @@
-package com.backend.application.impl;
+package com.backend.application.service.impl;
 
-import com.backend.application.ChapterService;
+import com.backend.application.service.ChapterService;
 import com.backend.domain.adapter.repository.BookRepository;
 import com.backend.domain.adapter.repository.ChapterRepository;
 import com.backend.domain.adapter.storage.StorageService;
@@ -13,7 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 

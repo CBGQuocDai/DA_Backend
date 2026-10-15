@@ -1,6 +1,6 @@
 package com.backend.presentation.controller;
 
-import com.backend.application.CategoryService;
+import com.backend.application.service.CategoryService;
 import com.backend.domain.dto.response.ApiResponse;
 import com.backend.domain.model.Category;
 import lombok.RequiredArgsConstructor;

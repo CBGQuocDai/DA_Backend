@@ -1,7 +1,7 @@
-package com.backend.application.impl;
+package com.backend.application.service.impl;
 
 
-import com.backend.application.BookService;
+import com.backend.application.service.BookService;
 import com.backend.domain.adapter.ocr.OcrService;
 import com.backend.domain.adapter.repository.BookRepository;
 import com.backend.domain.adapter.storage.StorageService;

@@ -1,6 +1,6 @@
 package com.backend.presentation.controller;
 
-import com.backend.application.AuthorService;
+import com.backend.application.service.AuthorService;
 import com.backend.domain.dto.response.ApiResponse;
 import com.backend.domain.model.Author;
 import lombok.RequiredArgsConstructor;
