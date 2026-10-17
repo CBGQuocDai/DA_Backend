@@ -1,6 +1,6 @@
-package com.backend.application.impl;
+package com.backend.application.service.impl;
 
-import com.backend.application.CustomerService;
+import com.backend.application.service.CustomerService;
 import com.backend.domain.adapter.PasswordEncoder;
 import com.backend.domain.adapter.TokenProvider;
 import com.backend.domain.adapter.repository.CustomerRepository;

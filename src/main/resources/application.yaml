@@ -3,3 +3,17 @@ spring:
     active:
       - dev
 #      - test
+  web:
+    resources:
+      add-mappings: false
+
+llm:
+  router:
+    base-url: ${LLM_ROUTER_BASE_URL:http://100.118.32.97:20128/v1}
+    api-key: ${LLM_ROUTER_API_KEY:}
+    model: ${LLM_ROUTER_MODEL:ag/gemini-3.8-flash-medium}
+  retry:
+    max-attempts: 3
+    base-delay-ms: 1000
+ocr:
+  chunk-size: 15

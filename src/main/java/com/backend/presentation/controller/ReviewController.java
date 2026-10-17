@@ -1,10 +1,9 @@
 package com.backend.presentation.controller;
 
-import com.backend.application.ReviewService;
+import com.backend.application.service.ReviewService;
 import com.backend.domain.dto.request.review.ReviewCreateRequest;
 import com.backend.domain.dto.response.ApiResponse;
 import com.backend.domain.dto.response.review.ReviewCreateResponse;
-import com.backend.domain.dto.response.user.RegisterResponse;
 import com.backend.domain.model.Review;
 import java.util.List;
 import lombok.RequiredArgsConstructor;

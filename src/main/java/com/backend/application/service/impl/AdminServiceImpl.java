@@ -1,6 +1,6 @@
-package com.backend.application.impl;
+package com.backend.application.service.impl;
 
-import com.backend.application.AdminService;
+import com.backend.application.service.AdminService;
 import com.backend.domain.adapter.PasswordEncoder;
 import com.backend.domain.adapter.TokenProvider;
 import com.backend.domain.adapter.repository.AdminRepository;

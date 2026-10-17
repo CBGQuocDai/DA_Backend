@@ -1,6 +1,6 @@
 package com.backend.presentation.controller;
 
-import com.backend.application.BookFavoriteService;
+import com.backend.application.service.BookFavoriteService;
 import com.backend.domain.dto.response.ApiResponse;
 import com.backend.domain.dto.response.BookFavoriteResponse;
 import com.backend.domain.model.Book;

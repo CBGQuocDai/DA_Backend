@@ -1,4 +1,4 @@
-package com.backend.application;
+package com.backend.application.service;
 
 import com.backend.domain.dto.request.user.LoginRequest;
 import com.backend.domain.dto.request.user.RegisterRequest;

@@ -1,8 +1,9 @@
 package com.backend.presentation.controller;
 
 
-import com.backend.application.VoiceService;
+import com.backend.application.service.VoiceService;
 import com.backend.domain.dto.response.ApiResponse;
+import com.backend.domain.dto.response.PageResponse;
 import com.backend.domain.model.Voice;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,9 +19,13 @@ public class VoiceController {
 
     private final VoiceService voiceService;
     @GetMapping
-    public ResponseEntity<ApiResponse<com.backend.domain.dto.response.PageResponse<Voice>>> getListVoice() {
-        return ResponseEntity.ok(ApiResponse.<com.backend.domain.dto.response.PageResponse<Voice>>builder()
-                .data(voiceService.getListVoice())
+    public ResponseEntity<ApiResponse<PageResponse<Voice>>> getListVoice(
+            @RequestParam(value="page", defaultValue = "0")  int page,
+            @RequestParam(value= "size", defaultValue = "10") int size,
+            @RequestParam(value = "voiceName", required = false) String voiceName
+    ) {
+        return ResponseEntity.ok(ApiResponse.<PageResponse<Voice>>builder()
+                .data(voiceService.getListVoice(voiceName, page, size))
                 .build());
     }
 
@@ -33,10 +38,13 @@ public class VoiceController {
                 .build());
     }
 
-    @PutMapping("/{voiceId}")
-    public ResponseEntity<ApiResponse<Voice>> updateVoice(@PathVariable Long voiceId, @RequestBody Voice voice) {
+    @PutMapping(value = "/{voiceId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<Voice>> updateVoice(
+            @PathVariable Long voiceId,
+            @RequestPart(value = "voiceInfo", required = false) String voiceInfo,
+            @RequestPart(value = "exampleAudio", required = false) MultipartFile exampleAudio) {
         return ResponseEntity.ok(ApiResponse.<Voice>builder()
-                .data(voiceService.updateVoice(voiceId, voice))
+                .data(voiceService.updateVoice(voiceId, voiceInfo, exampleAudio))
                 .build());
     }
 
