@@ -31,10 +31,23 @@ public class BookController {
 
     @GetMapping
     public ResponseEntity<PageResponse<BookStat>> getListBooks(
-            @RequestParam Integer page,
-            @RequestParam Integer size
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(required = false) Long categoryId
     ) {
+        if (categoryId != null) {
+            return ResponseEntity.ok(bookService.getBooksByCategory(categoryId, page, size));
+        }
         return ResponseEntity.ok(bookService.getBooks(page, size));
+    }
+
+    @GetMapping("/category/{categoryId}")
+    public ResponseEntity<PageResponse<BookStat>> getBooksByCategory(
+            @PathVariable Long categoryId,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "10") Integer size
+    ) {
+        return ResponseEntity.ok(bookService.getBooksByCategory(categoryId, page, size));
     }
 
     @GetMapping("/{bookId}")

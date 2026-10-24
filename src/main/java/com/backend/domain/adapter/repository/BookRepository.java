@@ -20,6 +20,8 @@ public interface BookRepository {
 
     PageResponse<BookStat> findAllWithStats(int page, int size);
 
+    PageResponse<BookStat> findByCategoryId(Long categoryId, int page, int size);
+
     void delete(Book book);
 
     void deleteById(Long id);

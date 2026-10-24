@@ -169,6 +169,38 @@ public class BookRepositoryAdapter implements BookRepository {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public PageResponse<BookStat> findByCategoryId(Long categoryId, int page, int size) {
+        Page<BookListProjection> projectionPage = jpaBookRepository.findBookListProjectionsByCategoryId(
+                categoryId,
+                PageRequest.of(page, size)
+        );
+
+        List<Long> bookIds = projectionPage.getContent().stream()
+                .map(BookListProjection::getId)
+                .toList();
+
+        List<JpaBookAuthorEntity> allAuthors = bookIds.isEmpty()
+                ? List.of()
+                : jpaBookAuthorRepository.findByBookIdIn(bookIds);
+        List<JpaBookCategoryEntity> allCategories = bookIds.isEmpty()
+                ? List.of()
+                : jpaBookCategoryRepository.findByBookIdIn(bookIds);
+
+        List<BookStat> bookStats = projectionPage.getContent().stream()
+                .map(proj -> BookStatMapper.toBookStat(proj, allAuthors, allCategories))
+                .toList();
+
+        return PageResponse.<BookStat>builder()
+                .content(bookStats)
+                .total((int) projectionPage.getTotalElements())
+                .totalPage(projectionPage.getTotalPages())
+                .page(page)
+                .pageSize(size)
+                .build();
+    }
+
+    @Override
     @Transactional
     public void delete(Book book) {
         if (book.getId() != null) {
