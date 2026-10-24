@@ -34,6 +34,8 @@ public enum BusinessError {
     BOOK_NOT_FOUND(4006, "Không tìm thấy sách", HttpStatus.BAD_REQUEST),
     BOOK_ALREADY_FAVORITED(4007, "Sách đã có trong danh sách yêu thích", HttpStatus.BAD_REQUEST),
     BOOK_FAVORITE_NOT_FOUND(4008, "Sách không có trong danh sách yêu thích", HttpStatus.BAD_REQUEST),
+    BOOK_ALREADY_OWNED(4011, "Bạn đã sở hữu cuốn sách này rồi", HttpStatus.BAD_REQUEST),
+    PAYMENT_NOT_FOUND(4012, "Không tìm thấy thông tin thanh toán", HttpStatus.NOT_FOUND),
 
 //    File không đúng định dạng
     FILE_FORMAT_INCORRECT(4100, "File tải lên không đúng định dạng", HttpStatus.BAD_REQUEST),
