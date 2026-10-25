@@ -1,6 +1,6 @@
-package com.backend.application.service.impl;
+package com.backend.infrastructure.payment;
 
-import com.backend.application.service.PaymentService;
+import com.backend.domain.adapter.payment.PaymentService;
 import com.backend.domain.adapter.storage.StorageService;
 import com.backend.domain.dto.response.payment.PaymentResponse;
 import com.backend.domain.exception.BusinessException;

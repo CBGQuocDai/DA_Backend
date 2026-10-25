@@ -1,6 +1,6 @@
 package com.backend.presentation.controller;
 
-import com.backend.application.service.PaymentWebhookService;
+import com.backend.domain.adapter.payment.PaymentWebhookService;
 import com.backend.domain.dto.request.payment.SepayWebhookRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;

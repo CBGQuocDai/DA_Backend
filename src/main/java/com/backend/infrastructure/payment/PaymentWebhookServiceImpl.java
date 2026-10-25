@@ -1,6 +1,6 @@
-package com.backend.application.service.impl;
+package com.backend.infrastructure.payment;
 
-import com.backend.application.service.PaymentWebhookService;
+import com.backend.domain.adapter.payment.PaymentWebhookService;
 import com.backend.domain.dto.request.payment.SepayWebhookRequest;
 import com.backend.domain.valueobject.PaymentStatus;
 import com.backend.infrastructure.persistence.entity.JpaCustomerBookEntity;

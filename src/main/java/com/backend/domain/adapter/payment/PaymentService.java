@@ -1,4 +1,4 @@
-package com.backend.application.service;
+package com.backend.domain.adapter.payment;
 
 import com.backend.domain.dto.response.payment.PaymentResponse;
 
