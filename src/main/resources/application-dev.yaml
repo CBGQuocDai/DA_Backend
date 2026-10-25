@@ -32,7 +32,8 @@ spring:
   servlet:
     multipart:
       file-size-threshold: 10MB
-      max-file-size: 10MB
+      max-file-size: 100MB
+      max-request-size: 106MB
 # GCP Storage
 gcs:
   bucket: ${GCS_BUCKET}

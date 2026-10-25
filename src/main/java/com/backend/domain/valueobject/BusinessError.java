@@ -44,6 +44,25 @@ public enum BusinessError {
     VOICE_NAME_REQUIRED(4200, "Tên giọng không được để trống", HttpStatus.BAD_REQUEST),
     VOICE_NAME_TOO_LONG(4201, "Tên giọng không được dài quá 255 kí tự", HttpStatus.BAD_REQUEST),
     VOICE_DESCRIPTION_TOO_LONG(4202, "Mô tả giọng không được dài quá 255 kí tự", HttpStatus.BAD_REQUEST),
+
+    // Book validation errors
+    BOOK_TITLE_REQUIRED(4300, "Tiêu đề sách không được để trống", HttpStatus.BAD_REQUEST),
+    BOOK_TITLE_TOO_LONG(4301, "Tiêu đề sách không được dài quá 255 kí tự", HttpStatus.BAD_REQUEST),
+    BOOK_DESCRIPTION_TOO_LONG(4302, "Mô tả sách không được dài quá 2000 kí tự", HttpStatus.BAD_REQUEST),
+    BOOK_PRICE_REQUIRED(4303, "Giá sách không được để trống", HttpStatus.BAD_REQUEST),
+    BOOK_PRICE_INVALID(4304, "Giá sách không hợp lệ (phải lớn hơn hoặc bằng 0)", HttpStatus.BAD_REQUEST),
+    BOOK_PDF_REQUIRED(4305, "File PDF của sách không được để trống", HttpStatus.BAD_REQUEST),
+    BOOK_PDF_FORMAT_INCORRECT(4306, "File tải lên phải là định dạng PDF", HttpStatus.BAD_REQUEST),
+    BOOK_DESCRIPTION_REQUIRED(4307, "Mô tả sách không được để trống", HttpStatus.BAD_REQUEST),
+    BOOK_VOICE_REQUIRED(4308, "Giọng đọc của sách không được để trống", HttpStatus.BAD_REQUEST),
+    BOOK_CATEGORY_REQUIRED(4309, "Sách phải thuộc ít nhất một danh mục", HttpStatus.BAD_REQUEST),
+    BOOK_AUTHOR_REQUIRED(4310, "Sách phải có ít nhất một tác giả", HttpStatus.BAD_REQUEST),
+    BOOK_COVER_REQUIRED(4311, "Ảnh bìa của sách không được để trống", HttpStatus.BAD_REQUEST),
+    BOOK_COVER_FORMAT_INCORRECT(4312, "Ảnh bìa phải là định dạng JPG, PNG hoặc WebP", HttpStatus.BAD_REQUEST),
+    BOOK_COVER_TOO_LARGE(4313, "Ảnh bìa không được lớn hơn 5MB", HttpStatus.BAD_REQUEST),
+    BOOK_PDF_TOO_LARGE(4314, "File PDF không được lớn hơn 100MB", HttpStatus.BAD_REQUEST),
+
+    CHAPTER_NOT_FOUND(4006, "Không tìm thấy sách", HttpStatus.BAD_REQUEST),
     ;
     private final Integer code;
     private final String message;

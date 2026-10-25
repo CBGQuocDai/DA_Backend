@@ -9,8 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
  */
 public interface FileTypeDetector {
     /**
-     * @return the detected audio MIME type, or {@code null} when the file is not audio
-     *         (or cannot be identified).
+     * @return the MIME type detected from the file's bytes, or {@code null} when it cannot be identified.
      */
-    String detectAudioContentType(MultipartFile file);
+    String detectContentType(MultipartFile file);
 }
