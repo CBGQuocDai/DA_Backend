@@ -17,4 +17,5 @@ public interface BookService {
     void publishBook(Long bookId);
     void unpublishBook(Long bookId);
 // chức năng của client
+    PageResponse<BookStat> getBooksByCategory(Long categoryId, int page, int size);
 }

@@ -59,6 +59,23 @@ public class BookServiceImpl implements BookService {
     }
 
     @Override
+public PageResponse<BookStat> getBooksByCategory(Long categoryId, int page, int size) {
+    PageResponse<BookStat> bookStats = bookRepository.findByCategoryId(categoryId, page, size);
+    bookStats.getContent().forEach(bookStat -> {
+        if (bookStat.getCoverImage() != null) {
+            bookStat.setCoverImage(storageService.createSignUrl(bookStat.getCoverImage(), 60L));
+        }
+        if (bookStat.getContentFile() != null) {
+            bookStat.setContentFile(storageService.createSignUrl(bookStat.getContentFile(), 60L));
+        }
+        if (bookStat.getVoice() != null && bookStat.getVoice().getExampleAudio() != null) {
+            bookStat.getVoice().setExampleAudio(
+                    storageService.createSignUrl(bookStat.getVoice().getExampleAudio(), 60L));
+        }
+    });
+    return bookStats;
+}
+    @Override
     public Book getBookById(Long bookId) {
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));

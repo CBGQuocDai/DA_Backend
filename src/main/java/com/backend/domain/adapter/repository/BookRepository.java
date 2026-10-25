@@ -20,6 +20,7 @@ public interface BookRepository {
     PageResponse<BookStat> findAllWithStats(String bookName, Long categoryId, Long authorId,
                                             BookStatus status, int page, int size);
 
+    PageResponse<BookStat> findByCategoryId(Long categoryId, int page, int size);
     void deleteById(Long id);
 
     List<Book> findAllById(List<Long> bookIds);

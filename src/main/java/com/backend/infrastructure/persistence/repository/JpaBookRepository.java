@@ -22,6 +22,36 @@ public interface JpaBookRepository extends JpaRepository<JpaBookEntity, Long> {
             """)
     Optional<JpaBookEntity> findByIdWithVoice(@Param("id") Long id);
 
+    @Query(value = """
+            SELECT
+                b.id          AS id,
+                b.title       AS title,
+                b.price       AS price,
+                b.description AS description,
+                b.coverImage  AS coverImage,
+                b.contentFile AS contentFile,
+                b.voiceId     AS voiceId,
+                v.name        AS voiceName,
+                v.exampleAudio AS voiceExampleAudio,
+                v.description AS voiceDescription,
+                b.status      AS status,
+                COALESCE(AVG(r.rate), 0.0) AS averageRating
+            FROM JpaBookEntity b
+            JOIN JpaBookCategoryEntity bc ON bc.bookId = b.id
+            LEFT JOIN JpaVoiceEntity v ON v.id = b.voiceId
+            LEFT JOIN JpaReviewEntity r ON r.bookId = b.id
+            WHERE bc.categoryId = :categoryId
+            GROUP BY b.id, v.id
+            """,
+            countQuery = """
+            SELECT COUNT(bc.id)
+            FROM JpaBookCategoryEntity bc
+            WHERE bc.categoryId = :categoryId
+            """)
+    Page<BookListProjection> findBookListProjectionsByCategoryId(
+            @Param("categoryId") Long categoryId,
+            Pageable pageable
+    );
     @Query("""
             SELECT
                 b.id          AS id,
@@ -54,4 +84,5 @@ public interface JpaBookRepository extends JpaRepository<JpaBookEntity, Long> {
                                                         @Param("authorId") Long authorId,
                                                         @Param("status") BookStatus status,
                                                         Pageable pageable);
+
 }

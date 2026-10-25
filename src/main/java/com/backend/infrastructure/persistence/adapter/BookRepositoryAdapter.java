@@ -25,7 +25,6 @@ import com.backend.infrastructure.persistence.repository.JpaChapterRepository;
 import com.backend.infrastructure.persistence.repository.JpaCustomerBookRepository;
 import com.backend.infrastructure.persistence.repository.JpaListenProgressRepository;
 import com.backend.infrastructure.persistence.repository.JpaReviewRepository;
-import java.util.ArrayList;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -186,22 +185,38 @@ public class BookRepositoryAdapter implements BookRepository {
                 .build();
     }
 
-    /**
-     * Xóa 1 book theo id, đồng thời dọn sạch TẤT CẢ các bảng có FK tới {@code tbl_book}
-     * để không vi phạm ràng buộc toàn vẹn. Thứ tự xóa: các bảng phụ thuộc trước,
-     * {@code tbl_book} cuối cùng.
-     *
-     * <p>Các bảng phụ thuộc:
-     * <ul>
-     *   <li>{@code tbl_chapter}        – chapter của book (OCR text)</li>
-     *   <li>{@code tbl_listen_progress}– tiến trình nghe của customer</li>
-     *   <li>{@code tbl_book_favorite}   – customer đánh dấu yêu thích</li>
-     *   <li>{@code tbl_review}          – đánh giá của customer</li>
-     *   <li>{@code tbl_customer_book}   – quan hệ customer ↔ book (nếu có)</li>
-     *   <li>{@code tbl_book_author}     – liên kết book ↔ author</li>
-     *   <li>{@code tbl_book_category}   – liên kết book ↔ category</li>
-     * </ul>
-     */
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<BookStat> findByCategoryId(Long categoryId, int page, int size) {
+        Page<BookListProjection> projectionPage = jpaBookRepository.findBookListProjectionsByCategoryId(
+                categoryId,
+                PageRequest.of(page, size)
+        );
+
+        List<Long> bookIds = projectionPage.getContent().stream()
+                .map(BookListProjection::getId)
+                .toList();
+
+        List<JpaBookAuthorEntity> allAuthors = bookIds.isEmpty()
+                ? List.of()
+                : jpaBookAuthorRepository.findByBookIdIn(bookIds);
+        List<JpaBookCategoryEntity> allCategories = bookIds.isEmpty()
+                ? List.of()
+                : jpaBookCategoryRepository.findByBookIdIn(bookIds);
+
+        List<BookStat> bookStats = projectionPage.getContent().stream()
+                .map(proj -> BookStatMapper.toBookStat(proj, allAuthors, allCategories))
+                .toList();
+
+        return PageResponse.<BookStat>builder()
+                .content(bookStats)
+                .total((int) projectionPage.getTotalElements())
+                .totalPage(projectionPage.getTotalPages())
+                .page(page)
+                .pageSize(size)
+                .build();
+    }
+
     @Override
     @Transactional
     public void deleteById(Long id) {

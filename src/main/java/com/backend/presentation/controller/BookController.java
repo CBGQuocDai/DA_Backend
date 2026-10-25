@@ -35,6 +35,15 @@ public class BookController {
         return ResponseEntity.ok(bookService.getBooks(bookName, categoryId, authorId, status, page, size));
     }
 
+    @GetMapping("/category/{categoryId}")
+    public ResponseEntity<PageResponse<BookStat>> getBooksByCategory(
+            @PathVariable Long categoryId,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "10") Integer size
+    ) {
+        return ResponseEntity.ok(bookService.getBooksByCategory(categoryId, page, size));
+    }
+
     @GetMapping("/{bookId}")
     public ResponseEntity<com.backend.domain.dto.response.ApiResponse<Book>> getBookById(@PathVariable Long bookId) {
         return ResponseEntity.ok(com.backend.domain.dto.response.ApiResponse.<Book>builder()
