@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface JpaListenProgressRepository extends JpaRepository<JpaListenProgressEntity, Long> {
     List<JpaListenProgressEntity> findByCustomerId(Long customerId);
     Optional<JpaListenProgressEntity> findByCustomerIdAndBookId(Long customerId, Long bookId);
+    void deleteByBookId(Long bookId);
 }

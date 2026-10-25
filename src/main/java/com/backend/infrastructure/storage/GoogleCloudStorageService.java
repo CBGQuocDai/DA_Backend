@@ -1,3 +1,4 @@
+
 package com.backend.infrastructure.storage;
 
 import com.backend.domain.adapter.storage.StorageService;
@@ -27,7 +28,6 @@ public class GoogleCloudStorageService implements StorageService {
     }
 
     @Override
-    @Async
     public void store(MultipartFile file, String filePath) {
         if (storage == null) {
             log.warn("Storage is disabled or not configured. Skipping upload for {}", filePath);
@@ -66,5 +66,26 @@ public class GoogleCloudStorageService implements StorageService {
     @Override
     public Byte[] load(String path) {
         return new Byte[0];
+    }
+
+    @Override
+    public void delete(String filePath) throws IOException {
+        if (filePath == null || filePath.isBlank()) {
+            return;
+        }
+        if (storage == null) {
+            log.warn("Storage is disabled. Skipping delete for {}", filePath);
+            return;
+        }
+        try {
+            BlobId blobId = BlobId.of(bucket, filePath);
+            boolean deleted = storage.delete(blobId);
+            if (!deleted) {
+                log.debug("File không tồn tại trên GCS hoặc đã bị xóa trước đó: {}", filePath);
+            }
+        } catch (StorageException e) {
+            log.error("Lỗi khi xóa file trên GCS {}: {}", filePath, e.getMessage());
+            throw new IOException("Không xóa được file trên GCS: " + filePath, e);
+        }
     }
 }

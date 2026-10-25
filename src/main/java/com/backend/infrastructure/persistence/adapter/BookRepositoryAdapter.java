@@ -2,21 +2,29 @@ package com.backend.infrastructure.persistence.adapter;
 
 import com.backend.domain.adapter.repository.BookRepository;
 import com.backend.domain.dto.response.PageResponse;
+import com.backend.domain.mapper.BookAuthorMapper;
+import com.backend.domain.mapper.BookCategoryMapper;
 import com.backend.domain.mapper.BookMapper;
 import com.backend.domain.mapper.BookStatMapper;
+import com.backend.domain.mapper.ChapterMapper;
 import com.backend.domain.model.Book;
 import com.backend.domain.model.BookAuthor;
 import com.backend.domain.model.BookCategory;
 import com.backend.domain.model.BookStat;
+import com.backend.domain.valueobject.BookStatus;
 import com.backend.infrastructure.persistence.entity.JpaBookAuthorEntity;
 import com.backend.infrastructure.persistence.entity.JpaBookCategoryEntity;
 import com.backend.infrastructure.persistence.entity.JpaBookEntity;
 import com.backend.infrastructure.persistence.projection.BookListProjection;
 import com.backend.infrastructure.persistence.repository.JpaBookAuthorRepository;
 import com.backend.infrastructure.persistence.repository.JpaBookCategoryRepository;
+import com.backend.infrastructure.persistence.repository.JpaBookFavoriteRepository;
 import com.backend.infrastructure.persistence.repository.JpaBookRepository;
 import com.backend.infrastructure.persistence.repository.JpaBookUpdateRepository;
-import java.util.ArrayList;
+import com.backend.infrastructure.persistence.repository.JpaChapterRepository;
+import com.backend.infrastructure.persistence.repository.JpaCustomerBookRepository;
+import com.backend.infrastructure.persistence.repository.JpaListenProgressRepository;
+import com.backend.infrastructure.persistence.repository.JpaReviewRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -34,7 +42,15 @@ public class BookRepositoryAdapter implements BookRepository {
     private final JpaBookUpdateRepository jpaBookUpdateRepository;
     private final JpaBookAuthorRepository jpaBookAuthorRepository;
     private final JpaBookCategoryRepository jpaBookCategoryRepository;
+    private final JpaBookFavoriteRepository jpaBookFavoriteRepository;
+    private final JpaChapterRepository jpaChapterRepository;
+    private final JpaReviewRepository jpaReviewRepository;
+    private final JpaCustomerBookRepository jpaCustomerBookRepository;
+    private final JpaListenProgressRepository jpaListenProgressRepository;
     private final BookMapper bookMapper;
+    private final BookAuthorMapper bookAuthorMapper;
+    private final BookCategoryMapper bookCategoryMapper;
+    private final ChapterMapper chapterMapper;
 
     @Override
     @Transactional
@@ -118,31 +134,32 @@ public class BookRepositoryAdapter implements BookRepository {
         if (id == null) {
             return Optional.empty();
         }
-        return jpaBookRepository.findById(id)
-                .map(bookMapper::toDomain);
+        return jpaBookRepository.findByIdWithVoice(id)
+                .map(entity -> {
+                    Book book = bookMapper.toDomain(entity);
+                    book.setAuthors(jpaBookAuthorRepository.findWithAuthorByBookId(id).stream()
+                            .map(bookAuthorMapper::toDomain)
+                            .toList());
+                    book.setCategories(jpaBookCategoryRepository.findWithCategoryByBookId(id).stream()
+                            .map(bookCategoryMapper::toDomain)
+                            .toList());
+                    book.setChapters(jpaChapterRepository.findWithAttachFileByBookId(id).stream()
+                            .map(chapterMapper::toDomain)
+                            .toList());
+                    return book;
+                });
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<Book> findAll(int page, int size) {
-        Page<JpaBookEntity> entityPage = jpaBookRepository.findAll(PageRequest.of(page, size));
-        List<Book> books = entityPage.getContent().stream()
-                .map(bookMapper::toDomain)
-                .toList();
-
-        return PageResponse.<Book>builder()
-                .content(books)
-                .total((int) entityPage.getTotalElements())
-                .totalPage(entityPage.getTotalPages())
-                .page(page)
-                .pageSize(size)
-                .build();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public PageResponse<BookStat> findAllWithStats(int page, int size) {
-        Page<BookListProjection> projectionPage = jpaBookRepository.findAllBookListProjections(PageRequest.of(page, size));
+    public PageResponse<BookStat> findAllWithStats(String bookName, Long categoryId, Long authorId,
+                                                   BookStatus status, int page, int size) {
+        String keyword = "%" + (bookName == null ? "" : bookName.trim().toLowerCase()
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_")) + "%";
+        Page<BookListProjection> projectionPage = jpaBookRepository.findAllBookListProjections(
+                keyword, categoryId, authorId, status, PageRequest.of(page, size));
 
         List<Long> bookIds = projectionPage.getContent().stream()
                 .map(BookListProjection::getId)
@@ -202,15 +219,21 @@ public class BookRepositoryAdapter implements BookRepository {
 
     @Override
     @Transactional
-    public void delete(Book book) {
-        if (book.getId() != null) {
-            jpaBookRepository.deleteById(book.getId());
-        }
-    }
-
-    @Override
-    @Transactional
     public void deleteById(Long id) {
+        if (id == null) {
+            return;
+        }
+        if (!jpaBookRepository.existsById(id)) {
+            return;
+        }
+        // Bảng phụ thuộc trước, book chính cuối cùng
+        jpaChapterRepository.deleteByBookId(id);
+        jpaListenProgressRepository.deleteByBookId(id);
+        jpaBookFavoriteRepository.deleteByBookId(id);
+        jpaReviewRepository.deleteByBookId(id);
+        jpaCustomerBookRepository.deleteByBookId(id);
+        jpaBookAuthorRepository.deleteByBookId(id);
+        jpaBookCategoryRepository.deleteByBookId(id);
         jpaBookRepository.deleteById(id);
     }
 

@@ -17,7 +17,7 @@ public class OmniVoiceService implements TextToSpeechService {
     private final RestClient restClient;
 
     public OmniVoiceService() {
-        this.ttsServiceUrl = "https://instance-20261002-011002.tail01965e.ts.net";
+        this.ttsServiceUrl = "http://100.110.62.89:8080";
         this.restClient = RestClient.builder().baseUrl(ttsServiceUrl).build();
     }
 

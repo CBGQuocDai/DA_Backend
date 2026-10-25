@@ -18,4 +18,6 @@ public interface JpaBookFavoriteRepository extends JpaRepository<JpaBookFavorite
     boolean existsByCustomerIdAndBookId(Long customerId, Long bookId);
 
     void deleteByCustomerIdAndBookId(Long customerId, Long bookId);
+
+    void deleteByBookId(Long bookId);
 }

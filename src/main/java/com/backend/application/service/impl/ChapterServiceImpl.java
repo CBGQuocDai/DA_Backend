@@ -5,9 +5,12 @@ import com.backend.domain.adapter.repository.BookRepository;
 import com.backend.domain.adapter.repository.ChapterRepository;
 import com.backend.domain.adapter.storage.StorageService;
 import com.backend.domain.adapter.textToSpeech.TextToSpeechService;
+import com.backend.domain.dto.request.book.chapter.ChapterUpdateRequest;
 import com.backend.domain.dto.request.book.chapter.GenerateAudioRequest;
+import com.backend.domain.exception.BusinessException;
 import com.backend.domain.model.Book;
 import com.backend.domain.model.Chapter;
+import com.backend.domain.valueobject.BusinessError;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -56,6 +59,20 @@ public class ChapterServiceImpl implements ChapterService {
                 .build();
         String path = textToSpeechService.generateAudio(request);
         chapter.setAudioUrl(path);
+        chapterRepository.update(chapter);
+    }
+
+    @Override
+    public void update(Long chapterId, ChapterUpdateRequest req) {
+        Chapter chapter = chapterRepository.findById(chapterId).orElseThrow(
+                () -> new BusinessException(BusinessError.CHAPTER_NOT_FOUND)
+        );
+        if(Objects.nonNull(req.getRawText())) {
+            chapter.setRawText(req.getRawText());
+        }
+        if(Objects.nonNull(req.getTitle())) {
+            chapter.setTitle(req.getTitle());
+        }
         chapterRepository.update(chapter);
     }
 }

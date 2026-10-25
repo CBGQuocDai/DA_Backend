@@ -1,6 +1,7 @@
 package com.backend.presentation.controller;
 
 import com.backend.application.service.ChapterService;
+import com.backend.domain.dto.request.book.chapter.ChapterUpdateRequest;
 import com.backend.domain.dto.response.ApiResponse;
 import com.backend.domain.model.Chapter;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +22,6 @@ public class ChapterController {
         return ResponseEntity.ok(chapterService.getChaptersByBookId(bookId));
     }
 
-
     @DeleteMapping("/{chapterId}")
     public ResponseEntity<Void> deleteChapter(
             @PathVariable Long chapterId) {
@@ -34,6 +34,14 @@ public class ChapterController {
             @PathVariable Long bookId,
             @PathVariable Long chapterId) {
         chapterService.generateAudio(bookId, chapterId);
+        return ResponseEntity.ok(ApiResponse.builder().build());
+    }
+
+    @PatchMapping("/{chapterId}")
+    public ResponseEntity<ApiResponse<?>> update (
+            @PathVariable Long chapterId,
+            @RequestBody ChapterUpdateRequest req) {
+        chapterService.update(chapterId, req);
         return ResponseEntity.ok(ApiResponse.builder().build());
     }
 }
