@@ -11,4 +11,6 @@ public interface JpaReviewRepository extends JpaRepository<JpaReviewEntity, Long
 
     @EntityGraph(attributePaths = {"customer"})
     List<JpaReviewEntity> findByBookId(Long bookId);
+
+    void deleteByBookId(Long bookId);
 }

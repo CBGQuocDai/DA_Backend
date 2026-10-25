@@ -79,7 +79,7 @@ public class VoiceValidator {
     }
 
     private boolean isAudio(MultipartFile file) {
-        String mimeType = fileTypeDetector.detectAudioContentType(file);
+        String mimeType = fileTypeDetector.detectContentType(file);
         return Objects.nonNull(mimeType) && mimeType.startsWith(AUDIO_PREFIX);
     }
 }

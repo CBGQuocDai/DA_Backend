@@ -25,6 +25,7 @@ public class JpaBookEntity {
     @Column(nullable = false)
     private BigDecimal price;
 
+    @Column(columnDefinition = "text")
     private String description;
 
     @Column(name = "cover_image")

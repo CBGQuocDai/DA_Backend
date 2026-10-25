@@ -29,7 +29,7 @@ public class TikaFileTypeDetector implements FileTypeDetector {
     private final Detector detector = new DefaultDetector();
 
     @Override
-    public String detectAudioContentType(MultipartFile file) {
+    public String detectContentType(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             return null;
         }
