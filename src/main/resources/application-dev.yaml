@@ -63,6 +63,11 @@ logging:
     com.backend: DEBUG
     org.springframework: INFO
 
+# SePay Webhook Configuration
+sepay:
+  webhook:
+    secret: ${SEPAY_WEBHOOK_SECRET}
+
 management:
   endpoints:
     web:

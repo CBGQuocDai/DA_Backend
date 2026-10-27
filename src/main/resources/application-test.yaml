@@ -21,3 +21,16 @@ jwt:
   secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
   expiration: 86400000
   issuer: test-issuer
+
+gcs:
+  bucket: test-bucket
+
+gcp:
+  documentai:
+    project-id: test-project
+    location: us
+    processor-id: test-processor
+
+sepay:
+  webhook:
+    secret: test-secret
