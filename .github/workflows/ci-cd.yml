@@ -15,6 +15,7 @@ concurrency:
 env:
   REGISTRY: registry.daidq.io.vn
   IMAGE: registry.daidq.io.vn/do_an/da-backend
+  REGISTRY_TS_IP: 100.118.32.97
 
 jobs:
   test:
@@ -48,6 +49,15 @@ jobs:
 
       - id: meta
         run: echo "tag=$(git rev-parse --short HEAD)-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      # Registry chỉ truy cập được qua Tailscale → join runner vào tailnet (ephemeral node)
+      - name: Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+          ping: ${{ env.REGISTRY_TS_IP }}
 
       - uses: docker/setup-buildx-action@v3
 
