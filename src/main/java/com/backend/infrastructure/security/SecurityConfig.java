@@ -4,6 +4,7 @@ import com.backend.domain.adapter.TokenProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -33,18 +34,17 @@ public class SecurityConfig {
     private final TokenProvider tokenProvider;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private static final List<String> ALLOWED_ORIGINS = List.of(
-            "http://localhost:3000",
-            "http://localhost:8080"
-    );
+    // Danh sách origin cách nhau bởi dấu phẩy, cấu hình qua CORS_ALLOWED_ORIGINS
+    @Value("${cors.allowed-origins:http://localhost:3000}")
+    private List<String> allowedOrigins;
 
     private static final String[] WHITELIST = {
-            "/health",
             "/admin/login",
-            "/customer/login",
-            "/payments/**",
-            "/**"
+            "/customer/login"
     };
+
+    // SePay gọi webhook server-to-server, xác thực bằng chữ ký X-SePay-Signature thay vì JWT
+    private static final String SEPAY_WEBHOOK = "/payments/sepay/webhook";
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http){
@@ -67,7 +67,8 @@ public class SecurityConfig {
                         }))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(WHITELIST).permitAll()
+                        .requestMatchers(HttpMethod.POST, WHITELIST).permitAll()
+                        .requestMatchers(HttpMethod.POST, SEPAY_WEBHOOK).permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
@@ -82,9 +83,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("*"));
+
+        configuration.setAllowedOrigins(allowedOrigins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 

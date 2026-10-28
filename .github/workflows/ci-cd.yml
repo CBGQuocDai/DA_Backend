@@ -77,3 +77,17 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+
+      # CD: báo Flux quét Harbor ngay → Flux commit tag mới vào repo gitops rồi deploy
+      - name: Trigger Flux CD
+        env:
+          FLUX_WEBHOOK_URL: ${{ secrets.FLUX_WEBHOOK_URL }}
+          FLUX_WEBHOOK_TOKEN: ${{ secrets.FLUX_WEBHOOK_TOKEN }}
+          IMAGE_REF: ${{ env.IMAGE }}:${{ steps.meta.outputs.tag }}
+        run: |
+          body=$(jq -nc --arg image "$IMAGE_REF" '{image: $image}')
+          sig=$(printf '%s' "$body" | openssl dgst -sha256 -hmac "$FLUX_WEBHOOK_TOKEN" | awk '{print $NF}')
+          curl -fsS --retry 3 -X POST "$FLUX_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -H "X-Signature: sha256=$sig" \
+            -d "$body"

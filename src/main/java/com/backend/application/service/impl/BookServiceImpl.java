@@ -59,7 +59,7 @@ public class BookServiceImpl implements BookService {
     }
 
     @Override
-public PageResponse<BookStat> getBooksByCategory(Long categoryId, int page, int size) {
+    public PageResponse<BookStat> getBooksByCategory(Long categoryId, int page, int size) {
     PageResponse<BookStat> bookStats = bookRepository.findByCategoryId(categoryId, page, size);
     bookStats.getContent().forEach(bookStat -> {
         if (bookStat.getCoverImage() != null) {
