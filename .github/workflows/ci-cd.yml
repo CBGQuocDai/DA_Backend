@@ -87,7 +87,7 @@ jobs:
         run: |
           body=$(jq -nc --arg image "$IMAGE_REF" '{image: $image}')
           sig=$(printf '%s' "$body" | openssl dgst -sha256 -hmac "$FLUX_WEBHOOK_TOKEN" | awk '{print $NF}')
-          curl -fsS --retry 3 -X POST "$FLUX_WEBHOOK_URL" \
+          curl -fsS --connect-timeout 5 --max-time 15 --retry 2 -X POST "$FLUX_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             -H "X-Signature: sha256=$sig" \
             -d "$body"

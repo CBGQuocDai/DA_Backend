@@ -40,7 +40,8 @@ public class SecurityConfig {
 
     private static final String[] WHITELIST = {
             "/admin/login",
-            "/customer/login"
+            "/customer/login",
+            "/health"
     };
 
     // SePay gọi webhook server-to-server, xác thực bằng chữ ký X-SePay-Signature thay vì JWT
@@ -67,6 +68,7 @@ public class SecurityConfig {
                         }))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/health").permitAll()
                         .requestMatchers(HttpMethod.POST, WHITELIST).permitAll()
                         .requestMatchers(HttpMethod.POST, SEPAY_WEBHOOK).permitAll()
                         .anyRequest().authenticated())
