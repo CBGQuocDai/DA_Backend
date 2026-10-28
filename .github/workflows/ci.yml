@@ -48,7 +48,8 @@ jobs:
       - uses: actions/checkout@v4
 
       - id: meta
-        run: echo "tag=$(git rev-parse --short HEAD)-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+        # <sha>-<unix time>: luôn tăng (run_number reset khi đổi tên workflow) → ImagePolicy chọn số lớn nhất
+        run: echo "tag=$(git rev-parse --short HEAD)-$(date +%s)" >> "$GITHUB_OUTPUT"
 
       # Registry chỉ truy cập được qua Tailscale → join runner vào tailnet (ephemeral node)
       - name: Tailscale
