@@ -30,6 +30,10 @@ gcp:
     project-id: test-project
     location: us
     processor-id: test-processor
+#
+#sepay:
+#  webhook:
+#    secret: test-secret
 
 sepay:
   webhook:

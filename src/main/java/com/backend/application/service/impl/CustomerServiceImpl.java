@@ -68,6 +68,9 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     @Transactional(readOnly = true)
     public CustomerProfileResponse getProfile(Long id) {
+        if (id == null) {
+            throw new BusinessException(BusinessError.UNAUTHORIZED);
+        }
         Customer customer = customerRepository.findById(id)
             .orElseThrow(() -> new BusinessException(BusinessError.USER_NOT_FOUND));
         CustomerProfileResponse response = CustomerProfileResponse.builder()
@@ -83,6 +86,9 @@ public class CustomerServiceImpl implements CustomerService {
     @Transactional
     public CustomerProfileResponse updateProfile(Long userId,
         CustomerUpdateProfileRequest request) {
+        if (userId == null) {
+            throw new BusinessException(BusinessError.UNAUTHORIZED);
+        }
         Customer customer = customerRepository.findById(userId)
             .orElseThrow(() -> new BusinessException(BusinessError.USER_NOT_FOUND));
         if (request.getFullName() != null) {
@@ -104,6 +110,9 @@ public class CustomerServiceImpl implements CustomerService {
     @Transactional
     public void changePassword(Long userId,
         CustomerChangePasswordRequest request) {
+        if (userId == null) {
+            throw new BusinessException(BusinessError.UNAUTHORIZED);
+        }
         Customer customer = customerRepository.findById(userId)
             .orElseThrow(() -> new BusinessException(BusinessError.USER_NOT_FOUND));
 

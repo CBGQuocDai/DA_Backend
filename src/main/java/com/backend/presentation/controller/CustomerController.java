@@ -1,5 +1,6 @@
 package com.backend.presentation.controller;
 
+import com.backend.application.service.CustomerBookService;
 import com.backend.application.service.CustomerService;
 import com.backend.domain.dto.request.user.LoginRequest;
 import com.backend.domain.dto.request.user.RegisterRequest;
@@ -15,12 +16,15 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/customer")
 @RequiredArgsConstructor
 public class CustomerController {
 
     private final CustomerService customerService;
+    private final CustomerBookService customerBookService;
 
     @PostMapping("/login")
     public ApiResponse<LoginResponse> login(@Validated @RequestBody LoginRequest loginRequest) {
@@ -56,4 +60,15 @@ public class CustomerController {
             .build();
     }
 
+    @GetMapping("/books/{bookId}/check")
+    public ApiResponse<Map<String, Boolean>> checkBookOwnership(
+            @PathVariable Long bookId,
+            @AuthenticationPrincipal Long customerId
+    ) {
+        boolean purchased = customerId != null && customerBookService.hasPurchasedBook(customerId, bookId);
+        return ApiResponse.<Map<String, Boolean>>builder()
+                .message("Kiểm tra quyền sở hữu sách thành công")
+                .data(Map.of("purchased", purchased))
+                .build();
+    }
 }

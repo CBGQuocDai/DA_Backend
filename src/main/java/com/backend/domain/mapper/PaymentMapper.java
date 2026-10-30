@@ -1,20 +1,31 @@
 package com.backend.domain.mapper;
 
 import com.backend.domain.dto.response.payment.PaymentResponse;
-import com.backend.infrastructure.persistence.entity.JpaBookEntity;
+import com.backend.domain.model.Book;
+import com.backend.domain.model.Payment;
 import com.backend.infrastructure.persistence.entity.JpaPaymentEntity;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
-@Component
-public class PaymentMapper {
+@Mapper(componentModel = "spring")
+public interface PaymentMapper {
 
-    public PaymentResponse toResponse(JpaPaymentEntity payment) {
+    Payment toDomain(JpaPaymentEntity entity);
+
+    @Mapping(target = "customer", ignore = true)
+    @Mapping(target = "book", ignore = true)
+    JpaPaymentEntity toEntity(Payment domain);
+
+    default PaymentResponse toResponse(Payment payment) {
         return toResponse(payment, null);
     }
 
-    public PaymentResponse toResponse(JpaPaymentEntity payment, JpaBookEntity book) {
-        String bookTitle = book != null ? book.getTitle() : (payment.getBook() != null ? payment.getBook().getTitle() : null);
-        String bookCover = book != null ? book.getCoverImage() : (payment.getBook() != null ? payment.getBook().getCoverImage() : null);
+    default PaymentResponse toResponse(Payment payment, Book book) {
+        if (payment == null) {
+            return null;
+        }
+        String bookTitle = book != null ? book.getTitle() : null;
+        String bookCover = book != null ? book.getCoverImage() : null;
 
         return PaymentResponse.builder()
                 .id(payment.getId())

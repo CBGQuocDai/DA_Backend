@@ -72,25 +72,26 @@ public class SepayWebhookController {
         }
 
         // 5. Chữ ký hợp lệ -> parse JSON sang DTO và xử lý tiếp
+        SepayWebhookRequest payload;
         try {
-            SepayWebhookRequest payload = objectMapper.readValue(rawBody, SepayWebhookRequest.class);
+            payload = objectMapper.readValue(rawBody, SepayWebhookRequest.class);
             log.info("Xác thực HMAC thành công! Giao dịch ID: {}, Số tiền: {}, Nội dung: '{}', Gateway: {}",
                     payload.getId(),
                     payload.getTransferAmount(),
                     payload.getContent(),
                     payload.getGateway());
-
-            paymentWebhookService.processSepayWebhook(payload);
-
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Webhook verified and processed successfully"
-            ));
         } catch (Exception e) {
             log.error("Lỗi khi giải mã payload JSON của SePay", e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("success", false, "message", "Invalid payload format"));
         }
+
+        paymentWebhookService.processSepayWebhook(payload);
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Webhook verified and processed successfully"
+        ));
     }
 
     private String calculateHmacSha256(String data, String key) {

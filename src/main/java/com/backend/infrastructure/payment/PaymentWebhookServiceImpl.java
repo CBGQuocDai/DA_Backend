@@ -1,19 +1,19 @@
 package com.backend.infrastructure.payment;
 
+import com.backend.application.service.CustomerBookService;
 import com.backend.domain.adapter.payment.PaymentWebhookService;
+import com.backend.domain.adapter.repository.PaymentRepository;
 import com.backend.domain.dto.request.payment.SepayWebhookRequest;
+import com.backend.domain.exception.BusinessException;
+import com.backend.domain.model.Payment;
+import com.backend.domain.valueobject.BusinessError;
 import com.backend.domain.valueobject.PaymentStatus;
-import com.backend.infrastructure.persistence.entity.JpaCustomerBookEntity;
-import com.backend.infrastructure.persistence.entity.JpaPaymentEntity;
-import com.backend.infrastructure.persistence.repository.JpaCustomerBookRepository;
-import com.backend.infrastructure.persistence.repository.JpaPaymentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -22,8 +22,8 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class PaymentWebhookServiceImpl implements PaymentWebhookService {
 
-    private final JpaPaymentRepository paymentRepository;
-    private final JpaCustomerBookRepository customerBookRepository;
+    private final PaymentRepository paymentRepository;
+    private final CustomerBookService customerBookService;
 
     private static final Pattern PAYMENT_CODE_PATTERN = Pattern.compile("(?i)SP\\d+");
 
@@ -38,18 +38,16 @@ public class PaymentWebhookServiceImpl implements PaymentWebhookService {
         // 1. Trích xuất mã thanh toán (paymentCode) từ content hoặc code
         String paymentCode = extractPaymentCode(payload);
         if (paymentCode == null) {
-            log.warn("Không tìm thấy mã thanh toán hợp lệ trong nội dung chuyển khoản: '{}'", payload.getContent());
-            return;
+            log.error("Không tìm thấy mã thanh toán hợp lệ trong nội dung chuyển khoản: '{}'", payload.getContent());
+            throw new BusinessException(BusinessError.PAYMENT_NOT_FOUND);
         }
 
-        // 2. Tìm bản ghi trong tbl_payment
-        Optional<JpaPaymentEntity> paymentOpt = paymentRepository.findByPaymentCode(paymentCode);
-        if (paymentOpt.isEmpty()) {
-            log.warn("Không tìm thấy giao dịch thanh toán trong hệ thống với mã: {}", paymentCode);
-            return;
-        }
-
-        JpaPaymentEntity payment = paymentOpt.get();
+        // 2. Tìm bản ghi trong repository qua Port
+        Payment payment = paymentRepository.findByPaymentCode(paymentCode)
+                .orElseThrow(() -> {
+                    log.error("Không tìm thấy giao dịch thanh toán trong hệ thống với mã: {}", paymentCode);
+                    return new BusinessException(BusinessError.PAYMENT_NOT_FOUND);
+                });
 
         // 3. Nếu đã thanh toán rồi thì bỏ qua (Idempotency)
         if (payment.getStatus() == PaymentStatus.PAID) {
@@ -60,34 +58,20 @@ public class PaymentWebhookServiceImpl implements PaymentWebhookService {
         // 4. Kiểm tra số tiền chuyển khoản
         if (payload.getTransferAmount() != null &&
                 payload.getTransferAmount().compareTo(payment.getAmount()) < 0) {
-            log.warn("Số tiền chuyển khoản ({} đ) nhỏ hơn số tiền đơn hàng ({} đ) cho mã {}",
+            log.error("Số tiền chuyển khoản ({} đ) nhỏ hơn số tiền đơn hàng ({} đ) cho mã {}",
                     payload.getTransferAmount(), payment.getAmount(), paymentCode);
-            return;
+            throw new BusinessException(BusinessError.VALIDATION_FAILED);
         }
 
-        // 5. Cập nhật trạng thái tbl_payment -> PAID
+        // 5. Cập nhật trạng thái Payment -> PAID
         payment.setStatus(PaymentStatus.PAID);
         payment.setPaidAt(Instant.now());
         paymentRepository.save(payment);
         log.info("Đã cập nhật trạng thái thanh toán thành công cho mã {}", paymentCode);
 
-        // 6. Mở khóa sách cho khách hàng (thêm vào tbl_customer_book nếu chưa có)
-        boolean alreadyOwned = customerBookRepository.existsByCustomerIdAndBookId(
-                payment.getCustomerId(), payment.getBookId());
-
-        if (!alreadyOwned) {
-            JpaCustomerBookEntity customerBook = new JpaCustomerBookEntity();
-            customerBook.setCustomerId(payment.getCustomerId());
-            customerBook.setBookId(payment.getBookId());
-            customerBook.setPurchaseAt(Instant.now());
-            customerBook.setIsReadComplete(false);
-            customerBookRepository.save(customerBook);
-
-            log.info("Đã mở khóa sách ID={} cho khách hàng ID={}",
-                    payment.getBookId(), payment.getCustomerId());
-        } else {
-            log.info("Khách hàng ID={} đã sở hữu sách ID={}",
-                    payment.getCustomerId(), payment.getBookId());
+        // 6. Mở khóa sách cho khách hàng thông qua CustomerBookService nếu chưa sở hữu
+        if (!customerBookService.hasPurchasedBook(payment.getCustomerId(), payment.getBookId())) {
+            customerBookService.assignBookToCustomer(payment.getCustomerId(), payment.getBookId());
         }
 
         log.info("========== HOÀN TẤT XỬ LÝ GIAO DỊCH {} ==========", paymentCode);

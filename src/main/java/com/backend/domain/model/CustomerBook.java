@@ -11,8 +11,8 @@ import java.time.Instant;
 @AllArgsConstructor
 public class CustomerBook {
     private Long id;
+    private Long customerId;
+    private Long bookId;
     private Instant purchaseAt;
     private Boolean isReadComplete;
-    private Customer customer;
-    private Book book;
 }

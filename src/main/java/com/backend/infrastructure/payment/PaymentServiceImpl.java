@@ -1,18 +1,17 @@
 package com.backend.infrastructure.payment;
 
+import com.backend.application.service.CustomerBookService;
 import com.backend.domain.adapter.payment.PaymentService;
+import com.backend.domain.adapter.repository.BookRepository;
+import com.backend.domain.adapter.repository.PaymentRepository;
 import com.backend.domain.adapter.storage.StorageService;
 import com.backend.domain.dto.response.payment.PaymentResponse;
 import com.backend.domain.exception.BusinessException;
 import com.backend.domain.mapper.PaymentMapper;
+import com.backend.domain.model.Book;
+import com.backend.domain.model.Payment;
 import com.backend.domain.valueobject.BusinessError;
 import com.backend.domain.valueobject.PaymentStatus;
-import com.backend.infrastructure.persistence.entity.JpaBookEntity;
-import com.backend.infrastructure.persistence.entity.JpaPaymentEntity;
-import com.backend.infrastructure.persistence.repository.JpaBookRepository;
-import com.backend.infrastructure.persistence.repository.JpaCustomerBookRepository;
-import com.backend.infrastructure.persistence.repository.JpaPaymentRepository;
-import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,6 +21,7 @@ import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.Random;
 
@@ -30,9 +30,9 @@ import java.util.Random;
 @RequiredArgsConstructor
 public class PaymentServiceImpl implements PaymentService {
 
-    private final JpaBookRepository bookRepository;
-    private final JpaCustomerBookRepository customerBookRepository;
-    private final JpaPaymentRepository paymentRepository;
+    private final BookRepository bookRepository;
+    private final CustomerBookService customerBookService;
+    private final PaymentRepository paymentRepository;
     private final PaymentMapper paymentMapper;
     private final StorageService storageService;
 
@@ -48,21 +48,20 @@ public class PaymentServiceImpl implements PaymentService {
             throw new BusinessException(BusinessError.BOOK_NOT_FOUND);
         }
 
-        JpaBookEntity book = bookRepository.findById(bookId)
+        Book book = bookRepository.findById(bookId)
             .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
 
-        if (customerBookRepository.existsByCustomerIdAndBookId(customerId, bookId)) {
+        if (customerBookService.hasPurchasedBook(customerId, bookId)) {
             throw new BusinessException(BusinessError.BOOK_ALREADY_OWNED);
         }
 
         // BƯỚC 1: Tìm xem khách hàng này đã có đơn nào PENDING với cuốn sách này chưa
-        Optional<JpaPaymentEntity> existingPendingOpt = paymentRepository
-            .findFirstByCustomerIdAndBookIdAndStatusOrderByCreatedAtDesc(customerId, bookId,
-                PaymentStatus.PENDING);
+        Optional<Payment> existingPendingOpt = paymentRepository
+            .findFirstPendingPayment(customerId, bookId);
 
         // BƯỚC 2: NẾU ĐÃ CÓ -> TÁI SỬ DỤNG NGAY, KHÔNG GHI THÊM DB
         if (existingPendingOpt.isPresent()) {
-            JpaPaymentEntity existing = existingPendingOpt.get();
+            Payment existing = existingPendingOpt.get();
             log.info(
                 "Tái sử dụng giao dịch PENDING đã tồn tại: PaymentCode={}, CustomerId={}, BookId={}",
                 existing.getPaymentCode(), customerId, bookId);
@@ -76,7 +75,7 @@ public class PaymentServiceImpl implements PaymentService {
                 : BigDecimal.valueOf(100000);
 
         String paymentCode = generatePaymentCode();
-        JpaPaymentEntity payment = JpaPaymentEntity.builder()
+        Payment payment = Payment.builder()
             .customerId(customerId)
             .bookId(bookId)
             .paymentCode(paymentCode)
@@ -100,14 +99,15 @@ public class PaymentServiceImpl implements PaymentService {
             throw new BusinessException(BusinessError.UNAUTHORIZED);
         }
 
-        JpaPaymentEntity payment = paymentRepository.findById(paymentId)
+        Payment payment = paymentRepository.findById(paymentId)
             .orElseThrow(() -> new BusinessException(BusinessError.PAYMENT_NOT_FOUND));
 
         if (!payment.getCustomerId().equals(customerId)) {
             throw new BusinessException(BusinessError.FORBIDDEN);
         }
 
-        JpaBookEntity book = bookRepository.findById(payment.getBookId()).orElse(null);
+        Book book = bookRepository.findById(payment.getBookId())
+            .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
         return buildResponse(payment, book);
     }
 
@@ -118,22 +118,22 @@ public class PaymentServiceImpl implements PaymentService {
             throw new BusinessException(BusinessError.UNAUTHORIZED);
         }
         if (bookId == null) {
-            return null;
+            throw new BusinessException(BusinessError.BOOK_NOT_FOUND);
         }
 
-        Optional<JpaPaymentEntity> pendingOpt = paymentRepository
-            .findFirstByCustomerIdAndBookIdAndStatusOrderByCreatedAtDesc(customerId, bookId,
-                PaymentStatus.PENDING);
+        Optional<Payment> pendingOpt = paymentRepository
+            .findFirstPendingPayment(customerId, bookId);
 
         if (pendingOpt.isEmpty()) {
             return null;
         }
 
-        JpaBookEntity book = bookRepository.findById(bookId).orElse(null);
+        Book book = bookRepository.findById(bookId)
+            .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
         return buildResponse(pendingOpt.get(), book);
     }
 
-    private PaymentResponse buildResponse(JpaPaymentEntity payment, JpaBookEntity book) {
+    private PaymentResponse buildResponse(Payment payment, Book book) {
         PaymentResponse response = paymentMapper.toResponse(payment, book);
 
         // Sinh link QR VietQR đúng chuẩn SePay

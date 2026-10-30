@@ -5,13 +5,12 @@ import com.backend.infrastructure.persistence.entity.JpaCustomerBookEntity;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring", uses = {BookMapper.class, CustomerMapper.class})
+@Mapper(componentModel = "spring")
 public interface CustomerBookMapper {
 
-    @Mapping(target = "customer", ignore = true)
     CustomerBook toDomain(JpaCustomerBookEntity entity);
 
-    @Mapping(target = "customerId", source = "customer.id")
-    @Mapping(target = "bookId", source = "book.id")
+    @Mapping(target = "customer", ignore = true)
+    @Mapping(target = "book", ignore = true)
     JpaCustomerBookEntity toEntity(CustomerBook domain);
 }
