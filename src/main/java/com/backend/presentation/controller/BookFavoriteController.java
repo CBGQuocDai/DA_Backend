@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -39,6 +40,30 @@ public class BookFavoriteController {
         bookFavoriteService.removeFavorite(userId, bookId);
         return ApiResponse.<Void>builder()
             .message("Đã xóa khỏi danh sách yêu thích")
+            .build();
+    }
+
+    @PostMapping("/{bookId}/toggle")
+    public ApiResponse<BookFavoriteResponse> toggleFavorite(
+        @AuthenticationPrincipal Long userId,
+        @PathVariable Long bookId) {
+        BookFavoriteResponse data = bookFavoriteService.toggleFavorite(userId, bookId);
+        String message = Boolean.TRUE.equals(data.getIsFavorite())
+            ? "Đã thêm vào danh sách yêu thích"
+            : "Đã xóa khỏi danh sách yêu thích";
+        return ApiResponse.<BookFavoriteResponse>builder()
+            .message(message)
+            .data(data)
+            .build();
+    }
+
+    @GetMapping("/{bookId}/check")
+    public ApiResponse<Boolean> checkFavorite(
+        @AuthenticationPrincipal Long userId,
+        @PathVariable Long bookId) {
+        boolean isFav = bookFavoriteService.isFavorite(userId, bookId);
+        return ApiResponse.<Boolean>builder()
+            .data(isFav)
             .build();
     }
 

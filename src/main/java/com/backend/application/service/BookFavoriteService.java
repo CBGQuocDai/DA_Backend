@@ -10,5 +10,9 @@ public interface BookFavoriteService {
 
     void removeFavorite(Long userId, Long bookId);
 
+    BookFavoriteResponse toggleFavorite(Long userId, Long bookId);
+
+    boolean isFavorite(Long userId, Long bookId);
+
     List<Book> list(Long userId);
 }
