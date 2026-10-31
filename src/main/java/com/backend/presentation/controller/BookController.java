@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import java.util.List;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -60,6 +61,7 @@ public class BookController {
                 .build());
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<ApiResponse<BookResponse>> createBook(
             @Validated @RequestBody BookRequest request) {
@@ -70,6 +72,7 @@ public class BookController {
                 );
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{bookId}")
     public ResponseEntity<ApiResponse<BookResponse>> updateBook(
             @PathVariable Long bookId,
@@ -80,18 +83,21 @@ public class BookController {
                 .build());
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{bookId}/publish")
     public ResponseEntity<Void> publishBook(@PathVariable Long bookId) {
         bookService.publishBook(bookId);
         return ResponseEntity.ok().build();
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{bookId}/unpublish")
     public ResponseEntity<Void> unpublishBook(@PathVariable Long bookId) {
         bookService.unpublishBook(bookId);
         return ResponseEntity.ok().build();
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{bookId}")
     public ResponseEntity<Void> deleteBook(@PathVariable Long bookId) {
         bookService.deleteBook(bookId);

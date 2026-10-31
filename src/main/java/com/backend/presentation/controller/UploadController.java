@@ -7,6 +7,7 @@ import com.backend.application.dto.response.upload.UploadUrlResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -21,6 +22,7 @@ public class UploadController {
 
     private final FileManagementService fileManagementService;
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/sign-url")
     public ResponseEntity<ApiResponse<UploadUrlResponse>> createUploadUrl(
             @Valid @RequestBody UploadUrlRequest request) {

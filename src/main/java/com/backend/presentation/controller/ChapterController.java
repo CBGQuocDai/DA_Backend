@@ -7,6 +7,7 @@ import com.backend.presentation.dto.ApiResponse;
 import com.backend.application.dto.response.chapter.ChapterResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,6 +25,7 @@ public class ChapterController {
         return ResponseEntity.ok(chapterService.getChaptersByBookId(bookId));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{chapterId}")
     public ResponseEntity<Void> deleteChapter(
             @PathVariable Long chapterId) {
@@ -31,6 +33,7 @@ public class ChapterController {
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{chapterId}/audio")
     public ResponseEntity<ApiResponse<?>> generateAudio(
             @Validated @RequestBody ChapterGenerateAudioRequest req) {
@@ -38,6 +41,7 @@ public class ChapterController {
         return ResponseEntity.ok(ApiResponse.builder().build());
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{chapterId}")
     public ResponseEntity<ApiResponse<?>> update (
             @PathVariable Long chapterId,

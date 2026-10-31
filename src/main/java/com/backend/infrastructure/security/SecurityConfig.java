@@ -42,7 +42,6 @@ public class SecurityConfig {
         "/admin/login",
         "/customer/login",
         "/customer/register",
-        "/health"
     };
 
     // SePay gọi webhook server-to-server, xác thực bằng chữ ký X-SePay-Signature thay vì JWT
@@ -73,13 +72,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // /health/** gồm cả /health/liveness, /health/readiness mà Kubernetes probe gọi
-                // Cho phép truy cập công khai các API đọc danh mục sách, thể loại, tác giả, review
                 .requestMatchers(HttpMethod.GET,
-                    "/health", "/health/**",
-                    "/books", "/books/**",
-                    "/categories", "/categories/**",
-                    "/authors", "/authors/**",
-                    "/review/**"
+                    "/health", "/health/**"
                 ).permitAll()
 
                 .requestMatchers(HttpMethod.POST, WHITELIST).permitAll()

@@ -18,5 +18,9 @@ public abstract class User {
     private String password;
     private String fullName;
     private String avatarUrl;
+
+    public String getRole() {
+        return this.getClass().getSimpleName().toUpperCase();
+    }
 }
 
