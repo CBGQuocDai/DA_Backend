@@ -8,6 +8,8 @@ import com.backend.infrastructure.persistence.repository.JpaCustomerBookReposito
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 @RequiredArgsConstructor
 public class CustomerBookRepositoryAdapter implements CustomerBookRepository {
@@ -28,5 +30,15 @@ public class CustomerBookRepositoryAdapter implements CustomerBookRepository {
         JpaCustomerBookEntity entity = customerBookMapper.toEntity(customerBook);
         JpaCustomerBookEntity saved = jpaCustomerBookRepository.save(entity);
         return customerBookMapper.toDomain(saved);
+    }
+
+    @Override
+    public List<CustomerBook> findByCustomerId(Long customerId) {
+        if (customerId == null) {
+            return List.of();
+        }
+        return jpaCustomerBookRepository.findByCustomerId(customerId).stream()
+            .map(customerBookMapper::toDomain)
+            .toList();
     }
 }

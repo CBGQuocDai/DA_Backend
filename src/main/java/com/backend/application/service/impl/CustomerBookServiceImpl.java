@@ -1,8 +1,10 @@
 package com.backend.application.service.impl;
 
 import com.backend.application.service.CustomerBookService;
+import com.backend.domain.adapter.repository.BookRepository;
 import com.backend.domain.adapter.repository.CustomerBookRepository;
 import com.backend.domain.exception.BusinessException;
+import com.backend.domain.model.Book;
 import com.backend.domain.model.CustomerBook;
 import com.backend.domain.valueobject.BusinessError;
 import lombok.RequiredArgsConstructor;
@@ -10,12 +12,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class CustomerBookServiceImpl implements CustomerBookService {
 
     private final CustomerBookRepository customerBookRepository;
+    private final BookRepository bookRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -49,4 +53,25 @@ public class CustomerBookServiceImpl implements CustomerBookService {
 
         customerBookRepository.save(customerBook);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Book> getPurchasedBooks(Long customerId) {
+        if (customerId == null) {
+            throw new BusinessException(BusinessError.UNAUTHORIZED);
+        }
+
+        List<CustomerBook> customerBooks = customerBookRepository.findByCustomerId(customerId);
+        if (customerBooks == null || customerBooks.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> bookIds = customerBooks.stream()
+                .map(CustomerBook::getBookId)
+                .distinct()
+                .toList();
+
+        return bookRepository.findAllById(bookIds);
+    }
 }
+

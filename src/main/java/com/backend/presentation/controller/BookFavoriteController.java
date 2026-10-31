@@ -22,27 +22,6 @@ public class BookFavoriteController {
 
     private final BookFavoriteService bookFavoriteService;
 
-    @PostMapping("/{bookId}")
-    public ApiResponse<BookFavoriteResponse> addFavorite(
-        @AuthenticationPrincipal Long userId,
-        @PathVariable Long bookId) {
-        BookFavoriteResponse data = bookFavoriteService.addFavorite(userId, bookId);
-        return ApiResponse.<BookFavoriteResponse>builder()
-            .message("Đã thêm vào danh sách yêu thích")
-            .data(data)
-            .build();
-    }
-
-    @DeleteMapping("/{bookId}")
-    public ApiResponse<Void> removeFavorite(
-        @AuthenticationPrincipal Long userId,
-        @PathVariable Long bookId) {
-        bookFavoriteService.removeFavorite(userId, bookId);
-        return ApiResponse.<Void>builder()
-            .message("Đã xóa khỏi danh sách yêu thích")
-            .build();
-    }
-
     @PostMapping("/{bookId}/toggle")
     public ApiResponse<BookFavoriteResponse> toggleFavorite(
         @AuthenticationPrincipal Long userId,

@@ -10,12 +10,14 @@ import com.backend.domain.dto.response.ApiResponse;
 import com.backend.domain.dto.response.customer.CustomerProfileResponse;
 import com.backend.domain.dto.response.user.LoginResponse;
 import com.backend.domain.dto.response.user.RegisterResponse;
+import com.backend.domain.model.Book;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -58,6 +60,15 @@ public class CustomerController {
         customerService.changePassword(userId, request);
         return ApiResponse.<Void>builder().message("Đổi mật khẩu thành công")
             .build();
+    }
+
+    @GetMapping("/books")
+    public ApiResponse<List<Book>> getPurchasedBooks(@AuthenticationPrincipal Long customerId) {
+        List<Book> data = customerBookService.getPurchasedBooks(customerId);
+        return ApiResponse.<List<Book>>builder()
+                .message("Lấy danh sách sách đã mua thành công")
+                .data(data)
+                .build();
     }
 
     @GetMapping("/books/{bookId}/check")
