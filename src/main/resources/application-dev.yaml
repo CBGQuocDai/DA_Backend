@@ -22,6 +22,15 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD}
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    connection-timeout: 5s
+    listener:
+      simple:
+        default-requeue-rejected: false
   cloud:
     gcp:
       project-id: ${GCP_PROJECT_ID}
@@ -29,11 +38,6 @@ spring:
         location: file:${GOOGLE_APPLICATION_CREDENTIALS}
       storage:
         enabled: true
-  servlet:
-    multipart:
-      file-size-threshold: 10MB
-      max-file-size: 100MB
-      max-request-size: 106MB
 # GCP Storage
 gcs:
   bucket: ${GCS_BUCKET}

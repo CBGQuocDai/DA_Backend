@@ -2,28 +2,30 @@ package com.backend.application.service.impl;
 
 
 import com.backend.application.service.BookService;
-import com.backend.application.validate.BookValidator;
-import com.backend.domain.adapter.ocr.OcrService;
-import com.backend.domain.adapter.repository.BookRepository;
-import com.backend.domain.adapter.storage.StorageService;
-import com.backend.domain.dto.request.book.BookCreateRequest;
-import com.backend.domain.dto.response.PageResponse;
+import com.backend.application.service.FileManagementService;
+import com.backend.application.adapter.ocr.OcrService;
+import com.backend.application.adapter.repository.BookRepository;
+import com.backend.application.adapter.storage.StorageService;
+import com.backend.application.dto.request.book.BookRequest;
+import com.backend.application.dto.response.PageResponse;
+import com.backend.application.dto.response.book.BookResponse;
+import com.backend.application.mapper.ResponseMapper;
 import com.backend.domain.exception.BusinessException;
-import com.backend.domain.mapper.BookMapper;
+import com.backend.domain.model.Author;
 import com.backend.domain.model.Book;
 import com.backend.domain.model.BookAuthor;
 import com.backend.domain.model.BookCategory;
-import com.backend.domain.model.BookStat;
+import com.backend.domain.model.Category;
+import com.backend.domain.model.Voice;
 import com.backend.domain.valueobject.BookStatus;
 import com.backend.domain.valueobject.BusinessError;
-import jakarta.transaction.Transactional;
+import com.backend.domain.valueobject.UploadType;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-import tools.jackson.databind.ObjectMapper;
 
-import java.util.Objects;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -32,168 +34,70 @@ public class BookServiceImpl implements BookService {
 
     private final BookRepository bookRepository;
     private final StorageService storageService;
-    private final BookMapper bookMapper;
     private final OcrService ocrService;
-    private final ObjectMapper objectMapper;
-    private final BookValidator bookValidator;
+    private final FileManagementService fileManagementService;
+    private final ResponseMapper responseMapper;
 
     @Override
-    public PageResponse<BookStat> getBooks(String bookName, Long categoryId, Long authorId, BookStatus status,
-                                           int page, int size) {
-        PageResponse<BookStat> bookStats = bookRepository.findAllWithStats(bookName, categoryId, authorId, status,
-                page, size);
-
-        bookStats.getContent().forEach(bookStat -> {
-            if (bookStat.getCoverImage() != null) {
-                bookStat.setCoverImage(storageService.createSignUrl(bookStat.getCoverImage(), 60L));
-            }
-            if (bookStat.getContentFile() != null) {
-                bookStat.setContentFile(storageService.createSignUrl(bookStat.getContentFile(), 60L));
-            }
-            if (bookStat.getVoice() != null && bookStat.getVoice().getExampleAudio() != null) {
-                bookStat.getVoice().setExampleAudio(
-                        storageService.createSignUrl(bookStat.getVoice().getExampleAudio(), 60L));
-            }
-        });
-        return bookStats;
+    public PageResponse<BookResponse> getBooks(String bookName, Long categoryId, Long authorId, BookStatus status,
+                                               int page, int size) {
+        return responseMapper.toPageResponse(
+                bookRepository.findAllWithStats(bookName, categoryId, authorId, status, page, size),
+                responseMapper::toBookResponse);
     }
 
     @Override
-    public PageResponse<BookStat> getBooksByCategory(Long categoryId, int page, int size) {
-    PageResponse<BookStat> bookStats = bookRepository.findByCategoryId(categoryId, page, size);
-    bookStats.getContent().forEach(bookStat -> {
-        if (bookStat.getCoverImage() != null) {
-            bookStat.setCoverImage(storageService.createSignUrl(bookStat.getCoverImage(), 60L));
-        }
-        if (bookStat.getContentFile() != null) {
-            bookStat.setContentFile(storageService.createSignUrl(bookStat.getContentFile(), 60L));
-        }
-        if (bookStat.getVoice() != null && bookStat.getVoice().getExampleAudio() != null) {
-            bookStat.getVoice().setExampleAudio(
-                    storageService.createSignUrl(bookStat.getVoice().getExampleAudio(), 60L));
-        }
-    });
-    return bookStats;
-}
+    public PageResponse<BookResponse> getBooksByCategory(Long categoryId, int page, int size) {
+        return responseMapper.toPageResponse(
+                bookRepository.findByCategoryId(categoryId, page, size), responseMapper::toBookResponse);
+    }
+
     @Override
-    public Book getBookById(Long bookId) {
+    public BookResponse getBookById(Long bookId) {
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
-        if (book.getCoverImage() != null) {
-            book.setCoverImage(storageService.createSignUrl(book.getCoverImage(), 60L));
-        }
-        if (book.getContentFile() != null) {
-            book.setContentFile(storageService.createSignUrl(book.getContentFile(), 60L));
-        }
-        return book;
+        return responseMapper.toBookResponse(book);
     }
 
+    /** Verifies before saving and moves after: a failed save keeps the files in tmp/, a failed move rolls it back. */
     @Override
     @Transactional
-    public Book createBook(String bookCreateRequest, MultipartFile pdfFile, MultipartFile bookCover) {
-        BookCreateRequest req = parseBookInfo(bookCreateRequest);
-        bookValidator.validateForCreate(req);
-        bookValidator.validatePdfFile(pdfFile);
-        bookValidator.validateCoverImage(bookCover);
+    public BookResponse createBook(BookRequest req) {
+        fileManagementService.verifyUpload(req.getContentFile(), UploadType.PDF);
+        fileManagementService.verifyUpload(req.getCoverImage(), UploadType.IMAGE);
 
-        // Create Book with PROCESSING status
-        Book book = bookMapper.toDomain(req);
+        Book book = new Book();
+        applyRequest(book, req);
         book.setStatus(BookStatus.PROCESSING);
-
-        // Set categories
-        if (Objects.nonNull(req.getCategories())) {
-            book.setCategories(req.getCategories().stream()
-                    .map(cat -> BookCategory.builder().category(cat).build())
-                    .toList());
-        }
-
-        // Set authors
-        if (Objects.nonNull(req.getAuthors())) {
-            book.setAuthors(req.getAuthors().stream()
-                    .map(author -> BookAuthor.builder().author(author).build())
-                    .toList());
-        }
-
-        // Insert Book to get ID
         book = bookRepository.insert(book);
-        Long bookId = book.getId();
+        fileManagementService.moveToPermanent(req.getContentFile(), UploadType.PDF);
+        fileManagementService.moveToPermanent(req.getCoverImage(), UploadType.IMAGE);
 
-        // Save PDF to GCS: books/{bookId}/pdf/original.pdf
-        String pdfPath = "books/" + bookId + "/pdf/original.pdf";
-        storageService.store(pdfFile, pdfPath);
-        book.setContentFile(pdfPath);
-
-        // Save cover to GCS if provided: books/{bookId}/cover/cover.jpg
-        if (bookCover != null && !bookCover.isEmpty()) {
-            String coverPath = "books/" + bookId + "/cover/cover.jpg";
-            storageService.store(bookCover, coverPath);
-            book.setCoverImage(coverPath);
-        }
-
-        // Update book with coverImage and contentFile (single UPDATE query, no SELECT)
-        bookRepository.update(book);
-
-        // Trigger async OCR via OcrService (runs in separate thread)
-        // PDF đã được upload lên GCS tại books/{bookId}/pdf/original.pdf
-        ocrService.processDocumentAsync(book, pdfFile);
-        return book;
+        // Trigger async OCR via OcrService (runs in separate thread, reads the PDF from GCS)
+        ocrService.processDocumentAsync(book);
+        return responseMapper.toBookResponse(book);
     }
 
     @Override
     @Transactional
-    public Book updateBook(Long bookId, String bookUpdateRequest, MultipartFile bookCover, MultipartFile contentFile) {
+    public BookResponse updateBook(Long bookId, BookRequest req) {
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
+        String oldCover = book.getCoverImage();
+        String oldContent = book.getContentFile();
 
-        BookCreateRequest req = parseBookInfo(bookUpdateRequest);
-        bookValidator.validateForUpdate(req);
-        if (bookCover != null && !bookCover.isEmpty()) {
-            bookValidator.validateCoverImage(bookCover);
-        }
-        if (Objects.nonNull(contentFile) && !contentFile.isEmpty()) {
-            bookValidator.validatePdfFile(contentFile);
-        }
-
-        if (req.getTitle() != null) {
-            book.setTitle(req.getTitle().trim());
-        }
-        if (req.getPrice() != null) {
-            book.setPrice(req.getPrice());
-        }
-        if (req.getDescription() != null) {
-            book.setDescription(req.getDescription());
-        }
-        if (req.getVoice() != null) {
-            book.setVoice(req.getVoice());
-        }
-        if (req.getCategories() != null) {
-            book.setCategories(req.getCategories().stream()
-                    .map(cat -> BookCategory.builder().category(cat).build())
-                    .toList());
-        }
-        if (req.getAuthors() != null) {
-            book.setAuthors(req.getAuthors().stream()
-                    .map(author -> BookAuthor.builder().author(author).build())
-                    .toList());
-        }
-
-        if (bookCover != null && !bookCover.isEmpty()) {
-            String coverPath = "books/" + bookId + "/cover/cover.jpg";
-            storageService.store(bookCover, coverPath);
-            book.setCoverImage(coverPath);
-        }
-
-        if (Objects.nonNull(contentFile) && !contentFile.isEmpty()) {
-            String pdfPath = "books/" + bookId + "/pdf/original.pdf";
-            storageService.store(contentFile, pdfPath);
-            book.setContentFile(pdfPath);
-
-            // TODO: chạy lại OCR cho contentFile mới (chưa chốt phương án xử lý chapter cũ):
-            //  - xóa các chapter cũ của sách (chapterRepository.deleteByBookId) hoặc giữ lại
-            //  - set book.setStatus(BookStatus.PROCESSING) rồi gọi ocrService.processDocumentAsync(book, contentFile)
-        }
+        verifyIfNew(req.getContentFile(), oldContent, UploadType.PDF);
+        verifyIfNew(req.getCoverImage(), oldCover, UploadType.IMAGE);
+        applyRequest(book, req);
+        // TODO: khi contentFile đổi, chạy lại OCR (chưa chốt phương án xử lý chapter cũ):
+        //  - xóa các chapter cũ của sách (chapterRepository.deleteByBookId) hoặc giữ lại
+        //  - set book.setStatus(BookStatus.PROCESSING) rồi gọi ocrService.processDocumentAsync(book)
 
         bookRepository.update(book);
+        moveIfNew(req.getContentFile(), oldContent, UploadType.PDF);
+        moveIfNew(req.getCoverImage(), oldCover, UploadType.IMAGE);
+        deleteReplacedFile(oldCover, book.getCoverImage(), bookId);
+        deleteReplacedFile(oldContent, book.getContentFile(), bookId);
         return getBookById(bookId);
     }
 
@@ -241,15 +145,59 @@ public class BookServiceImpl implements BookService {
         bookRepository.update(book);
     }
 
-    private BookCreateRequest parseBookInfo(String bookInfo) {
-        if (bookInfo == null || bookInfo.isBlank()) {
-            throw new BusinessException(BusinessError.MALFORMED_JSON);
+    /** Shared by create and update; the DTO is already validated and new files were verified. */
+    private void applyRequest(Book book, BookRequest req) {
+        book.setTitle(req.getTitle().trim());
+        book.setPrice(req.getPrice());
+        book.setDescription(req.getDescription());
+        book.setVoice(Voice.builder().id(req.getVoiceId()).build());
+        book.setCategories(toBookCategories(req.getCategoryIds()));
+        book.setAuthors(toBookAuthors(req.getAuthorIds()));
+        book.setContentFile(resolveFile(req.getContentFile(), book.getContentFile(), UploadType.PDF));
+        book.setCoverImage(resolveFile(req.getCoverImage(), book.getCoverImage(), UploadType.IMAGE));
+    }
+
+    private String resolveFile(String requested, String current, UploadType type) {
+        return isNewFile(requested, current) ? type.permanentPath(requested) : current;
+    }
+
+    private boolean isNewFile(String requested, String current) {
+        return !requested.equals(current);
+    }
+
+    private void verifyIfNew(String requested, String current, UploadType type) {
+        if (isNewFile(requested, current)) {
+            fileManagementService.verifyUpload(requested, type);
+        }
+    }
+
+    private void moveIfNew(String requested, String current, UploadType type) {
+        if (isNewFile(requested, current)) {
+            fileManagementService.moveToPermanent(requested, type);
+        }
+    }
+
+    private List<BookCategory> toBookCategories(List<Long> categoryIds) {
+        return categoryIds.stream()
+                .map(id -> BookCategory.builder().category(Category.builder().id(id).build()).build())
+                .toList();
+    }
+
+    private List<BookAuthor> toBookAuthors(List<Long> authorIds) {
+        return authorIds.stream()
+                .map(id -> BookAuthor.builder().author(Author.builder().id(id).build()).build())
+                .toList();
+    }
+
+    /** Every file has its own path, so a replaced file must be removed explicitly. */
+    private void deleteReplacedFile(String oldPath, String newPath, Long bookId) {
+        if (oldPath == null || oldPath.equals(newPath)) {
+            return;
         }
         try {
-            return objectMapper.readValue(bookInfo, BookCreateRequest.class);
-        } catch (Exception e) {
-            log.warn("Failed to parse bookInfo: {}", e.getMessage());
-            throw new BusinessException(BusinessError.MALFORMED_JSON);
+            storageService.delete(oldPath);
+        } catch (Exception ex) {
+            log.warn("Không xóa được file cũ {} trên GCS cho book {}: {}", oldPath, bookId, ex.getMessage());
         }
     }
 }

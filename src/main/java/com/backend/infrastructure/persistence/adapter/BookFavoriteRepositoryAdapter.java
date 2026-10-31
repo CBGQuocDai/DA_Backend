@@ -1,7 +1,7 @@
 package com.backend.infrastructure.persistence.adapter;
 
-import com.backend.domain.adapter.repository.BookFavoriteRepository;
-import com.backend.domain.mapper.BookFavoriteMapper;
+import com.backend.application.adapter.repository.BookFavoriteRepository;
+import com.backend.infrastructure.persistence.mapper.BookFavoriteMapper;
 import com.backend.domain.model.BookFavorite;
 import com.backend.infrastructure.persistence.entity.JpaBookFavoriteEntity;
 import com.backend.infrastructure.persistence.repository.JpaBookFavoriteRepository;

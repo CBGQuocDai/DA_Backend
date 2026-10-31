@@ -1,7 +1,7 @@
 package com.backend.infrastructure.security;
 
 import com.backend.domain.model.User;
-import com.backend.domain.adapter.TokenProvider;
+import com.backend.application.adapter.security.TokenProvider;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
@@ -38,7 +38,7 @@ public class JwtTokenProvider implements TokenProvider {
                 .subject(String.valueOf(user.getId()))
                 .claim("email", user.getEmail())
                 .issuer(jwtIssuer)
-//                .claim("role", user.getRole())
+                .claim("role", user.getRole())
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(key)

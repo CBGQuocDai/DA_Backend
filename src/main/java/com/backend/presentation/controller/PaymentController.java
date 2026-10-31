@@ -1,10 +1,10 @@
 package com.backend.presentation.controller;
 
-import com.backend.domain.adapter.payment.PaymentService;
-import com.backend.domain.dto.request.payment.CreatePaymentRequest;
-import com.backend.domain.dto.response.ApiResponse;
-import com.backend.domain.dto.response.payment.PaymentResponse;
-import com.backend.infrastructure.persistence.repository.JpaCustomerBookRepository;
+import com.backend.application.service.CustomerBookService;
+import com.backend.application.service.PaymentService;
+import com.backend.application.dto.request.payment.CreatePaymentRequest;
+import com.backend.presentation.dto.ApiResponse;
+import com.backend.application.dto.response.payment.PaymentResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,7 +18,7 @@ import java.util.Map;
 public class PaymentController {
 
     private final PaymentService paymentService;
-    private final JpaCustomerBookRepository customerBookRepository;
+    private final CustomerBookService customerBookService;
 
     @PostMapping
     public ApiResponse<PaymentResponse> createPayment(
@@ -56,12 +56,17 @@ public class PaymentController {
                 .build();
     }
 
+    /**
+     * @deprecated Use {@code GET /customer/books/{bookId}/check} instead.
+     * Retained for backward compatibility with existing clients.
+     */
+    @Deprecated
     @GetMapping("/check/{bookId}")
     public ApiResponse<Map<String, Boolean>> checkPurchase(
             @PathVariable Long bookId,
             @AuthenticationPrincipal Long customerId
     ) {
-        boolean purchased = customerId != null && customerBookRepository.existsByCustomerIdAndBookId(customerId, bookId);
+        boolean purchased = customerBookService.hasPurchasedBook(customerId, bookId);
         return ApiResponse.<Map<String, Boolean>>builder()
                 .message("Kiểm tra trạng thái sở hữu sách")
                 .data(Map.of("purchased", purchased))

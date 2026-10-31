@@ -1,8 +1,8 @@
 package com.backend.presentation.controller;
 
 import com.backend.application.service.CategoryService;
-import com.backend.domain.dto.response.ApiResponse;
-import com.backend.domain.model.Category;
+import com.backend.presentation.dto.ApiResponse;
+import com.backend.application.dto.response.category.CategoryResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,8 +19,8 @@ public class CategoryController {
     private final CategoryService categoryService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<Category>>> getCategories() {
-        return ResponseEntity.ok(ApiResponse.<List<Category>>builder()
+    public ResponseEntity<ApiResponse<List<CategoryResponse>>> getCategories() {
+        return ResponseEntity.ok(ApiResponse.<List<CategoryResponse>>builder()
                 .data(categoryService.getCategories())
                 .build());
     }

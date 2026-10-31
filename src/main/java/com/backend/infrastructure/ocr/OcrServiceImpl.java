@@ -1,14 +1,14 @@
 package com.backend.infrastructure.ocr;
 
-import com.backend.domain.adapter.repository.BookRepository;
-import com.backend.domain.adapter.repository.ChapterRepository;
+import com.backend.application.adapter.repository.BookRepository;
+import com.backend.application.adapter.repository.ChapterRepository;
+import com.backend.application.adapter.storage.StorageService;
 import com.backend.domain.model.Book;
 import com.backend.domain.model.Chapter;
 import com.backend.domain.valueobject.BookStatus;
-import com.backend.domain.valueobject.ChapterStatus;
 import com.google.cloud.documentai.v1.*;
 import com.google.cloud.documentai.v1.Document.DocumentLayout.DocumentLayoutBlock;
-import com.backend.domain.adapter.ocr.OcrService;
+import com.backend.application.adapter.ocr.OcrService;
 import com.google.protobuf.ByteString;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +17,6 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.annotation.PostConstruct;
 import java.io.ByteArrayOutputStream;
@@ -51,6 +50,8 @@ public class OcrServiceImpl implements OcrService {
 
     private final ChapterRepository chapterRepository;
 
+    private final StorageService storageService;
+
     @PostConstruct
     public void init() {
         String endpoint = String.format("%s-documentai.googleapis.com:443", location);
@@ -72,9 +73,9 @@ public class OcrServiceImpl implements OcrService {
 
     @Override
     @Async
-    public void processDocumentAsync(Book book, MultipartFile file) {
+    public void processDocumentAsync(Book book) {
         try {
-            List<Chapter> chapters = extractChapters(file);
+            List<Chapter> chapters = extractChapters(storageService.load(book.getContentFile()));
             if (chapters.isEmpty()) {
                 throw new IllegalStateException("No chapters extracted from document");
             }
@@ -88,10 +89,10 @@ public class OcrServiceImpl implements OcrService {
         }
     }
 
-    private List<Chapter> extractChapters(MultipartFile file) throws IOException {
+    private List<Chapter> extractChapters(byte[] pdf) throws IOException {
         List<List<DocumentLayoutBlock>> chunks = new ArrayList<>();
 
-        try (PDDocument fullDocument = Loader.loadPDF(file.getBytes())) {
+        try (PDDocument fullDocument = Loader.loadPDF(pdf)) {
             int totalPages = fullDocument.getNumberOfPages();
             log.info("Processing PDF with {} pages, chunk size: {}", totalPages, MAX_PAGES_PER_CHUNK);
 
@@ -215,9 +216,9 @@ public class OcrServiceImpl implements OcrService {
 
         chapters.add(Chapter.builder()
                 .title(title)
+                .readingSpeed(1D)
                 .chapterOrder(chapters.size())
                 .rawText(rawText.isEmpty() ? title : rawText)
-                .status(ChapterStatus.TEXT_READY)
                 .build());
 
         titleParts.clear();

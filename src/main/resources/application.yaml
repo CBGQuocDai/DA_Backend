@@ -6,3 +6,5 @@ spring:
   web:
     resources:
       add-mappings: false
+  jackson:
+    default-property-inclusion: non_null

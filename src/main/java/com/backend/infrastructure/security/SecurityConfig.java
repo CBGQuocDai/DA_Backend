@@ -1,6 +1,6 @@
 package com.backend.infrastructure.security;
 
-import com.backend.domain.adapter.TokenProvider;
+import com.backend.application.adapter.security.TokenProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -39,41 +39,47 @@ public class SecurityConfig {
     private List<String> allowedOrigins;
 
     private static final String[] WHITELIST = {
-            "/admin/login",
-            "/customer/login",
-            "/health"
+        "/admin/login",
+        "/customer/login",
+        "/customer/register",
     };
 
     // SePay gọi webhook server-to-server, xác thực bằng chữ ký X-SePay-Signature thay vì JWT
     private static final String SEPAY_WEBHOOK = "/payments/sepay/webhook";
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http){
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) {
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .exceptionHandling(exceptions -> exceptions
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                            objectMapper.writeValue(response.getOutputStream(),
-                                    Map.of("success", false, "message", "Unauthorized: " + authException.getMessage()));
-                        })
-                        .accessDeniedHandler((request, response, accessDeniedException) -> {
-                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                            objectMapper.writeValue(response.getOutputStream(),
-                                    Map.of("success", false, "message", "Access denied: " + accessDeniedException.getMessage()));
-                        }))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // /health/** gồm cả /health/liveness, /health/readiness mà Kubernetes probe gọi
-                        .requestMatchers(HttpMethod.GET, "/health", "/health/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, WHITELIST).permitAll()
-                        .requestMatchers(HttpMethod.POST, SEPAY_WEBHOOK).permitAll()
-                        .anyRequest().authenticated())
-                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .csrf(AbstractHttpConfigurer::disable)
+            .sessionManagement(
+                session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .exceptionHandling(exceptions -> exceptions
+                .authenticationEntryPoint((request, response, authException) -> {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                    objectMapper.writeValue(response.getOutputStream(),
+                        Map.of("success", false, "message",
+                            "Unauthorized: " + authException.getMessage()));
+                })
+                .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                    objectMapper.writeValue(response.getOutputStream(),
+                        Map.of("success", false, "message",
+                            "Access denied: " + accessDeniedException.getMessage()));
+                }))
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                // /health/** gồm cả /health/liveness, /health/readiness mà Kubernetes probe gọi
+                .requestMatchers(HttpMethod.GET,
+                    "/health", "/health/**"
+                ).permitAll()
+
+                .requestMatchers(HttpMethod.POST, WHITELIST).permitAll()
+                .requestMatchers(HttpMethod.POST, SEPAY_WEBHOOK).permitAll()
+                .anyRequest().authenticated())
+            .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -88,7 +94,8 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         configuration.setAllowedOrigins(allowedOrigins);
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(
+            List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);

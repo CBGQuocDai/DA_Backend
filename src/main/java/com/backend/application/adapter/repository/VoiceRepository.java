@@ -1,0 +1,16 @@
+package com.backend.application.adapter.repository;
+
+import com.backend.application.dto.response.PageResponse;
+import com.backend.domain.model.Voice;
+
+import java.util.Optional;
+
+public interface VoiceRepository {
+    PageResponse<Voice> findAll(int page, int size);
+    PageResponse<Voice> findAllByNameLike(String voiceName, int page, int size);
+    Voice save(Voice v);
+    Voice update(Voice v);
+    void delete(Voice v);
+    Optional<Voice> findById(Long id);
+    void deleteById(Long id);
+}

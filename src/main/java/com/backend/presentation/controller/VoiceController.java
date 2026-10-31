@@ -2,15 +2,16 @@ package com.backend.presentation.controller;
 
 
 import com.backend.application.service.VoiceService;
-import com.backend.domain.dto.response.ApiResponse;
-import com.backend.domain.dto.response.PageResponse;
-import com.backend.domain.model.Voice;
+import com.backend.application.dto.request.voice.VoiceRequest;
+import com.backend.presentation.dto.ApiResponse;
+import com.backend.application.dto.response.PageResponse;
+import com.backend.application.dto.response.voice.VoiceResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("voice")
@@ -18,36 +19,38 @@ import org.springframework.web.multipart.MultipartFile;
 public class VoiceController {
 
     private final VoiceService voiceService;
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<Voice>>> getListVoice(
+    public ResponseEntity<ApiResponse<PageResponse<VoiceResponse>>> getListVoice(
             @RequestParam(value="page", defaultValue = "0")  int page,
             @RequestParam(value= "size", defaultValue = "10") int size,
             @RequestParam(value = "voiceName", required = false) String voiceName
     ) {
-        return ResponseEntity.ok(ApiResponse.<PageResponse<Voice>>builder()
+        return ResponseEntity.ok(ApiResponse.<PageResponse<VoiceResponse>>builder()
                 .data(voiceService.getListVoice(voiceName, page, size))
                 .build());
     }
 
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponse<Voice>> createVoice(
-            @RequestPart("voiceInfo") String voiceInfo,
-            @RequestPart("exampleAudio") MultipartFile exampleAudio) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.<Voice>builder()
-                .data(voiceService.createVoice(voiceInfo, exampleAudio))
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping
+    public ResponseEntity<ApiResponse<VoiceResponse>> createVoice(
+            @Valid @RequestBody VoiceRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.<VoiceResponse>builder()
+                .data(voiceService.createVoice(request))
                 .build());
     }
 
-    @PutMapping(value = "/{voiceId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponse<Voice>> updateVoice(
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{voiceId}")
+    public ResponseEntity<ApiResponse<VoiceResponse>> updateVoice(
             @PathVariable Long voiceId,
-            @RequestPart(value = "voiceInfo", required = false) String voiceInfo,
-            @RequestPart(value = "exampleAudio", required = false) MultipartFile exampleAudio) {
-        return ResponseEntity.ok(ApiResponse.<Voice>builder()
-                .data(voiceService.updateVoice(voiceId, voiceInfo, exampleAudio))
+            @Valid @RequestBody VoiceRequest request) {
+        return ResponseEntity.ok(ApiResponse.<VoiceResponse>builder()
+                .data(voiceService.updateVoice(voiceId, request))
                 .build());
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{voiceId}")
     public ResponseEntity<ApiResponse<Void>> deleteVoice(@PathVariable Long voiceId) {
         voiceService.deleteVoice(voiceId);

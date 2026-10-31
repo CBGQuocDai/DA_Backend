@@ -16,9 +16,10 @@ public class Chapter {
     private Long id;
     private String title;
     private Integer chapterOrder;
-    private Integer duration;
+    private Integer duration; // seconds
     private String audioUrl;
     private String rawText;
+    private Double readingSpeed;
     private ChapterStatus status;
     private AttachFile attachFile;
 }

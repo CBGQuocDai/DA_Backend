@@ -1,14 +1,13 @@
 package com.backend.application.service;
 
-import com.backend.domain.dto.request.review.ReviewCreateRequest;
-import com.backend.domain.dto.response.review.ReviewCreateResponse;
-import com.backend.domain.model.Review;
+import com.backend.application.dto.request.review.ReviewCreateRequest;
+import com.backend.application.dto.response.review.ReviewCreateResponse;
+import com.backend.application.dto.response.review.ReviewResponse;
 import java.util.List;
 
 public interface ReviewService {
 
     ReviewCreateResponse save(Long userId, ReviewCreateRequest request);
 
-    List<Review> getReviewByBookId(Long bookId);
-
+    List<ReviewResponse> getReviewByBookId(Long bookId);
 }

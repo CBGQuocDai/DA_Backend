@@ -1,10 +1,10 @@
 package com.backend.presentation.controller;
 
 import com.backend.application.service.ReviewService;
-import com.backend.domain.dto.request.review.ReviewCreateRequest;
-import com.backend.domain.dto.response.ApiResponse;
-import com.backend.domain.dto.response.review.ReviewCreateResponse;
-import com.backend.domain.model.Review;
+import com.backend.application.dto.request.review.ReviewCreateRequest;
+import com.backend.presentation.dto.ApiResponse;
+import com.backend.application.dto.response.review.ReviewCreateResponse;
+import com.backend.application.dto.response.review.ReviewResponse;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ReviewController {
 
-    public final ReviewService reviewService;
+    private final ReviewService reviewService;
 
     @PostMapping
     public ApiResponse<ReviewCreateResponse> save(
@@ -34,11 +34,11 @@ public class ReviewController {
     }
 
     @GetMapping("/{bookId}")
-    public ApiResponse<List<Review>> getReviewByBookId(
+    public ApiResponse<List<ReviewResponse>> getReviewByBookId(
         @PathVariable Long bookId
     ) {
-        List<Review> data = reviewService.getReviewByBookId(bookId);
-        return ApiResponse.<List<Review>>builder()
+        List<ReviewResponse> data = reviewService.getReviewByBookId(bookId);
+        return ApiResponse.<List<ReviewResponse>>builder()
             .message("Lấy danh sách đánh giá thành công")
             .data(data).build();
     }

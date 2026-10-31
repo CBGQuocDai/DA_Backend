@@ -1,17 +1,17 @@
 package com.backend.application.service.impl;
 
 import com.backend.application.service.CustomerService;
-import com.backend.domain.adapter.PasswordEncoder;
-import com.backend.domain.adapter.TokenProvider;
-import com.backend.domain.adapter.repository.CustomerRepository;
-import com.backend.domain.adapter.repository.UserRepository;
-import com.backend.domain.dto.request.user.LoginRequest;
-import com.backend.domain.dto.request.user.RegisterRequest;
-import com.backend.domain.dto.request.user.customer.CustomerChangePasswordRequest;
-import com.backend.domain.dto.request.user.customer.CustomerUpdateProfileRequest;
-import com.backend.domain.dto.response.customer.CustomerProfileResponse;
-import com.backend.domain.dto.response.user.LoginResponse;
-import com.backend.domain.dto.response.user.RegisterResponse;
+import com.backend.application.adapter.security.PasswordEncoder;
+import com.backend.application.adapter.security.TokenProvider;
+import com.backend.application.adapter.repository.CustomerRepository;
+import com.backend.application.adapter.repository.UserRepository;
+import com.backend.application.dto.request.user.LoginRequest;
+import com.backend.application.dto.request.user.RegisterRequest;
+import com.backend.application.dto.request.user.customer.CustomerChangePasswordRequest;
+import com.backend.application.dto.request.user.customer.CustomerUpdateProfileRequest;
+import com.backend.application.dto.response.customer.CustomerProfileResponse;
+import com.backend.application.dto.response.user.LoginResponse;
+import com.backend.application.dto.response.user.RegisterResponse;
 import com.backend.domain.exception.BusinessException;
 import com.backend.domain.model.Customer;
 import com.backend.domain.valueobject.BusinessError;
@@ -68,21 +68,26 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     @Transactional(readOnly = true)
     public CustomerProfileResponse getProfile(Long id) {
+        if (id == null) {
+            throw new BusinessException(BusinessError.UNAUTHORIZED);
+        }
         Customer customer = customerRepository.findById(id)
             .orElseThrow(() -> new BusinessException(BusinessError.USER_NOT_FOUND));
-        CustomerProfileResponse response = CustomerProfileResponse.builder()
+        return CustomerProfileResponse.builder()
             .id(customer.getId())
             .email(customer.getEmail())
             .fullName(customer.getFullName())
             .avatarUrl(customer.getAvatarUrl())
             .build();
-        return response;
     }
 
     @Override
     @Transactional
     public CustomerProfileResponse updateProfile(Long userId,
         CustomerUpdateProfileRequest request) {
+        if (userId == null) {
+            throw new BusinessException(BusinessError.UNAUTHORIZED);
+        }
         Customer customer = customerRepository.findById(userId)
             .orElseThrow(() -> new BusinessException(BusinessError.USER_NOT_FOUND));
         if (request.getFullName() != null) {
@@ -93,17 +98,19 @@ public class CustomerServiceImpl implements CustomerService {
         }
         customerRepository.save(customer);
 
-        CustomerProfileResponse response = CustomerProfileResponse.builder()
+        return CustomerProfileResponse.builder()
             .id(customer.getId())
             .email(customer.getEmail())
             .fullName(customer.getFullName()).avatarUrl(customer.getAvatarUrl()).build();
-        return response;
     }
 
     @Override
     @Transactional
     public void changePassword(Long userId,
         CustomerChangePasswordRequest request) {
+        if (userId == null) {
+            throw new BusinessException(BusinessError.UNAUTHORIZED);
+        }
         Customer customer = customerRepository.findById(userId)
             .orElseThrow(() -> new BusinessException(BusinessError.USER_NOT_FOUND));
 

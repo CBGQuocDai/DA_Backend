@@ -1,12 +1,12 @@
 package com.backend.infrastructure.persistence.adapter;
 
-import com.backend.domain.adapter.repository.BookRepository;
-import com.backend.domain.dto.response.PageResponse;
-import com.backend.domain.mapper.BookAuthorMapper;
-import com.backend.domain.mapper.BookCategoryMapper;
-import com.backend.domain.mapper.BookMapper;
-import com.backend.domain.mapper.BookStatMapper;
-import com.backend.domain.mapper.ChapterMapper;
+import com.backend.application.adapter.repository.BookRepository;
+import com.backend.application.dto.response.PageResponse;
+import com.backend.infrastructure.persistence.mapper.BookAuthorMapper;
+import com.backend.infrastructure.persistence.mapper.BookCategoryMapper;
+import com.backend.infrastructure.persistence.mapper.BookMapper;
+import com.backend.infrastructure.persistence.mapper.BookStatMapper;
+import com.backend.infrastructure.persistence.mapper.ChapterMapper;
 import com.backend.domain.model.Book;
 import com.backend.domain.model.BookAuthor;
 import com.backend.domain.model.BookCategory;
@@ -148,6 +148,12 @@ public class BookRepositoryAdapter implements BookRepository {
                             .toList());
                     return book;
                 });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Book> findBasicById(Long id) {
+        return jpaBookRepository.findByIdWithVoice(id).map(bookMapper::toDomain);
     }
 
     @Override

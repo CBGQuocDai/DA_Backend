@@ -1,6 +1,6 @@
 package com.backend;
 
-import com.backend.domain.adapter.ocr.OcrService;
+import com.backend.application.adapter.ocr.OcrService;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
