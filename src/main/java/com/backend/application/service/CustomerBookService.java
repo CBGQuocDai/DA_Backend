@@ -1,6 +1,6 @@
 package com.backend.application.service;
 
-import com.backend.domain.model.Book;
+import com.backend.application.dto.response.book.BookResponse;
 import java.util.List;
 
 public interface CustomerBookService {
@@ -9,5 +9,5 @@ public interface CustomerBookService {
 
     void assignBookToCustomer(Long customerId, Long bookId);
 
-    List<Book> getPurchasedBooks(Long customerId);
+    List<BookResponse> getPurchasedBooks(Long customerId);
 }

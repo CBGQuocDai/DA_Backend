@@ -1,21 +1,20 @@
 package com.backend.application.service;
 
-import com.backend.domain.dto.response.PageResponse;
-import com.backend.domain.model.Book;
-import com.backend.domain.model.BookStat;
+import com.backend.application.dto.request.book.BookRequest;
+import com.backend.application.dto.response.PageResponse;
+import com.backend.application.dto.response.book.BookResponse;
 import com.backend.domain.valueobject.BookStatus;
-import org.springframework.web.multipart.MultipartFile;
 
 
 public interface BookService {
 //  chức năng của admin
-    PageResponse<BookStat> getBooks(String bookName, Long categoryId, Long authorId, BookStatus status, int page, int size);
-    Book getBookById(Long bookId);
-    Book createBook(String book, MultipartFile pdfFile, MultipartFile bookCover);
-    Book updateBook(Long bookId, String book, MultipartFile bookCover, MultipartFile contentFile);
+    PageResponse<BookResponse> getBooks(String bookName, Long categoryId, Long authorId, BookStatus status, int page, int size);
+    BookResponse getBookById(Long bookId);
+    BookResponse createBook(BookRequest request);
+    BookResponse updateBook(Long bookId, BookRequest request);
     void deleteBook(Long bookId);
     void publishBook(Long bookId);
     void unpublishBook(Long bookId);
 // chức năng của client
-    PageResponse<BookStat> getBooksByCategory(Long categoryId, int page, int size);
+    PageResponse<BookResponse> getBooksByCategory(Long categoryId, int page, int size);
 }

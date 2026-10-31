@@ -1,16 +1,20 @@
 package com.backend.presentation.controller;
 
 import com.backend.application.service.ReviewService;
-import com.backend.domain.dto.request.review.ReviewCreateRequest;
-import com.backend.domain.dto.response.ApiResponse;
-import com.backend.domain.dto.response.review.ReviewCreateResponse;
-import com.backend.domain.dto.response.review.ReviewResponse;
+import com.backend.application.dto.request.review.ReviewCreateRequest;
+import com.backend.presentation.dto.ApiResponse;
+import com.backend.application.dto.response.review.ReviewCreateResponse;
+import com.backend.application.dto.response.review.ReviewResponse;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("review")

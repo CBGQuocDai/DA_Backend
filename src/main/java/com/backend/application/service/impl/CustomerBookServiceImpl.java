@@ -1,10 +1,11 @@
 package com.backend.application.service.impl;
 
+import com.backend.application.dto.response.book.BookResponse;
+import com.backend.application.mapper.ResponseMapper;
+import com.backend.application.adapter.repository.BookRepository;
+import com.backend.application.adapter.repository.CustomerBookRepository;
 import com.backend.application.service.CustomerBookService;
-import com.backend.domain.adapter.repository.BookRepository;
-import com.backend.domain.adapter.repository.CustomerBookRepository;
 import com.backend.domain.exception.BusinessException;
-import com.backend.domain.model.Book;
 import com.backend.domain.model.CustomerBook;
 import com.backend.domain.valueobject.BusinessError;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ public class CustomerBookServiceImpl implements CustomerBookService {
 
     private final CustomerBookRepository customerBookRepository;
     private final BookRepository bookRepository;
+    private final ResponseMapper responseMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -44,34 +46,28 @@ public class CustomerBookServiceImpl implements CustomerBookService {
             throw new BusinessException(BusinessError.BOOK_ALREADY_OWNED);
         }
 
-        CustomerBook customerBook = CustomerBook.builder()
+        customerBookRepository.save(CustomerBook.builder()
                 .customerId(customerId)
                 .bookId(bookId)
                 .purchaseAt(Instant.now())
                 .isReadComplete(false)
-                .build();
-
-        customerBookRepository.save(customerBook);
+                .build());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<Book> getPurchasedBooks(Long customerId) {
+    public List<BookResponse> getPurchasedBooks(Long customerId) {
         if (customerId == null) {
             throw new BusinessException(BusinessError.UNAUTHORIZED);
         }
 
-        List<CustomerBook> customerBooks = customerBookRepository.findByCustomerId(customerId);
-        if (customerBooks == null || customerBooks.isEmpty()) {
-            return List.of();
-        }
-
-        List<Long> bookIds = customerBooks.stream()
+        List<Long> bookIds = customerBookRepository.findByCustomerId(customerId).stream()
                 .map(CustomerBook::getBookId)
                 .distinct()
                 .toList();
-
-        return bookRepository.findAllById(bookIds);
+        if (bookIds.isEmpty()) {
+            return List.of();
+        }
+        return bookRepository.findAllById(bookIds).stream().map(responseMapper::toBookResponse).toList();
     }
 }
-

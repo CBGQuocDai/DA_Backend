@@ -1,6 +1,6 @@
 package com.backend.infrastructure.security;
 
-import com.backend.domain.adapter.PasswordEncoder;
+import com.backend.application.adapter.security.PasswordEncoder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 

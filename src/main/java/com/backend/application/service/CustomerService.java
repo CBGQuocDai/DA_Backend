@@ -1,9 +1,9 @@
 package com.backend.application.service;
 
 
-import com.backend.domain.dto.request.user.customer.CustomerChangePasswordRequest;
-import com.backend.domain.dto.request.user.customer.CustomerUpdateProfileRequest;
-import com.backend.domain.dto.response.customer.CustomerProfileResponse;
+import com.backend.application.dto.request.user.customer.CustomerChangePasswordRequest;
+import com.backend.application.dto.request.user.customer.CustomerUpdateProfileRequest;
+import com.backend.application.dto.response.customer.CustomerProfileResponse;
 
 public interface CustomerService extends UserService {
 

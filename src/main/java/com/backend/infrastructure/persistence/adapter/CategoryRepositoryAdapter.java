@@ -1,7 +1,7 @@
 package com.backend.infrastructure.persistence.adapter;
 
-import com.backend.domain.adapter.repository.CategoryRepository;
-import com.backend.domain.mapper.CategoryMapper;
+import com.backend.application.adapter.repository.CategoryRepository;
+import com.backend.infrastructure.persistence.mapper.CategoryMapper;
 import com.backend.domain.model.Category;
 import com.backend.infrastructure.persistence.repository.JpaCategoryRepository;
 import lombok.RequiredArgsConstructor;

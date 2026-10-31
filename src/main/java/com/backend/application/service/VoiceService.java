@@ -1,12 +1,12 @@
 package com.backend.application.service;
 
-import com.backend.domain.dto.response.PageResponse;
-import com.backend.domain.model.Voice;
-import org.springframework.web.multipart.MultipartFile;
+import com.backend.application.dto.request.voice.VoiceRequest;
+import com.backend.application.dto.response.PageResponse;
+import com.backend.application.dto.response.voice.VoiceResponse;
 
 public interface VoiceService {
-    PageResponse<Voice> getListVoice(String voiceName, int page, int size);
-    Voice createVoice(String voiceInfo, MultipartFile exampleAudio);
-    Voice updateVoice(Long voiceId, String voiceInfo, MultipartFile exampleAudio);
+    PageResponse<VoiceResponse> getListVoice(String voiceName, int page, int size);
+    VoiceResponse createVoice(VoiceRequest request);
+    VoiceResponse updateVoice(Long voiceId, VoiceRequest request);
     void deleteVoice(Long voiceId);
 }

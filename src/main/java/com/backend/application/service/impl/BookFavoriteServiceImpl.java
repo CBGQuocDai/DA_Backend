@@ -1,10 +1,12 @@
 package com.backend.application.service.impl;
 
 import com.backend.application.service.BookFavoriteService;
-import com.backend.domain.adapter.repository.BookFavoriteRepository;
-import com.backend.domain.adapter.repository.BookRepository;
-import com.backend.domain.adapter.repository.CustomerRepository;
-import com.backend.domain.dto.response.BookFavoriteResponse;
+import com.backend.application.adapter.repository.BookFavoriteRepository;
+import com.backend.application.adapter.repository.BookRepository;
+import com.backend.application.adapter.repository.CustomerRepository;
+import com.backend.application.dto.response.BookFavoriteResponse;
+import com.backend.application.dto.response.book.BookResponse;
+import com.backend.application.mapper.ResponseMapper;
 import com.backend.domain.exception.BusinessException;
 import com.backend.domain.model.Book;
 import com.backend.domain.model.BookFavorite;
@@ -22,57 +24,7 @@ public class BookFavoriteServiceImpl implements BookFavoriteService {
     private final BookFavoriteRepository bookFavoriteRepository;
     private final CustomerRepository customerRepository;
     private final BookRepository bookRepository;
-
-    @Override
-    @Transactional
-    public BookFavoriteResponse addFavorite(Long userId, Long bookId) {
-        if (userId == null) {
-            throw new BusinessException(BusinessError.USER_NOT_FOUND);
-        }
-        if (bookId == null) {
-            throw new BusinessException(BusinessError.BOOK_NOT_FOUND);
-        }
-
-        if (bookFavoriteRepository.existsByCustomerIdAndBookId(userId, bookId)) {
-            throw new BusinessException(BusinessError.BOOK_ALREADY_FAVORITED);
-        }
-        Customer customer = customerRepository.findById(userId)
-            .orElseThrow(() -> new BusinessException(BusinessError.USER_NOT_FOUND));
-        Book book = bookRepository.findById(bookId)
-            .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
-
-        BookFavorite bookFavorite = BookFavorite.builder()
-            .customer(customer)
-            .book(book)
-            .build();
-        BookFavorite saved = bookFavoriteRepository.save(bookFavorite);
-        return BookFavoriteResponse.builder()
-            .id(saved.getId())
-            .customerId(userId)
-            .bookId(bookId)
-            .isFavorite(true)
-            .build();
-    }
-
-    @Override
-    @Transactional
-    public void removeFavorite(Long userId, Long bookId) {
-        if (userId == null) {
-            throw new BusinessException(BusinessError.USER_NOT_FOUND);
-        }
-        if (bookId == null) {
-            throw new BusinessException(BusinessError.BOOK_NOT_FOUND);
-        }
-
-        customerRepository.findById(userId)
-            .orElseThrow(() -> new BusinessException(BusinessError.USER_NOT_FOUND));
-
-        if (!bookFavoriteRepository.existsByCustomerIdAndBookId(userId, bookId)) {
-            throw new BusinessException(BusinessError.BOOK_FAVORITE_NOT_FOUND);
-        }
-
-        bookFavoriteRepository.deleteByCustomerIdAndBookId(userId, bookId);
-    }
+    private final ResponseMapper responseMapper;
 
     @Override
     @Transactional
@@ -124,7 +76,7 @@ public class BookFavoriteServiceImpl implements BookFavoriteService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Book> list(Long userId) {
+    public List<BookResponse> list(Long userId) {
         if (userId == null) {
             throw new BusinessException(BusinessError.USER_NOT_FOUND);
         }
@@ -136,6 +88,6 @@ public class BookFavoriteServiceImpl implements BookFavoriteService {
         if (bookIds == null || bookIds.isEmpty()) {
             return List.of();
         }
-        return bookRepository.findAllById(bookIds);
+        return bookRepository.findAllById(bookIds).stream().map(responseMapper::toBookResponse).toList();
     }
 }

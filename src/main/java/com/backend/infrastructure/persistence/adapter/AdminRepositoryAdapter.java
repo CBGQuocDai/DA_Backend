@@ -1,7 +1,7 @@
 package com.backend.infrastructure.persistence.adapter;
 
-import com.backend.domain.adapter.repository.AdminRepository;
-import com.backend.domain.mapper.AdminMapper;
+import com.backend.application.adapter.repository.AdminRepository;
+import com.backend.infrastructure.persistence.mapper.AdminMapper;
 import com.backend.domain.model.Admin;
 import com.backend.infrastructure.persistence.entity.JpaAdminEntity;
 import com.backend.infrastructure.persistence.repository.JpaAdminRepository;

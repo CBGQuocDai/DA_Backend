@@ -1,8 +1,8 @@
 package com.backend.infrastructure.persistence.adapter;
 
-import com.backend.domain.adapter.repository.VoiceRepository;
-import com.backend.domain.dto.response.PageResponse;
-import com.backend.domain.mapper.VoiceMapper;
+import com.backend.application.adapter.repository.VoiceRepository;
+import com.backend.application.dto.response.PageResponse;
+import com.backend.infrastructure.persistence.mapper.VoiceMapper;
 import com.backend.domain.model.Voice;
 import com.backend.infrastructure.persistence.entity.JpaVoiceEntity;
 import com.backend.infrastructure.persistence.repository.JpaVoiceRepository;

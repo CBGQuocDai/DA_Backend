@@ -2,15 +2,15 @@ package com.backend.presentation.controller;
 
 import com.backend.application.service.CustomerBookService;
 import com.backend.application.service.CustomerService;
-import com.backend.domain.dto.request.user.LoginRequest;
-import com.backend.domain.dto.request.user.RegisterRequest;
-import com.backend.domain.dto.request.user.customer.CustomerChangePasswordRequest;
-import com.backend.domain.dto.request.user.customer.CustomerUpdateProfileRequest;
-import com.backend.domain.dto.response.ApiResponse;
-import com.backend.domain.dto.response.customer.CustomerProfileResponse;
-import com.backend.domain.dto.response.user.LoginResponse;
-import com.backend.domain.dto.response.user.RegisterResponse;
-import com.backend.domain.model.Book;
+import com.backend.application.dto.request.user.LoginRequest;
+import com.backend.application.dto.request.user.RegisterRequest;
+import com.backend.application.dto.request.user.customer.CustomerChangePasswordRequest;
+import com.backend.application.dto.request.user.customer.CustomerUpdateProfileRequest;
+import com.backend.presentation.dto.ApiResponse;
+import com.backend.application.dto.response.book.BookResponse;
+import com.backend.application.dto.response.customer.CustomerProfileResponse;
+import com.backend.application.dto.response.user.LoginResponse;
+import com.backend.application.dto.response.user.RegisterResponse;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -63,9 +63,9 @@ public class CustomerController {
     }
 
     @GetMapping("/books")
-    public ApiResponse<List<Book>> getPurchasedBooks(@AuthenticationPrincipal Long customerId) {
-        List<Book> data = customerBookService.getPurchasedBooks(customerId);
-        return ApiResponse.<List<Book>>builder()
+    public ApiResponse<List<BookResponse>> getPurchasedBooks(@AuthenticationPrincipal Long customerId) {
+        List<BookResponse> data = customerBookService.getPurchasedBooks(customerId);
+        return ApiResponse.<List<BookResponse>>builder()
                 .message("Lấy danh sách sách đã mua thành công")
                 .data(data)
                 .build();
@@ -76,7 +76,7 @@ public class CustomerController {
             @PathVariable Long bookId,
             @AuthenticationPrincipal Long customerId
     ) {
-        boolean purchased = customerId != null && customerBookService.hasPurchasedBook(customerId, bookId);
+        boolean purchased = customerBookService.hasPurchasedBook(customerId, bookId);
         return ApiResponse.<Map<String, Boolean>>builder()
                 .message("Kiểm tra quyền sở hữu sách thành công")
                 .data(Map.of("purchased", purchased))

@@ -1,6 +1,6 @@
 package com.backend.presentation.advice;
 
-import com.backend.domain.dto.response.ApiResponse;
+import com.backend.presentation.dto.ApiResponse;
 import com.backend.domain.exception.BusinessException;
 import com.backend.domain.valueobject.BusinessError;
 import lombok.extern.slf4j.Slf4j;

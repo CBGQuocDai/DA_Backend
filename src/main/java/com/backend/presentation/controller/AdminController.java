@@ -1,10 +1,10 @@
 package com.backend.presentation.controller;
 
-import com.backend.domain.dto.request.user.LoginRequest;
-import com.backend.domain.dto.request.user.RegisterRequest;
-import com.backend.domain.dto.response.ApiResponse;
-import com.backend.domain.dto.response.user.LoginResponse;
-import com.backend.domain.dto.response.user.RegisterResponse;
+import com.backend.application.dto.request.user.LoginRequest;
+import com.backend.application.dto.request.user.RegisterRequest;
+import com.backend.presentation.dto.ApiResponse;
+import com.backend.application.dto.response.user.LoginResponse;
+import com.backend.application.dto.response.user.RegisterResponse;
 import com.backend.application.service.AdminService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;

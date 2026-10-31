@@ -1,6 +1,6 @@
 package com.backend.infrastructure.security;
 
-import com.backend.domain.adapter.TokenProvider;
+import com.backend.application.adapter.security.TokenProvider;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

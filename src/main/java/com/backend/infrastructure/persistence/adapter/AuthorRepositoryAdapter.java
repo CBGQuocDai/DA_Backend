@@ -1,7 +1,7 @@
 package com.backend.infrastructure.persistence.adapter;
 
-import com.backend.domain.adapter.repository.AuthorRepository;
-import com.backend.domain.mapper.AuthorMapper;
+import com.backend.application.adapter.repository.AuthorRepository;
+import com.backend.infrastructure.persistence.mapper.AuthorMapper;
 import com.backend.domain.model.Author;
 import com.backend.infrastructure.persistence.repository.JpaAuthorRepository;
 import lombok.RequiredArgsConstructor;

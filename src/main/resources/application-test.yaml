@@ -9,6 +9,12 @@ spring:
     driver-class-name: org.h2.Driver
     username: sa
     password:
+  rabbitmq:
+    listener:
+      simple:
+        auto-startup: false
+      direct:
+        auto-startup: false
   jpa:
     hibernate:
       ddl-auto: create-drop
@@ -30,10 +36,6 @@ gcp:
     project-id: test-project
     location: us
     processor-id: test-processor
-#
-#sepay:
-#  webhook:
-#    secret: test-secret
 
 sepay:
   webhook:

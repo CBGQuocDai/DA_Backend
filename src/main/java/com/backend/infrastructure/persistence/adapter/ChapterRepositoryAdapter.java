@@ -1,9 +1,10 @@
 package com.backend.infrastructure.persistence.adapter;
 
-import com.backend.domain.adapter.repository.ChapterRepository;
-import com.backend.domain.mapper.ChapterMapper;
+import com.backend.application.adapter.repository.ChapterRepository;
+import com.backend.infrastructure.persistence.mapper.ChapterMapper;
 import com.backend.domain.model.Book;
 import com.backend.domain.model.Chapter;
+import com.backend.domain.valueobject.ChapterStatus;
 import com.backend.infrastructure.persistence.entity.JpaChapterEntity;
 import com.backend.infrastructure.persistence.repository.JpaChapterRepository;
 import com.backend.infrastructure.persistence.repository.JpaChapterUpdateRepository;
@@ -36,6 +37,19 @@ public class ChapterRepositoryAdapter implements ChapterRepository {
     public Optional<Chapter> findById(Long id) {
         return jpaChapterRepository.findById(id)
                 .map(chapterMapper::toDomain);
+    }
+
+    @Override
+    @Transactional
+    public Optional<Chapter> findByIdForUpdate(Long id) {
+        return jpaChapterRepository.findByIdForUpdate(id)
+                .map(chapterMapper::toDomain);
+    }
+
+    @Override
+    @Transactional
+    public void updateAudio(Long id, String audioUrl, Integer duration, ChapterStatus status) {
+        jpaChapterUpdateRepository.updateAudio(id, audioUrl, duration, status);
     }
 
     @Override
@@ -81,5 +95,11 @@ public class ChapterRepositoryAdapter implements ChapterRepository {
     @Transactional
     public void delete(Long id) {
         jpaChapterRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional
+    public boolean markProcessingAudio(Long id, Double speed) {
+        return jpaChapterUpdateRepository.markProcessingAudio(id, speed, ChapterStatus.PROCESSING_AUDIO) == 1;
     }
 }

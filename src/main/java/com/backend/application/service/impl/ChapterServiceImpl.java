@@ -1,16 +1,20 @@
 package com.backend.application.service.impl;
 
 import com.backend.application.service.ChapterService;
-import com.backend.domain.adapter.repository.BookRepository;
-import com.backend.domain.adapter.repository.ChapterRepository;
-import com.backend.domain.adapter.storage.StorageService;
-import com.backend.domain.adapter.textToSpeech.TextToSpeechService;
-import com.backend.domain.dto.request.book.chapter.ChapterUpdateRequest;
-import com.backend.domain.dto.request.book.chapter.GenerateAudioRequest;
+import com.backend.application.adapter.messaging.MessageQueue;
+import com.backend.application.adapter.repository.BookRepository;
+import com.backend.application.adapter.repository.ChapterRepository;
+import com.backend.application.dto.response.chapter.ChapterResponse;
+import com.backend.application.mapper.ResponseMapper;
+import com.backend.application.dto.request.book.chapter.ChapterGenerateAudioRequest;
+import com.backend.application.dto.request.book.chapter.ChapterUpdateRequest;
+import com.backend.application.adapter.messaging.GenerateAudioRequest;
+import com.backend.application.dto.request.book.chapter.GenerateAudioResult;
 import com.backend.domain.exception.BusinessException;
 import com.backend.domain.model.Book;
 import com.backend.domain.model.Chapter;
 import com.backend.domain.valueobject.BusinessError;
+import com.backend.domain.valueobject.ChapterStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,15 +29,18 @@ import java.util.Objects;
 public class ChapterServiceImpl implements ChapterService {
 
     private final ChapterRepository chapterRepository;
-    private final TextToSpeechService  textToSpeechService;
     private final BookRepository bookRepository;
-    private final StorageService storageService;
+    private final ResponseMapper responseMapper;
+    private final MessageQueue messageQueue;
 
     @Override
     @Transactional(readOnly = true)
-    public List<Chapter> getChaptersByBookId(Long bookId) {
-        List<Chapter> chapters = chapterRepository.findByBookId(bookId);
-        return chapters.stream().peek(c -> c.setAudioUrl(storageService.createSignUrl(c.getAudioUrl(),60L))).toList();
+    public List<ChapterResponse> getChaptersByBookId(Long bookId) {
+        return chapterRepository.findByBookId(bookId).stream().map(chapter -> {
+            ChapterResponse response = responseMapper.toChapterResponse(chapter);
+            response.setAudioUrl(responseMapper.signUrl(chapter.getAudioUrl()));
+            return response;
+        }).toList();
     }
 
     @Override
@@ -43,23 +50,31 @@ public class ChapterServiceImpl implements ChapterService {
     }
 
     @Override
-    public void generateAudio(Long bookId, Long chapterId) {
-        Book book = bookRepository.findById(bookId).orElse(null);
-        if(Objects.isNull(book)) {
-            throw new RuntimeException("Book not found");
+    @Transactional
+    public void generateAudio(ChapterGenerateAudioRequest req) {
+        Book book = bookRepository.findById(req.getBookId()).orElseThrow(
+                () -> new BusinessException(BusinessError.BOOK_NOT_FOUND)
+        );
+        Chapter chapter = chapterRepository.findById(req.getChapterId()).orElseThrow(
+                () -> new BusinessException(BusinessError.CHAPTER_NOT_FOUND)
+        );
+        if (chapter.getRawText() == null || chapter.getRawText().isBlank()) {
+            throw new BusinessException(BusinessError.CHAPTER_TEXT_EMPTY);
         }
-        Chapter chapter = chapterRepository.findById(chapterId).orElse(null);
-        if(Objects.isNull(chapter)) {
-            throw new RuntimeException("Chapter not found");
+
+        double readingSpeed = Objects.requireNonNullElse(req.getSpeed(), 1.0);
+        if (!chapterRepository.markProcessingAudio(chapter.getId(), readingSpeed)) {
+            throw new BusinessException(BusinessError.CHAPTER_AUDIO_PROCESSING);
         }
-        log.info("Generating audio for book {} with voiceId {} and chapter {}", bookId, book.getVoice() != null ? book.getVoice().getId() : null, chapterId);
-        GenerateAudioRequest request = GenerateAudioRequest.builder()
+        log.info("Queueing audio for book {} with voiceId {} and chapter {} at speed {}",
+                book.getId(), book.getVoice() != null ? book.getVoice().getId() : null, chapter.getId(), readingSpeed);
+        GenerateAudioRequest job = GenerateAudioRequest.builder()
+                .chapterId(chapter.getId())
                 .exampleVoiceUrl(book.getVoice() != null ? book.getVoice().getExampleAudio() : "")
                 .text(chapter.getRawText())
+                .speed(readingSpeed)
                 .build();
-        String path = textToSpeechService.generateAudio(request);
-        chapter.setAudioUrl(path);
-        chapterRepository.update(chapter);
+        messageQueue.send(job);
     }
 
     @Override
@@ -74,5 +89,30 @@ public class ChapterServiceImpl implements ChapterService {
             chapter.setTitle(req.getTitle());
         }
         chapterRepository.update(chapter);
+    }
+
+    @Override
+    @Transactional
+    public void handleAudioResult(GenerateAudioResult result) {
+        if (result.getChapterId() == null) {
+            throw new IllegalArgumentException("TTS result is missing chapterId");
+        }
+        Chapter chapter = chapterRepository.findByIdForUpdate(result.getChapterId()).orElse(null);
+        if (chapter == null) {
+            log.warn("TTS result for unknown chapter {}, ignoring", result.getChapterId());
+            return;
+        }
+        if (chapter.getStatus() != ChapterStatus.PROCESSING_AUDIO) {
+            log.warn("TTS result for chapter {} in status {}, ignoring", chapter.getId(), chapter.getStatus());
+            return;
+        }
+        if (result.isSuccess() && result.getAudioPath() != null && !result.getAudioPath().isBlank()) {
+            chapterRepository.updateAudio(chapter.getId(), result.getAudioPath(), result.getDuration(),
+                    ChapterStatus.AUDIO_READY);
+        } else {
+            log.error("TTS failed for chapter {}: {}", chapter.getId(), result.getError());
+            chapterRepository.updateAudio(chapter.getId(), chapter.getAudioUrl(), chapter.getDuration(),
+                    ChapterStatus.FAILED);
+        }
     }
 }

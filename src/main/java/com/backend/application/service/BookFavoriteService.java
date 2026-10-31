@@ -1,18 +1,14 @@
 package com.backend.application.service;
 
-import com.backend.domain.dto.response.BookFavoriteResponse;
-import com.backend.domain.model.Book;
+import com.backend.application.dto.response.BookFavoriteResponse;
+import com.backend.application.dto.response.book.BookResponse;
 import java.util.List;
 
 public interface BookFavoriteService {
-
-    BookFavoriteResponse addFavorite(Long userId, Long bookId);
-
-    void removeFavorite(Long userId, Long bookId);
 
     BookFavoriteResponse toggleFavorite(Long userId, Long bookId);
 
     boolean isFavorite(Long userId, Long bookId);
 
-    List<Book> list(Long userId);
+    List<BookResponse> list(Long userId);
 }

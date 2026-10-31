@@ -31,4 +31,23 @@ public interface JpaChapterUpdateRepository extends JpaRepository<JpaChapterEnti
             @Param("status") ChapterStatus status,
             @Param("attachFileId") Long attachFileId
     );
+
+    @Modifying
+    @Query("UPDATE JpaChapterEntity c SET c.audioUrl = :audioUrl, c.duration = :duration, " +
+            "c.status = :status WHERE c.id = :id")
+    void updateAudio(
+            @Param("id") Long id,
+            @Param("audioUrl") String audioUrl,
+            @Param("duration") Integer duration,
+            @Param("status") ChapterStatus status
+    );
+
+    @Modifying
+    @Query("UPDATE JpaChapterEntity c SET c.status = :processing, c.readingSpeed = :speed " +
+            "WHERE c.id = :id AND (c.status IS NULL OR c.status <> :processing)")
+    int markProcessingAudio(
+            @Param("id") Long id,
+            @Param("speed") Double speed,
+            @Param("processing") ChapterStatus processing
+    );
 }

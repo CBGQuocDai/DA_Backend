@@ -1,17 +1,15 @@
 package com.backend.presentation.controller;
 
 import com.backend.application.service.BookFavoriteService;
-import com.backend.domain.dto.response.ApiResponse;
-import com.backend.domain.dto.response.BookFavoriteResponse;
-import com.backend.domain.model.Book;
+import com.backend.presentation.dto.ApiResponse;
+import com.backend.application.dto.response.BookFavoriteResponse;
+import com.backend.application.dto.response.book.BookResponse;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -47,9 +45,9 @@ public class BookFavoriteController {
     }
 
     @GetMapping
-    public ApiResponse<List<Book>> list(@AuthenticationPrincipal Long userId) {
-        List<Book> data = bookFavoriteService.list(userId);
-        return ApiResponse.<List<Book>>builder()
+    public ApiResponse<List<BookResponse>> list(@AuthenticationPrincipal Long userId) {
+        List<BookResponse> data = bookFavoriteService.list(userId);
+        return ApiResponse.<List<BookResponse>>builder()
             .data(data)
             .build();
     }

@@ -1,10 +1,10 @@
 package com.backend.presentation.controller;
 
 import com.backend.application.service.CustomerBookService;
-import com.backend.domain.adapter.payment.PaymentService;
-import com.backend.domain.dto.request.payment.CreatePaymentRequest;
-import com.backend.domain.dto.response.ApiResponse;
-import com.backend.domain.dto.response.payment.PaymentResponse;
+import com.backend.application.service.PaymentService;
+import com.backend.application.dto.request.payment.CreatePaymentRequest;
+import com.backend.presentation.dto.ApiResponse;
+import com.backend.application.dto.response.payment.PaymentResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

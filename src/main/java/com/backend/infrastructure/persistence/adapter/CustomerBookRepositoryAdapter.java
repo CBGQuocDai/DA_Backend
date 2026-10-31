@@ -1,16 +1,15 @@
 package com.backend.infrastructure.persistence.adapter;
 
-import com.backend.domain.adapter.repository.CustomerBookRepository;
-import com.backend.domain.mapper.CustomerBookMapper;
+import com.backend.application.adapter.repository.CustomerBookRepository;
 import com.backend.domain.model.CustomerBook;
-import com.backend.infrastructure.persistence.entity.JpaCustomerBookEntity;
+import com.backend.infrastructure.persistence.mapper.CustomerBookMapper;
 import com.backend.infrastructure.persistence.repository.JpaCustomerBookRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-@Component
+@Repository
 @RequiredArgsConstructor
 public class CustomerBookRepositoryAdapter implements CustomerBookRepository {
 
@@ -19,26 +18,18 @@ public class CustomerBookRepositoryAdapter implements CustomerBookRepository {
 
     @Override
     public boolean existsByCustomerIdAndBookId(Long customerId, Long bookId) {
-        if (customerId == null || bookId == null) {
-            return false;
-        }
         return jpaCustomerBookRepository.existsByCustomerIdAndBookId(customerId, bookId);
     }
 
     @Override
     public CustomerBook save(CustomerBook customerBook) {
-        JpaCustomerBookEntity entity = customerBookMapper.toEntity(customerBook);
-        JpaCustomerBookEntity saved = jpaCustomerBookRepository.save(entity);
-        return customerBookMapper.toDomain(saved);
+        return customerBookMapper.toDomain(jpaCustomerBookRepository.save(customerBookMapper.toEntity(customerBook)));
     }
 
     @Override
     public List<CustomerBook> findByCustomerId(Long customerId) {
-        if (customerId == null) {
-            return List.of();
-        }
         return jpaCustomerBookRepository.findByCustomerId(customerId).stream()
-            .map(customerBookMapper::toDomain)
-            .toList();
+                .map(customerBookMapper::toDomain)
+                .toList();
     }
 }

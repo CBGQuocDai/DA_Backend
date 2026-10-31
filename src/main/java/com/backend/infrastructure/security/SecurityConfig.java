@@ -1,6 +1,6 @@
 package com.backend.infrastructure.security;
 
-import com.backend.domain.adapter.TokenProvider;
+import com.backend.application.adapter.security.TokenProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;

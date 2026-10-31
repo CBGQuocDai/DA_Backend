@@ -3,17 +3,19 @@ package com.backend.presentation.controller;
 
 import com.backend.application.service.BookService;
 import com.backend.application.service.CategoryService;
-import com.backend.domain.dto.response.PageResponse;
-import com.backend.domain.model.Book;
-import com.backend.domain.model.BookStat;
+import com.backend.application.dto.request.book.BookRequest;
+import com.backend.presentation.dto.ApiResponse;
+import com.backend.application.dto.response.PageResponse;
+import com.backend.application.dto.response.book.BookResponse;
+import com.backend.application.dto.response.category.CategoryResponse;
 import com.backend.domain.valueobject.BookStatus;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import java.util.List;
 
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequiredArgsConstructor
@@ -24,7 +26,7 @@ public class BookController {
     private final CategoryService categoryService;
 
     @GetMapping
-    public ResponseEntity<PageResponse<BookStat>> getListBooks(
+    public ResponseEntity<PageResponse<BookResponse>> getListBooks(
             @RequestParam(required = false) String bookName,
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) Long authorId,
@@ -36,7 +38,7 @@ public class BookController {
     }
 
     @GetMapping("/category/{categoryId}")
-    public ResponseEntity<PageResponse<BookStat>> getBooksByCategory(
+    public ResponseEntity<PageResponse<BookResponse>> getBooksByCategory(
             @PathVariable Long categoryId,
             @RequestParam(defaultValue = "0") Integer page,
             @RequestParam(defaultValue = "10") Integer size
@@ -45,37 +47,36 @@ public class BookController {
     }
 
     @GetMapping("/{bookId}")
-    public ResponseEntity<com.backend.domain.dto.response.ApiResponse<Book>> getBookById(@PathVariable Long bookId) {
-        return ResponseEntity.ok(com.backend.domain.dto.response.ApiResponse.<Book>builder()
+    public ResponseEntity<ApiResponse<BookResponse>> getBookById(@PathVariable Long bookId) {
+        return ResponseEntity.ok(com.backend.presentation.dto.ApiResponse.<BookResponse>builder()
                 .data(bookService.getBookById(bookId))
                 .build());
     }
 
     @GetMapping("/categories")
-    public ResponseEntity<com.backend.domain.dto.response.ApiResponse<List<com.backend.domain.model.Category>>> getCategories() {
-        return ResponseEntity.ok(com.backend.domain.dto.response.ApiResponse.<List<com.backend.domain.model.Category>>builder()
+    public ResponseEntity<ApiResponse<List<CategoryResponse>>> getCategories() {
+        return ResponseEntity.ok(com.backend.presentation.dto.ApiResponse.<List<CategoryResponse>>builder()
                 .data(categoryService.getCategories())
                 .build());
     }
 
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Book> createBook(
-            @RequestPart("book") String request,
-            @RequestPart("contentFile") MultipartFile contentFile,
-            @RequestPart(value = "bookCover", required = false) MultipartFile bookCover
-    ) {
-        return ResponseEntity.ok(bookService.createBook(request, contentFile, bookCover));
+    @PostMapping
+    public ResponseEntity<ApiResponse<BookResponse>> createBook(
+            @Validated @RequestBody BookRequest request) {
+        return ResponseEntity.ok(
+                ApiResponse.<BookResponse>builder()
+                        .data(bookService.createBook(request))
+                        .build()
+                );
     }
 
-    @PutMapping(value = "/{bookId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<com.backend.domain.dto.response.ApiResponse<Book>> updateBook(
+    @PutMapping("/{bookId}")
+    public ResponseEntity<ApiResponse<BookResponse>> updateBook(
             @PathVariable Long bookId,
-            @RequestPart(value = "book", required = false) String request,
-            @RequestPart(value = "contentFile", required = false) MultipartFile contentFile,
-            @RequestPart(value = "bookCover", required = false) MultipartFile bookCover
+            @Valid @RequestBody BookRequest request
     ) {
-        return ResponseEntity.ok(com.backend.domain.dto.response.ApiResponse.<Book>builder()
-                .data(bookService.updateBook(bookId, request, bookCover, contentFile))
+        return ResponseEntity.ok(com.backend.presentation.dto.ApiResponse.<BookResponse>builder()
+                .data(bookService.updateBook(bookId, request))
                 .build());
     }
 

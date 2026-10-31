@@ -1,7 +1,7 @@
 package com.backend.infrastructure.security;
 
 import com.backend.domain.model.User;
-import com.backend.domain.adapter.TokenProvider;
+import com.backend.application.adapter.security.TokenProvider;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
