@@ -18,6 +18,7 @@ public interface JpaChapterUpdateRepository extends JpaRepository<JpaChapterEnti
             "c.duration = :duration, " +
             "c.audioUrl = :audioUrl, " +
             "c.rawText = :rawText, " +
+            "c.contentJson = :contentJson, " +
             "c.status = :status, " +
             "c.attachFileId = :attachFileId " +
             "WHERE c.id = :id")
@@ -28,6 +29,7 @@ public interface JpaChapterUpdateRepository extends JpaRepository<JpaChapterEnti
             @Param("duration") Integer duration,
             @Param("audioUrl") String audioUrl,
             @Param("rawText") String rawText,
+            @Param("contentJson") String contentJson,
             @Param("status") ChapterStatus status,
             @Param("attachFileId") Long attachFileId
     );

@@ -1,6 +1,7 @@
 package com.backend.application.service.impl;
 
 import com.backend.application.service.ChapterService;
+import com.backend.application.adapter.content.ChapterContentParser;
 import com.backend.application.adapter.messaging.MessageQueue;
 import com.backend.application.adapter.repository.BookRepository;
 import com.backend.application.adapter.repository.ChapterRepository;
@@ -32,6 +33,7 @@ public class ChapterServiceImpl implements ChapterService {
     private final BookRepository bookRepository;
     private final ResponseMapper responseMapper;
     private final MessageQueue messageQueue;
+    private final ChapterContentParser chapterContentParser;
 
     @Override
     @Transactional(readOnly = true)
@@ -66,12 +68,15 @@ public class ChapterServiceImpl implements ChapterService {
         if (!chapterRepository.markProcessingAudio(chapter.getId(), readingSpeed)) {
             throw new BusinessException(BusinessError.CHAPTER_AUDIO_PROCESSING);
         }
+
         log.info("Queueing audio for book {} with voiceId {} and chapter {} at speed {}",
                 book.getId(), book.getVoice() != null ? book.getVoice().getId() : null, chapter.getId(), readingSpeed);
+        String text = chapter.getTitle() +" - " + chapter.getRawText().replace(Chapter.PAGE_BREAK, " ");
+        log.info("text : {}", text.substring(0,1000));
         GenerateAudioRequest job = GenerateAudioRequest.builder()
                 .chapterId(chapter.getId())
                 .exampleVoiceUrl(book.getVoice() != null ? book.getVoice().getExampleAudio() : "")
-                .text(chapter.getRawText())
+                .text(text)
                 .speed(readingSpeed)
                 .build();
         messageQueue.send(job);
@@ -82,8 +87,15 @@ public class ChapterServiceImpl implements ChapterService {
         Chapter chapter = chapterRepository.findById(chapterId).orElseThrow(
                 () -> new BusinessException(BusinessError.CHAPTER_NOT_FOUND)
         );
-        if(Objects.nonNull(req.getRawText())) {
+        String contentJson = req.getContentJson();
+        if (contentJson != null && !contentJson.isBlank()) {
+            // The document is the source of rawText, so the two columns can't disagree
+            chapter.setRawText(chapterContentParser.extractText(contentJson));
+            chapter.setContentJson(contentJson);
+        } else if (Objects.nonNull(req.getRawText())) {
+            // New text without a document: the old formatting no longer describes it
             chapter.setRawText(req.getRawText());
+            chapter.setContentJson(null);
         }
         if(Objects.nonNull(req.getTitle())) {
             chapter.setTitle(req.getTitle());

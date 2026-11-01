@@ -1,6 +1,8 @@
 package com.backend;
 
 import com.backend.application.dto.request.book.chapter.GenerateAudioResult;
+import com.backend.application.adapter.repository.ChapterRepository;
+import com.backend.application.dto.request.book.chapter.ChapterUpdateRequest;
 import com.backend.application.dto.request.voice.VoiceRequest;
 import com.backend.application.dto.response.BookFavoriteResponse;
 import com.backend.application.dto.response.book.BookResponse;
@@ -18,6 +20,7 @@ import com.backend.application.service.PaymentService;
 import com.backend.application.service.VoiceService;
 import com.backend.domain.exception.BusinessException;
 import com.backend.domain.model.Book;
+import com.backend.domain.model.Chapter;
 import com.backend.domain.model.Customer;
 import com.backend.domain.valueobject.BookStatus;
 import com.backend.domain.valueobject.BusinessError;
@@ -63,6 +66,8 @@ class UseCaseWiringIntegrationTest {
     @Autowired
     ChapterService chapterService;
     @Autowired
+    ChapterRepository chapterRepository;
+    @Autowired
     PaymentService paymentService;
     @Autowired
     CustomerBookService customerBookService;
@@ -92,6 +97,35 @@ class UseCaseWiringIntegrationTest {
         // A pessimistic lock fails outright without a transaction, even when no row matches
         assertDoesNotThrow(() -> chapterService.handleAudioResult(
                 GenerateAudioResult.builder().chapterId(-1L).success(true).audioPath("x.wav").build()));
+    }
+
+    @Test
+    void chapterTextAndFormattingStaySyncedInTheDatabase() {
+        Book book = new Book();
+        book.setTitle("Sách đồng bộ");
+        book.setPrice(BigDecimal.TEN);
+        book.setDescription("Mô tả");
+        book.setCoverImage("images/a.png");
+        book.setContentFile("pdfs/a.pdf");
+        book.setStatus(BookStatus.PUBLISHED);
+        book = bookRepository.insert(book);
+        Long chapterId = chapterRepository.saveAll(List.of(Chapter.builder()
+                .title("Chương").chapterOrder(0).rawText("Cũ").build()), book).get(0).getId();
+        String doc = "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"textAlign\":\"center\"},"
+                + "\"content\":[{\"type\":\"text\",\"text\":\"Giữa\"}]},{\"type\":\"pageBreak\"}]}";
+
+        chapterService.update(chapterId, ChapterUpdateRequest.builder().contentJson(doc).build());
+        Chapter formatted = chapterRepository.findById(chapterId).orElseThrow();
+        assertEquals(doc, formatted.getContentJson());
+        assertEquals("Giữa\n" + Chapter.PAGE_BREAK, formatted.getRawText());
+
+        chapterService.update(chapterId, ChapterUpdateRequest.builder().title("Tên mới").build());
+        assertEquals(doc, chapterRepository.findById(chapterId).orElseThrow().getContentJson());
+
+        chapterService.update(chapterId, ChapterUpdateRequest.builder().rawText("Thuần").build());
+        Chapter plain = chapterRepository.findById(chapterId).orElseThrow();
+        assertEquals("Thuần", plain.getRawText());
+        assertNull(plain.getContentJson());
     }
 
     @Test

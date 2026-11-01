@@ -1,5 +1,8 @@
 package com.backend.application.service;
 
+import com.backend.application.adapter.content.ChapterContentParser;
+import com.backend.infrastructure.content.JacksonChapterContentParser;
+import com.backend.application.dto.request.book.chapter.ChapterUpdateRequest;
 import com.backend.application.service.impl.ChapterServiceImpl;
 import com.backend.application.adapter.messaging.MessageQueue;
 import com.backend.application.adapter.repository.BookRepository;
@@ -20,12 +23,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
@@ -40,6 +47,15 @@ class ChapterServiceImplTest {
     private StorageService storageService;
     @Mock
     private MessageQueue messageQueue;
+
+    /** Captured from the Tiptap editor, so the derivation is checked against its real output. */
+    private static final String EDITOR_DOC =
+            "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"attrs\":{\"textAlign\":\"center\"},\"content\":[{\"type\":\"text\",\"text\":\"Tiêu đề “có ngoặc” \\\\ và \\\"kép\\\"\"}]},{\"type\":\"paragraph\",\"attrs\":{\"textAlign\":null}},{\"type\":\"paragraph\",\"attrs\":{\"textAlign\":null},\"content\":[{\"type\":\"text\",\"text\":\"  Dòng thụt đầu, cuối có cách  \"}]},{\"type\":\"pageBreak\"},{\"type\":\"paragraph\",\"attrs\":{\"textAlign\":null},\"content\":[{\"type\":\"text\",\"text\":\"Trang hai — ký tự đặc biệt… №\"}]},{\"type\":\"paragraph\",\"attrs\":{\"textAlign\":null}},{\"type\":\"pageBreak\"},{\"type\":\"paragraph\",\"attrs\":{\"textAlign\":null}}]}";
+    private static final String EDITOR_DOC_TEXT =
+            "Tiêu đề “có ngoặc” \\ và \"kép\"\n\n  Dòng thụt đầu, cuối có cách  \n-------------page_break------------------\nTrang hai — ký tự đặc biệt… №\n\n-------------page_break------------------\n";
+
+    @Spy
+    private ChapterContentParser chapterContentParser = new JacksonChapterContentParser();
 
     @InjectMocks
     private ChapterServiceImpl chapterService;
@@ -213,6 +229,53 @@ class ChapterServiceImplTest {
                 () -> chapterService.handleAudioResult(GenerateAudioResult.builder().success(true).build()));
 
         verify(chapterRepository, never()).findByIdForUpdate(any());
+    }
+
+    @Test
+    void update_contentJson_derivesRawTextEvenWhenAClientSendsADifferentOne() {
+        when(chapterRepository.findById(12L)).thenReturn(Optional.of(chapter));
+
+        chapterService.update(12L, ChapterUpdateRequest.builder()
+                .contentJson(EDITOR_DOC).rawText("Không khớp").build());
+
+        assertEquals(EDITOR_DOC, chapter.getContentJson());
+        assertEquals(EDITOR_DOC_TEXT, chapter.getRawText());
+        verify(chapterRepository).update(chapter);
+    }
+
+    @Test
+    void update_rawTextAlone_clearsFormattingThatNoLongerMatches() {
+        chapter.setContentJson(EDITOR_DOC);
+        when(chapterRepository.findById(12L)).thenReturn(Optional.of(chapter));
+
+        chapterService.update(12L, ChapterUpdateRequest.builder().rawText("Mới").build());
+
+        assertEquals("Mới", chapter.getRawText());
+        assertNull(chapter.getContentJson());
+    }
+
+    @Test
+    void update_titleAlone_keepsTextAndFormatting() {
+        chapter.setContentJson(EDITOR_DOC);
+        when(chapterRepository.findById(12L)).thenReturn(Optional.of(chapter));
+
+        chapterService.update(12L, ChapterUpdateRequest.builder().title("Tiêu đề").build());
+
+        assertEquals("Nội dung", chapter.getRawText());
+        assertEquals(EDITOR_DOC, chapter.getContentJson());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"{not json", "[]", "{\"type\":\"doc\"}", "{\"content\":[{\"type\":\"heading\"}]}", "{\"content\":[{}]}"})
+    void update_invalidContentJson_isRejectedWithoutSaving(String contentJson) {
+        when(chapterRepository.findById(12L)).thenReturn(Optional.of(chapter));
+        ChapterUpdateRequest req = ChapterUpdateRequest.builder().contentJson(contentJson).build();
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> chapterService.update(12L, req));
+
+        assertEquals(BusinessError.CHAPTER_CONTENT_INVALID, ex.getError());
+        assertEquals("Nội dung", chapter.getRawText());
+        verify(chapterRepository, never()).update(any());
     }
 
     private GenerateAudioRequest captureJob() {

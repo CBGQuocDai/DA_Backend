@@ -10,4 +10,5 @@ import lombok.*;
 public class ChapterUpdateRequest {
     private String title;
     private String rawText;
+    private String contentJson;
 }

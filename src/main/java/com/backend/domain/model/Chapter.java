@@ -13,12 +13,16 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Chapter {
+    /** Line separating PDF pages in rawText. */
+    public static final String PAGE_BREAK = "-------------page_break------------------";
+
     private Long id;
     private String title;
     private Integer chapterOrder;
     private Integer duration; // seconds
     private String audioUrl;
     private String rawText;
+    private String contentJson; // editor document with formatting; when set, rawText is derived from it
     private Double readingSpeed;
     private ChapterStatus status;
     private AttachFile attachFile;

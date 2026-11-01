@@ -56,6 +56,10 @@ public class BookServiceImpl implements BookService {
     public BookResponse getBookById(Long bookId) {
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
+
+        book.getChapters().forEach(c -> c.setAudioUrl(
+                storageService.createSignUrl(c.getAudioUrl(), 60L)
+        ));
         return responseMapper.toBookResponse(book);
     }
 

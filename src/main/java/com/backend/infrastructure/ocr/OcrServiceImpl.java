@@ -31,7 +31,7 @@ public class OcrServiceImpl implements OcrService {
 
     private static final int MAX_PAGES_PER_CHUNK = 30;
     private static final String HEADING_PREFIX = "heading-";
-    private static final String PAGE_BREAK = "\n-------------page_break------------------\n";
+    private static final String PAGE_BREAK = "\n" + Chapter.PAGE_BREAK + "\n";
     private static final String DEFAULT_TITLE = "Mở đầu";
     private static final int MAX_TITLE_LENGTH = 255;
 

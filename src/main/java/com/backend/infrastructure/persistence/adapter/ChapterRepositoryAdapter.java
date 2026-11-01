@@ -71,6 +71,7 @@ public class ChapterRepositoryAdapter implements ChapterRepository {
                 chapter.getDuration(),
                 chapter.getAudioUrl(),
                 chapter.getRawText(),
+                chapter.getContentJson(),
                 chapter.getStatus(),
                 chapter.getAttachFile() != null ? chapter.getAttachFile().getId() : null
         );
