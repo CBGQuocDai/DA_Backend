@@ -29,6 +29,9 @@ public class JpaChapterEntity {
     @Column(name = "raw_text", columnDefinition = "TEXT")
     private String rawText;
 
+    @Column(name = "content_json", columnDefinition = "TEXT")
+    private String contentJson;
+
     @Enumerated(EnumType.STRING)
     private ChapterStatus status;
 

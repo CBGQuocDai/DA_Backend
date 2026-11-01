@@ -52,6 +52,7 @@ public enum BusinessError {
     CHAPTER_NOT_FOUND(4013, "Không tìm thấy chương", HttpStatus.BAD_REQUEST),
     CHAPTER_AUDIO_PROCESSING(4014, "Chương đang được tạo audio, vui lòng đợi", HttpStatus.CONFLICT),
     CHAPTER_TEXT_EMPTY(4015, "Chương chưa có nội dung để tạo audio", HttpStatus.BAD_REQUEST),
+    CHAPTER_CONTENT_INVALID(4016, "Nội dung chương không hợp lệ", HttpStatus.BAD_REQUEST),
     ;
     private final Integer code;
     private final String message;

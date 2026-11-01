@@ -95,6 +95,7 @@ public class ResponseMapper {
                 .duration(chapter.getDuration())
                 .audioUrl(chapter.getAudioUrl())
                 .rawText(chapter.getRawText())
+                .contentJson(chapter.getContentJson())
                 .readingSpeed(chapter.getReadingSpeed())
                 .status(chapter.getStatus())
                 .build();

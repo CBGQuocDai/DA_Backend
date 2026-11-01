@@ -15,6 +15,7 @@ public class ChapterResponse {
     private Integer duration;
     private String audioUrl;
     private String rawText;
+    private String contentJson;
     private Double readingSpeed;
     private ChapterStatus status;
 }
