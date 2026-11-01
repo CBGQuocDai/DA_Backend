@@ -3,9 +3,11 @@ package com.backend.infrastructure.persistence.repository;
 import com.backend.domain.valueobject.BookStatus;
 import com.backend.infrastructure.persistence.entity.JpaBookEntity;
 import com.backend.infrastructure.persistence.projection.BookListProjection;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -21,6 +23,11 @@ public interface JpaBookRepository extends JpaRepository<JpaBookEntity, Long> {
             WHERE b.id = :id
             """)
     Optional<JpaBookEntity> findByIdWithVoice(@Param("id") Long id);
+
+    // No fetch join: Postgres can't apply FOR UPDATE to the nullable side of an outer join
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT b FROM JpaBookEntity b WHERE b.id = :id")
+    Optional<JpaBookEntity> findByIdForUpdate(@Param("id") Long id);
 
     @Query(value = """
             SELECT

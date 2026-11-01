@@ -35,6 +35,16 @@ public interface JpaChapterUpdateRepository extends JpaRepository<JpaChapterEnti
     );
 
     @Modifying
+    @Query("UPDATE JpaChapterEntity c SET c.chapterOrder = c.chapterOrder + :delta " +
+            "WHERE c.bookId = :bookId AND c.chapterOrder BETWEEN :from AND :to")
+    void shiftOrders(
+            @Param("bookId") Long bookId,
+            @Param("from") int from,
+            @Param("to") int to,
+            @Param("delta") int delta
+    );
+
+    @Modifying
     @Query("UPDATE JpaChapterEntity c SET c.audioUrl = :audioUrl, c.duration = :duration, " +
             "c.status = :status WHERE c.id = :id")
     void updateAudio(

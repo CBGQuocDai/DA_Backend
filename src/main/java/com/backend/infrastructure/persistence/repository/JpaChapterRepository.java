@@ -27,5 +27,12 @@ public interface JpaChapterRepository extends JpaRepository<JpaChapterEntity, Lo
     @Query("SELECT c FROM JpaChapterEntity c WHERE c.id = :id")
     Optional<JpaChapterEntity> findByIdForUpdate(@Param("id") Long id);
 
+    Optional<JpaChapterEntity> findByIdAndBookId(Long id, Long bookId);
+
+    @Query("SELECT MAX(c.chapterOrder) FROM JpaChapterEntity c WHERE c.bookId = :bookId")
+    Optional<Integer> findMaxChapterOrder(@Param("bookId") Long bookId);
+
+    boolean existsByBookIdAndChapterOrder(Long bookId, Integer chapterOrder);
+
     void deleteByBookId(Long bookId);
 }

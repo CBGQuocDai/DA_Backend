@@ -203,7 +203,7 @@ public class OcrServiceImpl implements OcrService {
 
     private static void addChapter(List<Chapter> chapters, List<String> titleParts, StringBuilder body,
                                    boolean last) {
-        String rawText = body.toString().replace(PAGE_BREAK, "").isBlank() ? "" : body.toString().trim();
+        String rawText = body.toString().isBlank() ? "" : body.toString().trim();
         if (rawText.isEmpty() && (!last || titleParts.isEmpty())) {
             body.setLength(0);
             return;
