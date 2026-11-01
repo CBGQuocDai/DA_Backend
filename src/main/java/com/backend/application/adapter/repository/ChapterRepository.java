@@ -9,6 +9,11 @@ import java.util.Optional;
 public interface ChapterRepository {
     List<Chapter> findByBookId(Long bookId);
     Optional<Chapter> findById(Long id);
+    Optional<Chapter> findByIdAndBookId(Long id, Long bookId);
+    Optional<Integer> findMaxOrder(Long bookId);
+    boolean existsByOrder(Long bookId, Integer order);
+    /** Adds delta to the order of the book's chapters whose order lies in [from, to]. */
+    void shiftOrders(Long bookId, int from, int to, int delta);
     /** Loads the chapter with a pessimistic write lock; waits for any in-flight transaction on the row. */
     Optional<Chapter> findByIdForUpdate(Long id);
     Chapter save(Chapter chapter);

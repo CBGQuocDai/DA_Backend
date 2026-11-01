@@ -157,6 +157,12 @@ public class BookRepositoryAdapter implements BookRepository {
     }
 
     @Override
+    @Transactional
+    public Optional<Book> findBasicByIdForUpdate(Long id) {
+        return jpaBookRepository.findByIdForUpdate(id).map(bookMapper::toDomain);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public PageResponse<BookStat> findAllWithStats(String bookName, Long categoryId, Long authorId,
                                                    BookStatus status, int page, int size) {

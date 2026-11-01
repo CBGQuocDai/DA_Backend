@@ -40,6 +40,31 @@ public class ChapterRepositoryAdapter implements ChapterRepository {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Optional<Chapter> findByIdAndBookId(Long id, Long bookId) {
+        return jpaChapterRepository.findByIdAndBookId(id, bookId)
+                .map(chapterMapper::toDomain);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Integer> findMaxOrder(Long bookId) {
+        return jpaChapterRepository.findMaxChapterOrder(bookId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean existsByOrder(Long bookId, Integer order) {
+        return jpaChapterRepository.existsByBookIdAndChapterOrder(bookId, order);
+    }
+
+    @Override
+    @Transactional
+    public void shiftOrders(Long bookId, int from, int to, int delta) {
+        jpaChapterUpdateRepository.shiftOrders(bookId, from, to, delta);
+    }
+
+    @Override
     @Transactional
     public Optional<Chapter> findByIdForUpdate(Long id) {
         return jpaChapterRepository.findByIdForUpdate(id)

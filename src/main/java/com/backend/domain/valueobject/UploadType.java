@@ -9,10 +9,10 @@ import java.util.UUID;
 @Getter
 public enum UploadType {
     IMAGE("images/", 5L * 1024L * 1024L,
-            Map.of("jpg", List.of("image/jpeg"),
-                    "jpeg", List.of("image/jpeg"),
-                    "png", List.of("image/png"),
-                    "webp", List.of("image/webp")),
+            Map.of("jpg", List.of("image/jpeg", "image/png", "image/webp"),
+                    "jpeg", List.of("image/jpeg", "image/png", "image/webp"),
+                    "png", List.of("image/jpeg", "image/png", "image/webp"),
+                    "webp", List.of("image/jpeg", "image/png", "image/webp")),
             BusinessError.IMAGE_FORMAT_INCORRECT, BusinessError.IMAGE_TOO_LARGE),
     AUDIO("audio/", 10L * 1024L * 1024L,
             Map.of("mp3", List.of("audio/mpeg", "audio/mp3"),

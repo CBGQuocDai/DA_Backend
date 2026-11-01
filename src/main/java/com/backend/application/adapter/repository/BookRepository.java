@@ -18,6 +18,8 @@ public interface BookRepository {
     Optional<Book> findById(Long id);
     /** Only the book's own fields, without its authors, categories and chapters. */
     Optional<Book> findBasicById(Long id);
+    /** Like findBasicById, with a pessimistic write lock held until the caller's transaction ends. */
+    Optional<Book> findBasicByIdForUpdate(Long id);
 
     PageResponse<BookStat> findAllWithStats(String bookName, Long categoryId, Long authorId,
                                             BookStatus status, int page, int size);

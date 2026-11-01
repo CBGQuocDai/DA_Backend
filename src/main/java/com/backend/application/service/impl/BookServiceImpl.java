@@ -26,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -137,6 +138,11 @@ public class BookServiceImpl implements BookService {
     public void publishBook(Long bookId) {
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
+        book.getChapters().forEach(c -> {
+            if(Objects.isNull(c.getAudioUrl()) || (c.getRawText().isEmpty() && c.getContentJson().isEmpty())) {
+                throw new BusinessException(BusinessError.BOOK_ERROR_PUBLISH);
+            }
+        });
         book.setStatus(BookStatus.PUBLISHED);
         bookRepository.update(book);
     }

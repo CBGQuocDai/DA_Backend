@@ -7,6 +7,7 @@ import com.backend.application.adapter.repository.BookRepository;
 import com.backend.application.adapter.repository.ChapterRepository;
 import com.backend.application.dto.response.chapter.ChapterResponse;
 import com.backend.application.mapper.ResponseMapper;
+import com.backend.application.dto.request.book.chapter.ChapterCreateRequest;
 import com.backend.application.dto.request.book.chapter.ChapterGenerateAudioRequest;
 import com.backend.application.dto.request.book.chapter.ChapterUpdateRequest;
 import com.backend.application.adapter.messaging.GenerateAudioRequest;
@@ -47,6 +48,25 @@ public class ChapterServiceImpl implements ChapterService {
 
     @Override
     @Transactional
+    public ChapterResponse createChapter(Long bookId, ChapterCreateRequest req) {
+        // The book's row lock serializes order changes, so two requests can't take the same number
+        Book book = lockBook(bookId);
+        int last = chapterRepository.findMaxOrder(bookId).orElse(0);
+        int order = Math.min(req.getChapterOrder(), last + 1);
+        if (chapterRepository.existsByOrder(bookId, order)) {
+            chapterRepository.shiftOrders(bookId, order, last, 1);
+        }
+        Chapter chapter = Chapter.builder()
+                .title(req.getTitle().trim())
+                .chapterOrder(order)
+                .rawText("")
+                .readingSpeed(1D)
+                .build();
+        return responseMapper.toChapterResponse(chapterRepository.saveAll(List.of(chapter), book).get(0));
+    }
+
+    @Override
+    @Transactional
     public void deleteChapter(Long chapterId) {
         chapterRepository.delete(chapterId);
     }
@@ -72,7 +92,6 @@ public class ChapterServiceImpl implements ChapterService {
         log.info("Queueing audio for book {} with voiceId {} and chapter {} at speed {}",
                 book.getId(), book.getVoice() != null ? book.getVoice().getId() : null, chapter.getId(), readingSpeed);
         String text = chapter.getTitle() +" - " + chapter.getRawText().replace(Chapter.PAGE_BREAK, " ");
-        log.info("text : {}", text.substring(0,1000));
         GenerateAudioRequest job = GenerateAudioRequest.builder()
                 .chapterId(chapter.getId())
                 .exampleVoiceUrl(book.getVoice() != null ? book.getVoice().getExampleAudio() : "")
@@ -83,8 +102,12 @@ public class ChapterServiceImpl implements ChapterService {
     }
 
     @Override
-    public void update(Long chapterId, ChapterUpdateRequest req) {
-        Chapter chapter = chapterRepository.findById(chapterId).orElseThrow(
+    @Transactional
+    public void update(Long bookId, Long chapterId, ChapterUpdateRequest req) {
+        if (Objects.nonNull(req.getChapterOrder())) {
+            lockBook(bookId);
+        }
+        Chapter chapter = chapterRepository.findByIdAndBookId(chapterId, bookId).orElseThrow(
                 () -> new BusinessException(BusinessError.CHAPTER_NOT_FOUND)
         );
         String contentJson = req.getContentJson();
@@ -100,7 +123,28 @@ public class ChapterServiceImpl implements ChapterService {
         if(Objects.nonNull(req.getTitle())) {
             chapter.setTitle(req.getTitle());
         }
+        if (Objects.nonNull(req.getChapterOrder())) {
+            moveChapter(bookId, chapter, req.getChapterOrder());
+        }
         chapterRepository.update(chapter);
+    }
+
+    private Book lockBook(Long bookId) {
+        return bookRepository.findBasicByIdForUpdate(bookId).orElseThrow(
+                () -> new BusinessException(BusinessError.BOOK_NOT_FOUND)
+        );
+    }
+
+    /** Closes the chapter's old position and opens the new one by shifting only the chapters in between. */
+    private void moveChapter(Long bookId, Chapter chapter, int requestedOrder) {
+        int current = chapter.getChapterOrder();
+        int target = Math.min(requestedOrder, chapterRepository.findMaxOrder(bookId).orElse(current));
+        if (target < current) {
+            chapterRepository.shiftOrders(bookId, target, current - 1, 1);
+        } else if (target > current) {
+            chapterRepository.shiftOrders(bookId, current + 1, target, -1);
+        }
+        chapter.setChapterOrder(target);
     }
 
     @Override
