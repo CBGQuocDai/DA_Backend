@@ -16,4 +16,6 @@ public class Review {
     private Instant createAt;
     private Customer customer;
     private Book book;
+    /** Read-model flag computed from the reviewer's actual book ownership. */
+    private boolean verifiedPurchase;
 }

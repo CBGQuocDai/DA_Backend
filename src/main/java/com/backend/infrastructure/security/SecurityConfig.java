@@ -71,6 +71,7 @@ public class SecurityConfig {
                 }))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/review/*/me").hasRole("CUSTOMER")
                 // /health/** gồm cả /health/liveness, /health/readiness mà Kubernetes probe gọi
                 .requestMatchers(HttpMethod.GET,
                     "/health", "/health/**",
