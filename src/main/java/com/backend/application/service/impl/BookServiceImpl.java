@@ -5,10 +5,13 @@ import com.backend.application.service.BookService;
 import com.backend.application.service.FileManagementService;
 import com.backend.application.adapter.ocr.OcrService;
 import com.backend.application.adapter.repository.BookRepository;
+import com.backend.application.adapter.repository.ChapterRepository;
 import com.backend.application.adapter.storage.StorageService;
 import com.backend.application.dto.request.book.BookRequest;
 import com.backend.application.dto.response.PageResponse;
 import com.backend.application.dto.response.book.BookResponse;
+import com.backend.application.dto.response.book.CustomerBookOverviewResponse;
+import com.backend.application.dto.response.chapter.CustomerChapterResponse;
 import com.backend.application.mapper.ResponseMapper;
 import com.backend.domain.exception.BusinessException;
 import com.backend.domain.model.Author;
@@ -16,6 +19,7 @@ import com.backend.domain.model.Book;
 import com.backend.domain.model.BookAuthor;
 import com.backend.domain.model.BookCategory;
 import com.backend.domain.model.Category;
+import com.backend.domain.model.Chapter;
 import com.backend.domain.model.Voice;
 import com.backend.domain.valueobject.BookStatus;
 import com.backend.domain.valueobject.BusinessError;
@@ -34,10 +38,64 @@ import java.util.Objects;
 public class BookServiceImpl implements BookService {
 
     private final BookRepository bookRepository;
+    private final ChapterRepository chapterRepository;
     private final StorageService storageService;
     private final OcrService ocrService;
     private final FileManagementService fileManagementService;
     private final ResponseMapper responseMapper;
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<BookResponse> getCustomerBooks(String bookName, Long categoryId, Long authorId, int page, int size) {
+        validateCustomerPagination(page, size);
+        return responseMapper.toPageResponse(
+                bookRepository.findAllWithStats(bookName, categoryId, authorId, BookStatus.PUBLISHED, page, size),
+                responseMapper::toBookResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CustomerBookOverviewResponse getCustomerBookOverview(Long bookId) {
+        Book book = requirePublished(bookRepository.findDetailWithoutChapters(bookId).orElse(null));
+        var firstPage = chapterRepository.findCustomerPageByBookId(bookId, 0, 1);
+        return CustomerBookOverviewResponse.builder()
+                .book(responseMapper.toBookResponse(book))
+                .chapterCount(firstPage.getTotal())
+                .totalDuration(chapterRepository.sumDurationByBookId(bookId))
+                .firstChapter(firstPage.getContent().isEmpty() ? null : toCustomerChapter(firstPage.getContent().get(0)))
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<CustomerChapterResponse> getCustomerChapters(Long bookId, int page, int size) {
+        validateCustomerPagination(page, size);
+        requirePublished(bookRepository.findBasicById(bookId).orElse(null));
+        return responseMapper.toPageResponse(
+                chapterRepository.findCustomerPageByBookId(bookId, page, size), this::toCustomerChapter);
+    }
+
+    private void validateCustomerPagination(int page, int size) {
+        if (page < 0 || size < 1 || size > 100 || (long) page * size > Integer.MAX_VALUE) {
+            throw new BusinessException(BusinessError.VALIDATION_FAILED);
+        }
+    }
+
+    private Book requirePublished(Book book) {
+        if (book == null || book.getStatus() != BookStatus.PUBLISHED) {
+            throw new BusinessException(BusinessError.BOOK_NOT_FOUND);
+        }
+        return book;
+    }
+
+    private CustomerChapterResponse toCustomerChapter(Chapter chapter) {
+        String audio = chapter.getAudioUrl();
+        return CustomerChapterResponse.builder()
+                .id(chapter.getId()).title(chapter.getTitle()).chapterOrder(chapter.getChapterOrder())
+                .duration(chapter.getDuration()).status(chapter.getStatus())
+                .audioUrl(audio == null || audio.isBlank() ? null : responseMapper.signUrl(audio))
+                .build();
+    }
 
     @Override
     public PageResponse<BookResponse> getBooks(String bookName, Long categoryId, Long authorId, BookStatus status,

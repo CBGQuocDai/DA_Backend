@@ -131,6 +131,17 @@ public class BookRepositoryAdapter implements BookRepository {
     @Override
     @Transactional(readOnly = true)
     public Optional<Book> findById(Long id) {
+        return findDetailWithoutChapters(id).map(book -> {
+            book.setChapters(jpaChapterRepository.findWithAttachFileByBookId(id).stream()
+                    .map(chapterMapper::toDomain)
+                    .toList());
+            return book;
+        });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Book> findDetailWithoutChapters(Long id) {
         if (id == null) {
             return Optional.empty();
         }
@@ -142,9 +153,6 @@ public class BookRepositoryAdapter implements BookRepository {
                             .toList());
                     book.setCategories(jpaBookCategoryRepository.findWithCategoryByBookId(id).stream()
                             .map(bookCategoryMapper::toDomain)
-                            .toList());
-                    book.setChapters(jpaChapterRepository.findWithAttachFileByBookId(id).stream()
-                            .map(chapterMapper::toDomain)
                             .toList());
                     return book;
                 });

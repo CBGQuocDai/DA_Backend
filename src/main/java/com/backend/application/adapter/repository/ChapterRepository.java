@@ -1,6 +1,7 @@
 package com.backend.application.adapter.repository;
 
 import com.backend.domain.model.Book;
+import com.backend.application.dto.response.PageResponse;
 import com.backend.domain.model.Chapter;
 import com.backend.domain.valueobject.ChapterStatus;
 import java.util.List;
@@ -8,6 +9,9 @@ import java.util.Optional;
 
 public interface ChapterRepository {
     List<Chapter> findByBookId(Long bookId);
+    /** Lightweight, database-paginated customer list; excludes text and editor documents. */
+    PageResponse<Chapter> findCustomerPageByBookId(Long bookId, int page, int size);
+    long sumDurationByBookId(Long bookId);
     Optional<Chapter> findById(Long id);
     Optional<Chapter> findByIdAndBookId(Long id, Long bookId);
     Optional<Integer> findMaxOrder(Long bookId);

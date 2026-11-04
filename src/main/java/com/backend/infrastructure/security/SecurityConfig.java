@@ -73,8 +73,15 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // /health/** gồm cả /health/liveness, /health/readiness mà Kubernetes probe gọi
                 .requestMatchers(HttpMethod.GET,
-                    "/health", "/health/**"
+                    "/health", "/health/**",
+                    "/books/catalog", "/books/*/overview", "/books/*/chapters/page",
+                    "/categories", "/categories/**",
+                    "/authors", "/authors/**",
+                    "/review/**"
                 ).permitAll()
+                // .requestMatchers(HttpMethod.GET,
+                //     "/health", "/health/**"
+                // ).permitAll()
 
                 .requestMatchers(HttpMethod.POST, WHITELIST).permitAll()
                 .requestMatchers(HttpMethod.POST, SEPAY_WEBHOOK).permitAll()
