@@ -30,17 +30,10 @@ public class CustomerRepositoryAdapter implements CustomerRepository {
     }
 
     @Override
-    public boolean existsByEmail(String email) {
-        return jpaCustomerRepository.existsByEmail(email);
-    }
-
-    @Override
     public Optional<Customer> findById(Long id) {
         if (id == null) {
             return Optional.empty();
         }
         return jpaCustomerRepository.findById(id).map(customerMapper::toDomain);
     }
-
-
 }

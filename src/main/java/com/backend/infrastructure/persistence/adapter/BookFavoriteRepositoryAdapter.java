@@ -25,24 +25,6 @@ public class BookFavoriteRepositoryAdapter implements BookFavoriteRepository {
     }
 
     @Override
-    @Transactional
-    public void deleteById(Long bookFavoriteId) {
-        if (bookFavoriteId != null) {
-            jpaBookFavoriteRepository.deleteById(bookFavoriteId);
-        }
-    }
-
-    @Override
-    public List<BookFavorite> findByCustomerId(Long customerId) {
-        if (customerId == null) {
-            return List.of();
-        }
-        return jpaBookFavoriteRepository.findByCustomerId(customerId).stream()
-            .map(bookFavoriteMapper::toDomain)
-            .toList();
-    }
-
-    @Override
     public boolean existsByCustomerIdAndBookId(Long customerId, Long bookId) {
         if (customerId == null || bookId == null) {
             return false;
