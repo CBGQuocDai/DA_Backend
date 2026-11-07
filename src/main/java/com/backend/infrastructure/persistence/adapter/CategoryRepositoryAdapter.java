@@ -1,19 +1,25 @@
 package com.backend.infrastructure.persistence.adapter;
 
 import com.backend.application.adapter.repository.CategoryRepository;
-import com.backend.infrastructure.persistence.mapper.CategoryMapper;
+import com.backend.application.dto.response.PageResponse;
 import com.backend.domain.model.Category;
+import com.backend.infrastructure.persistence.mapper.CategoryMapper;
+import com.backend.infrastructure.persistence.repository.JpaBookCategoryRepository;
 import com.backend.infrastructure.persistence.repository.JpaCategoryRepository;
+import com.backend.infrastructure.persistence.util.LikePatterns;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
 public class CategoryRepositoryAdapter implements CategoryRepository {
 
     private final JpaCategoryRepository jpaCategoryRepository;
+    private final JpaBookCategoryRepository jpaBookCategoryRepository;
     private final CategoryMapper categoryMapper;
 
     @Override
@@ -21,5 +27,40 @@ public class CategoryRepositoryAdapter implements CategoryRepository {
         return jpaCategoryRepository.findAll().stream()
                 .map(categoryMapper::toDomain)
                 .toList();
+    }
+
+    @Override
+    public PageResponse<Category> search(String keyword, int page, int size) {
+        return LikePatterns.toPageResponse(
+                jpaCategoryRepository.search(LikePatterns.contains(keyword), PageRequest.of(page, size)),
+                categoryMapper::toDomain);
+    }
+
+    @Override
+    public Optional<Category> findById(Long id) {
+        return jpaCategoryRepository.findById(id).map(categoryMapper::toDomain);
+    }
+
+    @Override
+    public Category save(Category category) {
+        return categoryMapper.toDomain(jpaCategoryRepository.save(categoryMapper.toEntity(category)));
+    }
+
+    @Override
+    public void deleteById(Long id) {
+        jpaCategoryRepository.deleteById(id);
+    }
+
+    @Override
+    public boolean isUsedByAnyBook(Long id) {
+        return jpaBookCategoryRepository.existsByCategoryId(id);
+    }
+
+    @Override
+    public boolean existsByName(String name, Long excludeId) {
+        String trimmed = name.trim();
+        return excludeId == null
+                ? jpaCategoryRepository.existsByNameIgnoreCase(trimmed)
+                : jpaCategoryRepository.existsByNameIgnoreCaseAndIdNot(trimmed, excludeId);
     }
 }

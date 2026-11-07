@@ -161,10 +161,15 @@ public class OcrServiceImpl implements OcrService {
             int currentPage = 0;
             boolean pageHasBody = false;
             boolean pageHasHeading = false;
+            boolean pageBroken = false;
 
             for (DocumentLayoutBlock block : chunk) {
                 int page = block.getPageSpan().getPageStart();
                 if (page > currentPage) {
+                    if (currentPage > 0 && !pageBroken && !body.isEmpty()) {
+                        body.append(PAGE_BREAK);
+                    }
+                    pageBroken = false;
                     currentPage = page;
                     pageHasBody = false;
                     pageHasHeading = false;
@@ -177,8 +182,10 @@ public class OcrServiceImpl implements OcrService {
                     continue;
                 }
                 if ("footer".equals(type)) {
-                    body.append(PAGE_BREAK);
-
+                    if (!pageBroken) {
+                        body.append(PAGE_BREAK);
+                        pageBroken = true;
+                    }
                     continue;
                 }
                 if (text.isEmpty()) {
@@ -195,6 +202,9 @@ public class OcrServiceImpl implements OcrService {
                     pageHasBody = true;
                     body.append(text).append('\n');
                 }
+            }
+            if (currentPage > 0 && !pageBroken && !body.isEmpty()) {
+                body.append(PAGE_BREAK);
             }
         }
         addChapter(chapters, titleParts, body, true);

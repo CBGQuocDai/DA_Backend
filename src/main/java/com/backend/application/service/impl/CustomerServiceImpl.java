@@ -7,7 +7,6 @@ import com.backend.application.adapter.repository.CustomerRepository;
 import com.backend.application.adapter.repository.UserRepository;
 import com.backend.application.dto.request.user.LoginRequest;
 import com.backend.application.dto.request.user.RegisterRequest;
-import com.backend.application.dto.request.user.customer.CustomerChangePasswordRequest;
 import com.backend.application.dto.request.user.customer.CustomerUpdateProfileRequest;
 import com.backend.application.dto.response.customer.CustomerProfileResponse;
 import com.backend.application.dto.response.user.LoginResponse;
@@ -15,18 +14,21 @@ import com.backend.application.dto.response.user.RegisterResponse;
 import com.backend.domain.exception.BusinessException;
 import com.backend.domain.model.Customer;
 import com.backend.domain.valueobject.BusinessError;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@RequiredArgsConstructor
-public class CustomerServiceImpl implements CustomerService {
+public class CustomerServiceImpl extends AbstractUserService implements CustomerService {
 
     private final CustomerRepository customerRepository;
-    private final PasswordEncoder passwordEncoder;
     private final TokenProvider tokenProvider;
-    private final UserRepository userRepository;
+
+    public CustomerServiceImpl(CustomerRepository customerRepository, UserRepository userRepository,
+        PasswordEncoder passwordEncoder, TokenProvider tokenProvider) {
+        super(userRepository, passwordEncoder);
+        this.customerRepository = customerRepository;
+        this.tokenProvider = tokenProvider;
+    }
 
     @Override
     public LoginResponse login(LoginRequest req) {
@@ -104,23 +106,4 @@ public class CustomerServiceImpl implements CustomerService {
             .fullName(customer.getFullName()).avatarUrl(customer.getAvatarUrl()).build();
     }
 
-    @Override
-    @Transactional
-    public void changePassword(Long userId,
-        CustomerChangePasswordRequest request) {
-        if (userId == null) {
-            throw new BusinessException(BusinessError.UNAUTHORIZED);
-        }
-        Customer customer = customerRepository.findById(userId)
-            .orElseThrow(() -> new BusinessException(BusinessError.USER_NOT_FOUND));
-
-        if (!passwordEncoder.matches(request.getOldPassword(), customer.getPassword())) {
-            throw new BusinessException(BusinessError.PASSWORD_WRONG);
-        }
-        if (request.getNewPassword() != null) {
-            customer.setPassword(passwordEncoder.encode(request.getNewPassword()));
-            customerRepository.save(customer);
-        }
-
-    }
 }

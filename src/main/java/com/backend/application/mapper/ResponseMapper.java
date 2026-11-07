@@ -105,7 +105,7 @@ public class ResponseMapper {
         return AuthorResponse.builder()
                 .id(author.getId())
                 .fullName(author.getFullName())
-                .avatar(author.getAvatar())
+                .avatar(toFileResponse(author.getAvatar()))
                 .bio(author.getBio())
                 .build();
     }

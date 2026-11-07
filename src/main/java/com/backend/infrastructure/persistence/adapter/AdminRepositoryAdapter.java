@@ -24,6 +24,12 @@ public class AdminRepositoryAdapter implements AdminRepository {
     }
 
     @Override
+    public Optional<Admin> findById(Long id) {
+        return jpaAdminRepository.findById(id)
+                .map(adminMapper::toDomain);
+    }
+
+    @Override
     public Admin save(Admin admin) {
         JpaAdminEntity saved = jpaAdminRepository.save(adminMapper.toEntity(admin));
         return adminMapper.toDomain(saved);

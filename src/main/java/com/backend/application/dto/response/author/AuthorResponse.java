@@ -1,5 +1,6 @@
 package com.backend.application.dto.response.author;
 
+import com.backend.application.dto.response.file.FileResponse;
 import lombok.*;
 
 @Getter
@@ -10,6 +11,6 @@ import lombok.*;
 public class AuthorResponse {
     private Long id;
     private String fullName;
-    private String avatar;
+    private FileResponse avatar;
     private String bio;
 }
