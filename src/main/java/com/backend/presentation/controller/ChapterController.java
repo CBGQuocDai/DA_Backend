@@ -21,6 +21,7 @@ public class ChapterController {
 
     private final ChapterService chapterService;
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<List<ChapterResponse>> getChapters(@PathVariable Long bookId) {
         return ResponseEntity.ok(chapterService.getChaptersByBookId(bookId));

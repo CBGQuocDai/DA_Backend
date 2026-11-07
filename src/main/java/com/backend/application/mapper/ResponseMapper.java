@@ -122,6 +122,7 @@ public class ResponseMapper {
         Customer customer = review.getCustomer();
         Long customerId = customer == null ? null : customer.getId();
         String customerName = customer == null ? null : customer.getFullName();
+        if (customerName == null || customerName.isBlank()) customerName = "Bạn đọc";
         String customerAvatar = customer == null ? null : customer.getAvatarUrl();
         return ReviewResponse.builder()
                 .id(review.getId())
@@ -138,6 +139,7 @@ public class ResponseMapper {
                 .userName(customerName)
                 .customerAvatar(customerAvatar)
                 .userAvatar(customerAvatar)
+                .verifiedPurchase(review.isVerifiedPurchase())
                 .build();
     }
 

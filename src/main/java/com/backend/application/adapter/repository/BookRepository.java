@@ -16,6 +16,8 @@ public interface BookRepository {
     void update(Book book);
 
     Optional<Book> findById(Long id);
+    /** Includes voice, authors and categories, without loading chapters. */
+    Optional<Book> findDetailWithoutChapters(Long id);
     /** Only the book's own fields, without its authors, categories and chapters. */
     Optional<Book> findBasicById(Long id);
     /** Like findBasicById, with a pessimistic write lock held until the caller's transaction ends. */

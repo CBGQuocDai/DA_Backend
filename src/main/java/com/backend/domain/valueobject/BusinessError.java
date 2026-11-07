@@ -52,6 +52,9 @@ public enum BusinessError {
 //  Book error
     BOOK_ERROR_PUBLISH(4020, "Sách vẫn còn chương thiếu audio nên không thể đăng bán", HttpStatus.BAD_REQUEST),
 
+    REVIEW_ALREADY_EXISTS(4021, "Bạn đã đánh giá cuốn sách này rồi", HttpStatus.CONFLICT),
+    REVIEW_PURCHASE_REQUIRED(4022, "Bạn cần mua sách trước khi gửi đánh giá", HttpStatus.FORBIDDEN),
+
 //  Chapter error
     CHAPTER_NOT_FOUND(4013, "Không tìm thấy chương", HttpStatus.BAD_REQUEST),
     CHAPTER_AUDIO_PROCESSING(4014, "Chương đang được tạo audio, vui lòng đợi", HttpStatus.CONFLICT),

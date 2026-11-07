@@ -29,4 +29,5 @@ public class ReviewResponse {
     private String userName;
     private String customerAvatar;
     private String userAvatar;
+    private boolean verifiedPurchase;
 }

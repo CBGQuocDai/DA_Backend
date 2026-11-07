@@ -7,6 +7,8 @@ import com.backend.application.dto.request.book.BookRequest;
 import com.backend.presentation.dto.ApiResponse;
 import com.backend.application.dto.response.PageResponse;
 import com.backend.application.dto.response.book.BookResponse;
+import com.backend.application.dto.response.book.CustomerBookOverviewResponse;
+import com.backend.application.dto.response.chapter.CustomerChapterResponse;
 import com.backend.application.dto.response.category.CategoryResponse;
 import com.backend.domain.valueobject.BookStatus;
 import jakarta.validation.Valid;
@@ -26,6 +28,7 @@ public class BookController {
     private final BookService bookService;
     private final CategoryService categoryService;
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<PageResponse<BookResponse>> getListBooks(
             @RequestParam(required = false) String bookName,
@@ -38,6 +41,7 @@ public class BookController {
         return ResponseEntity.ok(bookService.getBooks(bookName, categoryId, authorId, status, page, size));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/category/{categoryId}")
     public ResponseEntity<PageResponse<BookResponse>> getBooksByCategory(
             @PathVariable Long categoryId,
@@ -47,6 +51,7 @@ public class BookController {
         return ResponseEntity.ok(bookService.getBooksByCategory(categoryId, page, size));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{bookId}")
     public ResponseEntity<ApiResponse<BookResponse>> getBookById(@PathVariable Long bookId) {
         return ResponseEntity.ok(com.backend.presentation.dto.ApiResponse.<BookResponse>builder()
@@ -54,11 +59,38 @@ public class BookController {
                 .build());
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/categories")
     public ResponseEntity<ApiResponse<List<CategoryResponse>>> getCategories() {
         return ResponseEntity.ok(com.backend.presentation.dto.ApiResponse.<List<CategoryResponse>>builder()
                 .data(categoryService.getCategories())
                 .build());
+    }
+
+    @GetMapping("/catalog")
+    public ResponseEntity<ApiResponse<PageResponse<BookResponse>>> getCustomerBooks(
+            @RequestParam(required = false) String bookName,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Long authorId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(ApiResponse.<PageResponse<BookResponse>>builder()
+                .data(bookService.getCustomerBooks(bookName, categoryId, authorId, page, size)).build());
+    }
+
+    @GetMapping("/{bookId}/overview")
+    public ResponseEntity<ApiResponse<CustomerBookOverviewResponse>> getCustomerBookOverview(@PathVariable Long bookId) {
+        return ResponseEntity.ok(ApiResponse.<CustomerBookOverviewResponse>builder()
+                .data(bookService.getCustomerBookOverview(bookId)).build());
+    }
+
+    @GetMapping("/{bookId}/chapters/page")
+    public ResponseEntity<ApiResponse<PageResponse<CustomerChapterResponse>>> getCustomerChapters(
+            @PathVariable Long bookId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(ApiResponse.<PageResponse<CustomerChapterResponse>>builder()
+                .data(bookService.getCustomerChapters(bookId, page, size)).build());
     }
 
     @PreAuthorize("hasRole('ADMIN')")

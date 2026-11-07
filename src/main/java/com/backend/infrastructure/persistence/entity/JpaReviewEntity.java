@@ -7,7 +7,8 @@ import lombok.Setter;
 import java.time.Instant;
 
 @Entity
-@Table(name = "tbl_review")
+@Table(name = "tbl_review", uniqueConstraints = @UniqueConstraint(
+        name = "uk_review_customer_book", columnNames = {"customer_id", "book_id"}))
 @Getter
 @Setter
 public class JpaReviewEntity {

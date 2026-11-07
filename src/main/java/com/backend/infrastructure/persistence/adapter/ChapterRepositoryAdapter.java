@@ -1,6 +1,7 @@
 package com.backend.infrastructure.persistence.adapter;
 
 import com.backend.application.adapter.repository.ChapterRepository;
+import com.backend.application.dto.response.PageResponse;
 import com.backend.infrastructure.persistence.mapper.ChapterMapper;
 import com.backend.domain.model.Book;
 import com.backend.domain.model.Chapter;
@@ -10,6 +11,7 @@ import com.backend.infrastructure.persistence.repository.JpaChapterRepository;
 import com.backend.infrastructure.persistence.repository.JpaChapterUpdateRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -22,6 +24,27 @@ public class ChapterRepositoryAdapter implements ChapterRepository {
     private final JpaChapterRepository jpaChapterRepository;
     private final JpaChapterUpdateRepository jpaChapterUpdateRepository;
     private final ChapterMapper chapterMapper;
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<Chapter> findCustomerPageByBookId(Long bookId, int page, int size) {
+        var result = jpaChapterRepository.findCustomerPageByBookId(bookId, PageRequest.of(page, size));
+        return PageResponse.<Chapter>builder()
+                .content(result.getContent().stream().map(chapter -> Chapter.builder()
+                        .id(chapter.getId()).title(chapter.getTitle()).chapterOrder(chapter.getChapterOrder())
+                        .duration(chapter.getDuration()).audioUrl(chapter.getAudioUrl()).status(chapter.getStatus())
+                        .build()).toList())
+                .total(Math.toIntExact(result.getTotalElements()))
+                .totalPage(result.getTotalPages())
+                .page(page).pageSize(size)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long sumDurationByBookId(Long bookId) {
+        return jpaChapterRepository.sumDurationByBookId(bookId);
+    }
 
     @Override
     @Transactional(readOnly = true)

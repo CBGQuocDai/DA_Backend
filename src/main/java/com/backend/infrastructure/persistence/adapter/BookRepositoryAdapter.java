@@ -28,6 +28,7 @@ import com.backend.infrastructure.persistence.repository.JpaReviewRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -131,6 +132,17 @@ public class BookRepositoryAdapter implements BookRepository {
     @Override
     @Transactional(readOnly = true)
     public Optional<Book> findById(Long id) {
+        return findDetailWithoutChapters(id).map(book -> {
+            book.setChapters(jpaChapterRepository.findWithAttachFileByBookId(id).stream()
+                    .map(chapterMapper::toDomain)
+                    .toList());
+            return book;
+        });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Book> findDetailWithoutChapters(Long id) {
         if (id == null) {
             return Optional.empty();
         }
@@ -142,9 +154,6 @@ public class BookRepositoryAdapter implements BookRepository {
                             .toList());
                     book.setCategories(jpaBookCategoryRepository.findWithCategoryByBookId(id).stream()
                             .map(bookCategoryMapper::toDomain)
-                            .toList());
-                    book.setChapters(jpaChapterRepository.findWithAttachFileByBookId(id).stream()
-                            .map(chapterMapper::toDomain)
                             .toList());
                     return book;
                 });
@@ -171,7 +180,8 @@ public class BookRepositoryAdapter implements BookRepository {
                 .replace("%", "\\%")
                 .replace("_", "\\_")) + "%";
         Page<BookListProjection> projectionPage = jpaBookRepository.findAllBookListProjections(
-                keyword, categoryId, authorId, status, PageRequest.of(page, size));
+                // Books have no creation timestamp; identity order represents newest additions.
+                keyword, categoryId, authorId, status, PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id")));
 
         List<Long> bookIds = projectionPage.getContent().stream()
                 .map(BookListProjection::getId)
