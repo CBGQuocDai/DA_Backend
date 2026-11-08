@@ -2,6 +2,7 @@ package com.backend.application.service.impl;
 
 import com.backend.application.adapter.repository.CategoryRepository;
 import com.backend.application.dto.request.category.CategoryRequest;
+import com.backend.application.dto.request.statistics.BestsellerPeriod;
 import com.backend.application.dto.response.PageResponse;
 import com.backend.application.dto.response.category.CategoryResponse;
 import com.backend.application.mapper.ResponseMapper;
@@ -13,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -79,5 +81,13 @@ public class CategoryServiceImpl implements CategoryService {
         category.setName(req.getName().trim());
         String description = req.getDescription();
         category.setDescription(description == null || description.isBlank() ? null : description.trim());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CategoryResponse> getBestsellers(BestsellerPeriod period) {
+        BestsellerPeriod.Window window = period.endingAt(Instant.now());
+        return categoryRepository.findBestsellers(window.from(), window.to(), window.previousFrom())
+                .stream().map(responseMapper::toCategoryResponse).toList();
     }
 }

@@ -18,6 +18,7 @@ import com.backend.domain.model.BookAuthor;
 import com.backend.domain.model.BookCategory;
 import com.backend.domain.model.BookStat;
 import com.backend.domain.model.Category;
+import com.backend.domain.model.CategoryStat;
 import com.backend.domain.model.Chapter;
 import com.backend.domain.model.Customer;
 import com.backend.domain.model.Payment;
@@ -73,7 +74,9 @@ public class ResponseMapper {
                 .authors(mapList(book.getAuthors(), this::toBookAuthorResponse))
                 .chapters(mapList(book.getChapters(), this::toChapterResponse));
         if (book instanceof BookStat stat) {
-            response.averageRating(stat.getAverageRating()).ratingCount(stat.getRatingCount());
+            response.averageRating(stat.getAverageRating()).ratingCount(stat.getRatingCount())
+                    .purchases(stat.getPurchases()).previousPurchases(stat.getPreviousPurchases())
+                    .revenue(stat.getRevenue());
         }
         return response.build();
     }
@@ -111,11 +114,14 @@ public class ResponseMapper {
     }
 
     public CategoryResponse toCategoryResponse(Category category) {
-        return CategoryResponse.builder()
+        CategoryResponse.CategoryResponseBuilder response = CategoryResponse.builder()
                 .id(category.getId())
                 .name(category.getName())
-                .description(category.getDescription())
-                .build();
+                .description(category.getDescription());
+        if (category instanceof CategoryStat stat) {
+            response.purchases(stat.getPurchases()).previousPurchases(stat.getPreviousPurchases());
+        }
+        return response.build();
     }
 
     public ReviewResponse toReviewResponse(Review review) {

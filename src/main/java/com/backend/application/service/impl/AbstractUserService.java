@@ -2,6 +2,7 @@ package com.backend.application.service.impl;
 
 import com.backend.application.adapter.repository.UserRepository;
 import com.backend.application.adapter.security.PasswordEncoder;
+import com.backend.application.adapter.security.TokenProvider;
 import com.backend.application.dto.request.user.ChangePasswordRequest;
 import com.backend.application.service.UserService;
 import com.backend.domain.exception.BusinessException;
@@ -14,10 +15,20 @@ public abstract class AbstractUserService implements UserService {
 
     protected final UserRepository userRepository;
     protected final PasswordEncoder passwordEncoder;
+    protected final TokenProvider tokenProvider;
 
-    protected AbstractUserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    protected AbstractUserService(UserRepository userRepository, PasswordEncoder passwordEncoder,
+                                  TokenProvider tokenProvider) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.tokenProvider = tokenProvider;
+    }
+
+    @Override
+    public void logout(String token) {
+        if (token != null) {
+            tokenProvider.revoke(token);
+        }
     }
 
     @Override

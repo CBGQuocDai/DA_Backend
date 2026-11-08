@@ -8,4 +8,6 @@ public interface CustomerRepository {
     Optional<Customer> findByEmail(String email);
     Customer save(Customer customer);
     Optional<Customer> findById(Long id);
+
+    long count();
 }

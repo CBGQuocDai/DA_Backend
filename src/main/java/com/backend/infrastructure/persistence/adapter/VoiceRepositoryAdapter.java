@@ -9,8 +9,10 @@ import com.backend.infrastructure.persistence.repository.JpaVoiceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
+import java.util.Locale;
 import java.util.Optional;
 
 @Repository
@@ -22,7 +24,8 @@ public class VoiceRepositoryAdapter implements VoiceRepository {
 
     @Override
     public PageResponse<Voice> findAll(int page, int size) {
-        PageRequest pageRequest = PageRequest.of(page, size);
+        // Newest first, so pages stay stable between requests
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
         Page<JpaVoiceEntity> pageResult = jpaVoiceRepository.findAll(pageRequest);
         return PageResponse.<Voice>builder()
                 .page(pageRequest.getPageNumber())
@@ -41,7 +44,7 @@ public class VoiceRepositoryAdapter implements VoiceRepository {
         // 1. Trim khoảng trắng thừa ở 2 đầu
         // 2. Escape dấu '\' trước tiên (để tránh escape chồng chéo lên các dấu '\' thêm vào sau)
         // 3. Escape dấu '%' và '_'
-        String escaped = key.trim()
+        String escaped = key.trim().toLowerCase(Locale.ROOT)
                 .replace("\\", "\\\\")
                 .replace("%", "\\%")
                 .replace("_", "\\_");
@@ -53,7 +56,8 @@ public class VoiceRepositoryAdapter implements VoiceRepository {
 
     @Override
     public PageResponse<Voice> findAllByNameLike(String voiceName, int page, int size) {
-        PageRequest pageRequest = PageRequest.of(page, size);
+        // Newest first, so pages stay stable between requests
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
         String voiceNameNormal = normalizeString(voiceName);
         Page<JpaVoiceEntity> pageResult = jpaVoiceRepository.findAllByNameLike(voiceNameNormal,pageRequest);
         return PageResponse.<Voice>builder()

@@ -28,4 +28,10 @@ public class BookResponse {
     private List<ChapterResponse> chapters;
     private Double averageRating;
     private Long ratingCount;
+    /** Bestseller lists only: purchases in the chosen period, paid or free. */
+    private Long purchases;
+    /** Bestseller lists only: purchases in the period before; absent when there is none to compare with. */
+    private Long previousPurchases;
+    /** Bestseller lists only: paid in the chosen period. */
+    private BigDecimal revenue;
 }

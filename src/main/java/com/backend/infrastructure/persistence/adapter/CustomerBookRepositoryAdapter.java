@@ -7,6 +7,7 @@ import com.backend.infrastructure.persistence.repository.JpaCustomerBookReposito
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 
 @Repository
@@ -32,4 +33,15 @@ public class CustomerBookRepositoryAdapter implements CustomerBookRepository {
                 .map(customerBookMapper::toDomain)
                 .toList();
     }
+
+    @Override
+    public long countPurchases(Instant from, Instant to) {
+        return jpaCustomerBookRepository.countPurchasesBetween(from, to);
+    }
+
+    @Override
+    public long countBuyers() {
+        return jpaCustomerBookRepository.countDistinctCustomers();
+    }
+
 }

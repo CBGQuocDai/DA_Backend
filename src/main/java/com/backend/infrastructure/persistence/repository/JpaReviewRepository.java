@@ -44,6 +44,17 @@ public interface JpaReviewRepository extends JpaRepository<JpaReviewEntity, Long
             """)
     ReviewSummaryProjection summarizeByBookId(@Param("bookId") Long bookId);
 
+    @Query("""
+            SELECT COUNT(r) AS totalReviews, AVG(r.rate) AS averageRating,
+                   SUM(CASE WHEN r.rate = 1 THEN 1 ELSE 0 END) AS oneStar,
+                   SUM(CASE WHEN r.rate = 2 THEN 1 ELSE 0 END) AS twoStars,
+                   SUM(CASE WHEN r.rate = 3 THEN 1 ELSE 0 END) AS threeStars,
+                   SUM(CASE WHEN r.rate = 4 THEN 1 ELSE 0 END) AS fourStars,
+                   SUM(CASE WHEN r.rate = 5 THEN 1 ELSE 0 END) AS fiveStars
+            FROM JpaReviewEntity r
+            """)
+    ReviewSummaryProjection summarizeAll();
+
     boolean existsByBookIdAndCustomerId(Long bookId, Long customerId);
 
     void deleteByBookId(Long bookId);

@@ -19,13 +19,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class AdminServiceImpl extends AbstractUserService implements AdminService {
 
     private final AdminRepository adminRepository;
-    private final TokenProvider tokenProvider;
 
     public AdminServiceImpl(AdminRepository adminRepository, UserRepository userRepository,
                             PasswordEncoder passwordEncoder, TokenProvider tokenProvider) {
-        super(userRepository, passwordEncoder);
+        super(userRepository, passwordEncoder, tokenProvider);
         this.adminRepository = adminRepository;
-        this.tokenProvider = tokenProvider;
     }
 
     @Override

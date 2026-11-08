@@ -6,22 +6,24 @@ import com.backend.application.dto.response.review.ReviewSummaryResponse;
 import com.backend.domain.exception.BusinessException;
 import com.backend.domain.model.Book;
 import com.backend.domain.model.Customer;
-import com.backend.domain.valueobject.BusinessError;
-import com.backend.infrastructure.persistence.projection.ReviewListProjection;
-import com.backend.infrastructure.persistence.mapper.ReviewMapper;
 import com.backend.domain.model.Review;
+import com.backend.domain.valueobject.BusinessError;
 import com.backend.infrastructure.persistence.entity.JpaReviewEntity;
+import com.backend.infrastructure.persistence.mapper.ReviewMapper;
+import com.backend.infrastructure.persistence.projection.ReviewListProjection;
+import com.backend.infrastructure.persistence.projection.ReviewSummaryProjection;
 import com.backend.infrastructure.persistence.repository.JpaReviewRepository;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
@@ -62,7 +64,15 @@ public class ReviewRepositoryAdapter implements ReviewRepository {
 
     @Override
     public ReviewSummaryResponse getSummary(Long bookId) {
-        var result = jpaReviewRepository.summarizeByBookId(bookId);
+        return toSummary(jpaReviewRepository.summarizeByBookId(bookId));
+    }
+
+    @Override
+    public ReviewSummaryResponse getOverallSummary() {
+        return toSummary(jpaReviewRepository.summarizeAll());
+    }
+
+    private ReviewSummaryResponse toSummary(ReviewSummaryProjection result) {
         double average = result.getAverageRating() == null ? 0 : Math.round(result.getAverageRating() * 10) / 10.0;
         return ReviewSummaryResponse.builder().averageRating(average).totalReviews(result.getTotalReviews())
                 .distribution(Map.of(1, count(result.getOneStar()), 2, count(result.getTwoStars()),

@@ -4,6 +4,7 @@ package com.backend.presentation.controller;
 import com.backend.application.service.BookService;
 import com.backend.application.service.CategoryService;
 import com.backend.application.dto.request.book.BookRequest;
+import com.backend.application.dto.request.statistics.BestsellerPeriod;
 import com.backend.presentation.dto.ApiResponse;
 import com.backend.application.dto.response.PageResponse;
 import com.backend.application.dto.response.book.BookResponse;
@@ -41,7 +42,6 @@ public class BookController {
         return ResponseEntity.ok(bookService.getBooks(bookName, categoryId, authorId, status, page, size));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/category/{categoryId}")
     public ResponseEntity<PageResponse<BookResponse>> getBooksByCategory(
             @PathVariable Long categoryId,
@@ -49,6 +49,16 @@ public class BookController {
             @RequestParam(defaultValue = "10") Integer size
     ) {
         return ResponseEntity.ok(bookService.getBooksByCategory(categoryId, page, size));
+    }
+
+    /** Admin dashboard: the most purchased books in the period, with the period before it to compare. */
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/bestsellers")
+    public ResponseEntity<ApiResponse<List<BookResponse>>> getBestsellers(
+            @RequestParam(defaultValue = "MONTH") BestsellerPeriod period) {
+        return ResponseEntity.ok(ApiResponse.<List<BookResponse>>builder()
+                .data(bookService.getBestsellers(period))
+                .build());
     }
 
     @PreAuthorize("hasRole('ADMIN')")

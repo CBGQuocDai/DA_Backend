@@ -1,6 +1,7 @@
 package com.backend.presentation.controller;
 
 import com.backend.application.dto.request.category.CategoryRequest;
+import com.backend.application.dto.request.statistics.BestsellerPeriod;
 import com.backend.application.dto.response.PageResponse;
 import com.backend.application.dto.response.category.CategoryResponse;
 import com.backend.application.service.CategoryService;
@@ -38,6 +39,16 @@ public class CategoryController {
             @RequestParam(value = "size", defaultValue = "10") int size) {
         return ResponseEntity.ok(ApiResponse.<PageResponse<CategoryResponse>>builder()
                 .data(categoryService.searchCategories(keyword, Math.max(page, 0), clampSize(size)))
+                .build());
+    }
+
+    /** Admin dashboard: categories by purchases in the period; a book in several categories counts in each. */
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/bestsellers")
+    public ResponseEntity<ApiResponse<List<CategoryResponse>>> getBestsellers(
+            @RequestParam(defaultValue = "MONTH") BestsellerPeriod period) {
+        return ResponseEntity.ok(ApiResponse.<List<CategoryResponse>>builder()
+                .data(categoryService.getBestsellers(period))
                 .build());
     }
 

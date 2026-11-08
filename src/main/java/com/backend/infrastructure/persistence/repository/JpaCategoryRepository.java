@@ -1,12 +1,16 @@
 package com.backend.infrastructure.persistence.repository;
 
 import com.backend.infrastructure.persistence.entity.JpaCategoryEntity;
+import com.backend.infrastructure.persistence.projection.CategorySalesProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import java.time.Instant;
+import java.util.List;
 
 @Repository
 public interface JpaCategoryRepository extends JpaRepository<JpaCategoryEntity, Long> {
@@ -23,4 +27,16 @@ public interface JpaCategoryRepository extends JpaRepository<JpaCategoryEntity, 
     boolean existsByNameIgnoreCase(String name);
 
     boolean existsByNameIgnoreCaseAndIdNot(String name, Long id);
+
+    /** Categories whose books were purchased in [from, to); a book in several categories counts in each. */
+    @Query("""
+            SELECT c.id AS id, c.name AS name, c.description AS description, COUNT(cb.id) AS purchases
+            FROM JpaBookCategoryEntity bc
+            JOIN JpaCustomerBookEntity cb ON cb.bookId = bc.bookId
+            JOIN JpaCategoryEntity c ON c.id = bc.categoryId
+            WHERE cb.purchaseAt >= :from AND cb.purchaseAt < :to
+            GROUP BY c.id, c.name, c.description
+            ORDER BY COUNT(cb.id) DESC, c.name
+            """)
+    List<CategorySalesProjection> findBestsellers(@Param("from") Instant from, @Param("to") Instant to);
 }

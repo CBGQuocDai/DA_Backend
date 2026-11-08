@@ -1,8 +1,9 @@
 package com.backend.application.adapter.repository;
 
-import com.backend.domain.model.Review;
 import com.backend.application.dto.response.PageResponse;
 import com.backend.application.dto.response.review.ReviewSummaryResponse;
+import com.backend.domain.model.Review;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -15,4 +16,7 @@ public interface ReviewRepository {
     ReviewSummaryResponse getSummary(Long bookId);
     Optional<Review> findByBookIdAndCustomerId(Long bookId, Long customerId);
     boolean existsByBookIdAndCustomerId(Long bookId, Long customerId);
+
+    /** Rating summary over every review of every book. */
+    ReviewSummaryResponse getOverallSummary();
 }

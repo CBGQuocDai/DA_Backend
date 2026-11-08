@@ -21,13 +21,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class CustomerServiceImpl extends AbstractUserService implements CustomerService {
 
     private final CustomerRepository customerRepository;
-    private final TokenProvider tokenProvider;
 
     public CustomerServiceImpl(CustomerRepository customerRepository, UserRepository userRepository,
         PasswordEncoder passwordEncoder, TokenProvider tokenProvider) {
-        super(userRepository, passwordEncoder);
+        super(userRepository, passwordEncoder, tokenProvider);
         this.customerRepository = customerRepository;
-        this.tokenProvider = tokenProvider;
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.backend.application.service;
 
 import com.backend.application.dto.request.category.CategoryRequest;
+import com.backend.application.dto.request.statistics.BestsellerPeriod;
 import com.backend.application.dto.response.PageResponse;
 import com.backend.application.dto.response.category.CategoryResponse;
 
@@ -21,4 +22,7 @@ public interface CategoryService {
 
     /** Refused while any book is still in the category. */
     void deleteCategory(Long categoryId);
+
+    /** Admin dashboard: categories by purchases of their books in the period, each with the period before it. */
+    List<CategoryResponse> getBestsellers(BestsellerPeriod period);
 }

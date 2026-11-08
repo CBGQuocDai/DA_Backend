@@ -6,9 +6,6 @@ import com.backend.application.dto.response.author.AuthorResponse;
 import com.backend.application.service.AuthorService;
 import com.backend.presentation.dto.ApiResponse;
 import jakarta.validation.Valid;
-import com.backend.application.dto.response.author.AuthorResponse;
-import com.backend.application.dto.response.author.CustomerAuthorResponse;
-import com.backend.application.dto.response.PageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,22 +26,24 @@ public class AuthorController {
 
     private final AuthorService authorService;
 
+//    có thể bỏ
     @GetMapping("/page")
-    public ResponseEntity<ApiResponse<PageResponse<CustomerAuthorResponse>>> getCustomerAuthors(
+    public ResponseEntity<ApiResponse<PageResponse<AuthorResponse>>> getCustomerAuthors(
             @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "name_asc") String sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "8") int size) {
-        return ResponseEntity.ok(ApiResponse.<PageResponse<CustomerAuthorResponse>>builder()
-                .data(authorService.getCustomerAuthors(keyword, sort, page, size)).build());
+        return ResponseEntity.ok(ApiResponse.<PageResponse<AuthorResponse>>builder()
+                .data(authorService.getCustomerAuthors(keyword, page, size)).build());
     }
 
     @GetMapping("/{authorId}")
-    public ResponseEntity<ApiResponse<CustomerAuthorResponse>> getCustomerAuthorById(@PathVariable Long authorId) {
-        return ResponseEntity.ok(ApiResponse.<CustomerAuthorResponse>builder()
-                .data(authorService.getCustomerAuthorById(authorId)).build());
+    public ResponseEntity<ApiResponse<AuthorResponse>> getAuthor(@PathVariable Long authorId) {
+        return ResponseEntity.ok(ApiResponse.<AuthorResponse>builder()
+                .data(authorService.getAuthor(authorId))
+                .build());
     }
 
+//    bỏ được
     @GetMapping
     public ResponseEntity<ApiResponse<List<AuthorResponse>>> getAuthors() {
         return ResponseEntity.ok(ApiResponse.<List<AuthorResponse>>builder()
@@ -61,13 +60,6 @@ public class AuthorController {
             @RequestParam(value = "size", defaultValue = "10") int size) {
         return ResponseEntity.ok(ApiResponse.<PageResponse<AuthorResponse>>builder()
                 .data(authorService.searchAuthors(keyword, Math.max(page, 0), clampSize(size)))
-                .build());
-    }
-
-    @GetMapping("/{authorId}")
-    public ResponseEntity<ApiResponse<AuthorResponse>> getAuthor(@PathVariable Long authorId) {
-        return ResponseEntity.ok(ApiResponse.<AuthorResponse>builder()
-                .data(authorService.getAuthor(authorId))
                 .build());
     }
 
@@ -97,6 +89,6 @@ public class AuthorController {
     }
 
     private static int clampSize(int size) {
-        return Math.min(Math.max(size, 1), 100);
+        return Math.clamp(size, 1, 100);
     }
 }

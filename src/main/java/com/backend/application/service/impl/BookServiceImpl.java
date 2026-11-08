@@ -8,6 +8,7 @@ import com.backend.application.adapter.repository.BookRepository;
 import com.backend.application.adapter.repository.ChapterRepository;
 import com.backend.application.adapter.storage.StorageService;
 import com.backend.application.dto.request.book.BookRequest;
+import com.backend.application.dto.request.statistics.BestsellerPeriod;
 import com.backend.application.dto.response.PageResponse;
 import com.backend.application.dto.response.book.BookResponse;
 import com.backend.application.dto.response.book.CustomerBookOverviewResponse;
@@ -29,6 +30,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 
@@ -36,6 +38,9 @@ import java.util.Objects;
 @RequiredArgsConstructor
 @Slf4j
 public class BookServiceImpl implements BookService {
+
+    /** Books listed in the dashboard's bestseller section. */
+    private static final int BESTSELLER_LIMIT = 10;
 
     private final BookRepository bookRepository;
     private final ChapterRepository chapterRepository;
@@ -267,5 +272,13 @@ public class BookServiceImpl implements BookService {
         } catch (Exception ex) {
             log.warn("Không xóa được file cũ {} trên GCS cho book {}: {}", oldPath, bookId, ex.getMessage());
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BookResponse> getBestsellers(BestsellerPeriod period) {
+        BestsellerPeriod.Window window = period.endingAt(Instant.now());
+        return bookRepository.findBestsellers(window.from(), window.to(), window.previousFrom(), BESTSELLER_LIMIT)
+                .stream().map(responseMapper::toBookResponse).toList();
     }
 }

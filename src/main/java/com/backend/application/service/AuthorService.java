@@ -3,8 +3,6 @@ package com.backend.application.service;
 import com.backend.application.dto.request.author.AuthorRequest;
 import com.backend.application.dto.response.PageResponse;
 import com.backend.application.dto.response.author.AuthorResponse;
-import com.backend.application.dto.response.author.CustomerAuthorResponse;
-import com.backend.application.dto.response.PageResponse;
 
 import java.util.List;
 
@@ -24,6 +22,6 @@ public interface AuthorService {
 
     /** Refused while any book still lists the author. */
     void deleteAuthor(Long authorId);
-    PageResponse<CustomerAuthorResponse> getCustomerAuthors(String keyword, String sort, int page, int size);
-    CustomerAuthorResponse getCustomerAuthorById(Long authorId);
+    /** Public list: accent-insensitive name filter, sorted by name. */
+    PageResponse<AuthorResponse> getCustomerAuthors(String keyword, int page, int size);
 }
