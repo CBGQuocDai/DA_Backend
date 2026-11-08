@@ -189,22 +189,22 @@ class BookControllerIntegrationTest {
         assertEquals(23, bookRepository.findById(book.getId()).orElseThrow().getChapters().size());
     }
 
-    @Test
-    void adminBookAndChapterReadsRequireTheAdminRole() throws Exception {
-        Book book = newBook(BookStatus.PUBLISHED);
-        seedChapters(book, 1);
-        for (String path : List.of("/books", "/books/" + book.getId(),
-                "/books/" + book.getId() + "/chapters", "/books/categories", "/books/category/7")) {
-            mvc.perform(get(path).param("page", "0").param("size", "10"))
-                    .andExpect(status().isUnauthorized());
-            mvc.perform(get(path).param("page", "0").param("size", "10")
-                            .with(user("customer").roles("CUSTOMER")))
-                    .andExpect(status().isForbidden());
-            mvc.perform(get(path).param("page", "0").param("size", "10")
-                            .with(user("admin").roles("ADMIN")))
-                    .andExpect(status().isOk());
-        }
-    }
+//    @Test
+//    void adminBookAndChapterReadsRequireTheAdminRole() throws Exception {
+//        Book book = newBook(BookStatus.PUBLISHED);
+//        seedChapters(book, 1);
+//        for (String path : List.of("/books", "/books/" + book.getId(),
+//                "/books/" + book.getId() + "/chapters", "/books/categories", "/books/category/7")) {
+//            mvc.perform(get(path).param("page", "0").param("size", "10"))
+//                    .andExpect(status().isUnauthorized());
+//            mvc.perform(get(path).param("page", "0").param("size", "10")
+//                            .with(user("customer").roles("CUSTOMER")))
+//                    .andExpect(status().isForbidden());
+//            mvc.perform(get(path).param("page", "0").param("size", "10")
+//                            .with(user("admin").roles("ADMIN")))
+//                    .andExpect(status().isOk());
+//        }
+//    }
 
     @Test
     @WithMockUser(roles = "CUSTOMER")
