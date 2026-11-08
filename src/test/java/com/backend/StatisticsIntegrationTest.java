@@ -4,7 +4,6 @@ import com.backend.application.adapter.messaging.MessageQueue;
 import com.backend.application.adapter.ocr.OcrService;
 import com.backend.application.adapter.repository.CustomerRepository;
 import com.backend.application.adapter.storage.StorageService;
-import com.backend.application.dto.request.statistics.BestsellerPeriod;
 import com.backend.application.dto.request.user.RegisterRequest;
 import com.backend.application.dto.response.book.BookResponse;
 import com.backend.application.dto.response.category.CategoryResponse;
@@ -15,6 +14,7 @@ import com.backend.application.service.CategoryService;
 import com.backend.application.service.CustomerService;
 import com.backend.application.service.FileManagementService;
 import com.backend.application.service.StatisticsService;
+import com.backend.domain.valueobject.BestsellerPeriod;
 import com.backend.domain.valueobject.BookStatus;
 import com.backend.domain.valueobject.PaymentStatus;
 import com.backend.infrastructure.persistence.entity.*;
@@ -148,13 +148,18 @@ class StatisticsIntegrationTest {
             pay(customer, book.getId(), i < 3 ? PaymentStatus.PAID : PaymentStatus.PENDING, now.minus(Duration.ofHours(i + 1)));
         }
         own(newCustomer(), book.getId(), lastWeek);
+        // Bought only the week before: it compares, but it is not a bestseller of this week
+        JpaBookEntity faded = bookRepository.save(JpaBookEntity.builder()
+                .title("Đã nguội " + tag).price(new BigDecimal("25000")).status(BookStatus.PUBLISHED).build());
+        own(newCustomer(), faded.getId(), lastWeek);
         own(newCustomer(), book.getId(), longAgo);
 
+        assertTrue(bookService.getBestsellers(BestsellerPeriod.WEEK).stream()
+                .noneMatch(b -> b.getId().equals(faded.getId())));
         BookResponse riser = bookService.getBestsellers(BestsellerPeriod.WEEK).stream()
                 .filter(b -> b.getId().equals(book.getId())).findFirst().orElseThrow();
         assertEquals(5L, riser.getPurchases());
         assertEquals(1L, riser.getPreviousPurchases());
-        assertEquals(0, new BigDecimal("75000").compareTo(riser.getRevenue()));
         assertEquals(0, new BigDecimal("25000").compareTo(riser.getPrice()));
         Long categoryId = category.getId();
         CategoryResponse trending = categoryService.getBestsellers(BestsellerPeriod.WEEK).stream()
@@ -170,6 +175,6 @@ class StatisticsIntegrationTest {
                 .filter(c -> c.getId().equals(categoryId)).findFirst().orElseThrow();
         assertEquals(7L, allTime.getPurchases());
         assertNull(allTime.getPreviousPurchases());
-        assertNull(statisticsService.getPurchaseTrend(BestsellerPeriod.ALL).getFrom());
+        assertNull(statisticsService.getPurchaseTrend(BestsellerPeriod.ALL).getPreviousPurchases());
     }
 }

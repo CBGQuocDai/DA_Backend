@@ -1,9 +1,9 @@
 package com.backend.application.service;
 
 import com.backend.application.dto.request.category.CategoryRequest;
-import com.backend.application.dto.request.statistics.BestsellerPeriod;
 import com.backend.application.dto.response.PageResponse;
 import com.backend.application.dto.response.category.CategoryResponse;
+import com.backend.domain.valueobject.BestsellerPeriod;
 
 import java.util.List;
 

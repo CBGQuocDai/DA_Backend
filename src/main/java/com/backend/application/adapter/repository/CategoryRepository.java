@@ -3,8 +3,8 @@ package com.backend.application.adapter.repository;
 import com.backend.application.dto.response.PageResponse;
 import com.backend.domain.model.Category;
 import com.backend.domain.model.CategoryStat;
+import com.backend.domain.valueobject.BestsellerPeriod;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,8 +26,8 @@ public interface CategoryRepository {
     boolean existsByName(String name, Long excludeId);
 
     /**
-     * Categories with purchases in [from, to), most purchased first; a book in several categories counts in
-     * each. Purchases in [previousFrom, from) are filled in when {@code previousFrom} is not null.
+     * Categories bought in the window, most purchased first, with their purchases in the window before;
+     * a book in several categories counts in each.
      */
-    List<CategoryStat> findBestsellers(Instant from, Instant to, Instant previousFrom);
+    List<CategoryStat> findBestsellers(BestsellerPeriod.Window window);
 }

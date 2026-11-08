@@ -28,15 +28,22 @@ public interface JpaCategoryRepository extends JpaRepository<JpaCategoryEntity, 
 
     boolean existsByNameIgnoreCaseAndIdNot(String name, Long id);
 
-    /** Categories whose books were purchased in [from, to); a book in several categories counts in each. */
+    /**
+     * Categories whose books were bought in [from, to), with their purchases in [since, from) beside them;
+     * a book in several categories counts in each.
+     */
     @Query("""
-            SELECT c.id AS id, c.name AS name, c.description AS description, COUNT(cb.id) AS purchases
+            SELECT c.id AS id, c.name AS name,
+                   SUM(CASE WHEN cb.purchaseAt >= :from THEN 1 ELSE 0 END) AS purchases,
+                   SUM(CASE WHEN cb.purchaseAt < :from THEN 1 ELSE 0 END) AS previousPurchases
             FROM JpaBookCategoryEntity bc
             JOIN JpaCustomerBookEntity cb ON cb.bookId = bc.bookId
             JOIN JpaCategoryEntity c ON c.id = bc.categoryId
-            WHERE cb.purchaseAt >= :from AND cb.purchaseAt < :to
-            GROUP BY c.id, c.name, c.description
-            ORDER BY COUNT(cb.id) DESC, c.name
+            WHERE cb.purchaseAt >= :since AND cb.purchaseAt < :to
+            GROUP BY c.id, c.name
+            HAVING SUM(CASE WHEN cb.purchaseAt >= :from THEN 1 ELSE 0 END) > 0
+            ORDER BY SUM(CASE WHEN cb.purchaseAt >= :from THEN 1 ELSE 0 END) DESC, c.name
             """)
-    List<CategorySalesProjection> findBestsellers(@Param("from") Instant from, @Param("to") Instant to);
+    List<CategorySalesProjection> findBestsellers(@Param("since") Instant since, @Param("from") Instant from,
+                                                  @Param("to") Instant to);
 }

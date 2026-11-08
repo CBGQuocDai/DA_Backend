@@ -5,12 +5,13 @@ import com.backend.application.adapter.repository.CustomerBookRepository;
 import com.backend.application.adapter.repository.CustomerRepository;
 import com.backend.application.adapter.repository.PaymentRepository;
 import com.backend.application.adapter.repository.ReviewRepository;
-import com.backend.application.dto.request.statistics.BestsellerPeriod;
 import com.backend.application.dto.response.review.ReviewSummaryResponse;
 import com.backend.application.dto.response.statistics.PurchaseTrendResponse;
 import com.backend.application.dto.response.statistics.StatisticsResponse;
+import com.backend.domain.valueobject.BestsellerPeriod;
 import com.backend.domain.valueobject.BookStatus;
 import com.backend.domain.valueobject.MonthlyTotal;
+import com.backend.domain.valueobject.PeriodCount;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -21,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -80,28 +80,13 @@ class StatisticsServiceImplTest {
     }
 
     @Test
-    void purchaseTrendComparesTheWeekWithTheWeekBefore() {
+    void purchaseTrendAsksForThePeriodWindow() {
         Instant now = Instant.parse("2026-11-08T03:00:00Z");
-        Instant from = Instant.parse("2026-11-01T03:00:00Z");
-        when(customerBooks.countPurchases(from, now)).thenReturn(5L);
-        when(customerBooks.countPurchases(Instant.parse("2026-10-25T03:00:00Z"), from)).thenReturn(2L);
+        when(customerBooks.countPurchases(BestsellerPeriod.WEEK.endingAt(now))).thenReturn(new PeriodCount(5, 2L));
 
         PurchaseTrendResponse trend = service.purchaseTrend(BestsellerPeriod.WEEK, now);
 
-        assertEquals(from, trend.getFrom());
         assertEquals(5, trend.getPurchases());
         assertEquals(2L, trend.getPreviousPurchases());
-    }
-
-    @Test
-    void allTimeHasNothingToCompareWith() {
-        Instant now = Instant.parse("2026-11-08T03:00:00Z");
-        when(customerBooks.countPurchases(Instant.EPOCH, now)).thenReturn(9L);
-
-        PurchaseTrendResponse trend = service.purchaseTrend(BestsellerPeriod.ALL, now);
-
-        assertNull(trend.getFrom());
-        assertEquals(9, trend.getPurchases());
-        assertNull(trend.getPreviousPurchases());
     }
 }

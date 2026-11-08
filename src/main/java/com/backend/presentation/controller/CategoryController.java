@@ -1,10 +1,10 @@
 package com.backend.presentation.controller;
 
 import com.backend.application.dto.request.category.CategoryRequest;
-import com.backend.application.dto.request.statistics.BestsellerPeriod;
 import com.backend.application.dto.response.PageResponse;
 import com.backend.application.dto.response.category.CategoryResponse;
 import com.backend.application.service.CategoryService;
+import com.backend.domain.valueobject.BestsellerPeriod;
 import com.backend.presentation.dto.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

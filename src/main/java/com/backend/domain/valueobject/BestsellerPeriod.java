@@ -1,13 +1,11 @@
-package com.backend.application.dto.request.statistics;
+package com.backend.domain.valueobject;
 
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 import java.time.Duration;
 import java.time.Instant;
 
 /** Rolling windows ending now; each is compared with the window of the same length right before it. */
-@Getter
 @RequiredArgsConstructor
 public enum BestsellerPeriod {
     WEEK(7),
@@ -24,6 +22,15 @@ public enum BestsellerPeriod {
      * ALL starts at the epoch: nothing was bought before it, and it keeps queries bounded on both ends.
      */
     public record Window(Instant from, Instant to, Instant previousFrom) {
+
+        public boolean hasPrevious() {
+            return previousFrom != null;
+        }
+
+        /** Start of everything a query has to read: the previous window when there is one. */
+        public Instant since() {
+            return hasPrevious() ? previousFrom : from;
+        }
     }
 
     public Window endingAt(Instant now) {

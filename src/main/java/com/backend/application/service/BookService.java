@@ -1,15 +1,14 @@
 package com.backend.application.service;
 
 import com.backend.application.dto.request.book.BookRequest;
-import com.backend.application.dto.request.statistics.BestsellerPeriod;
 import com.backend.application.dto.response.PageResponse;
 import com.backend.application.dto.response.book.BookResponse;
 import com.backend.application.dto.response.book.CustomerBookOverviewResponse;
 import com.backend.application.dto.response.chapter.CustomerChapterResponse;
+import com.backend.domain.valueobject.BestsellerPeriod;
 import com.backend.domain.valueobject.BookStatus;
 
 import java.util.List;
-
 
 public interface BookService {
 

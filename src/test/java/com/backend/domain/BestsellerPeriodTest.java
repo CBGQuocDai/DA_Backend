@@ -1,11 +1,12 @@
-package com.backend.application.dto;
+package com.backend.domain;
 
-import com.backend.application.dto.request.statistics.BestsellerPeriod;
+import com.backend.domain.valueobject.BestsellerPeriod;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 class BestsellerPeriodTest {
@@ -19,6 +20,7 @@ class BestsellerPeriodTest {
         assertEquals(Instant.parse("2026-10-09T03:00:00Z"), window.from());
         assertEquals(NOW, window.to());
         assertEquals(Instant.parse("2026-09-09T03:00:00Z"), window.previousFrom());
+        assertEquals(window.previousFrom(), window.since());
     }
 
     @Test
@@ -27,5 +29,7 @@ class BestsellerPeriodTest {
 
         assertEquals(Instant.EPOCH, window.from());
         assertNull(window.previousFrom());
+        assertFalse(window.hasPrevious());
+        assertEquals(Instant.EPOCH, window.since());
     }
 }

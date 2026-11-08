@@ -24,6 +24,16 @@ public interface JpaReviewRepository extends JpaRepository<JpaReviewEntity, Long
             FROM JpaReviewEntity r LEFT JOIN r.customer c
             """;
 
+    String REVIEW_SUMMARY = """
+            SELECT COUNT(r) AS totalReviews, AVG(r.rate) AS averageRating,
+                   SUM(CASE WHEN r.rate = 1 THEN 1 ELSE 0 END) AS oneStar,
+                   SUM(CASE WHEN r.rate = 2 THEN 1 ELSE 0 END) AS twoStars,
+                   SUM(CASE WHEN r.rate = 3 THEN 1 ELSE 0 END) AS threeStars,
+                   SUM(CASE WHEN r.rate = 4 THEN 1 ELSE 0 END) AS fourStars,
+                   SUM(CASE WHEN r.rate = 5 THEN 1 ELSE 0 END) AS fiveStars
+            FROM JpaReviewEntity r
+            """;
+
     @Query(value = REVIEW_VIEW + " WHERE r.bookId = :bookId AND (:rating IS NULL OR r.rate = :rating)",
             countQuery = "SELECT COUNT(r) FROM JpaReviewEntity r WHERE r.bookId = :bookId AND (:rating IS NULL OR r.rate = :rating)")
     Page<ReviewListProjection> findReviewPage(@Param("bookId") Long bookId,
@@ -33,26 +43,10 @@ public interface JpaReviewRepository extends JpaRepository<JpaReviewEntity, Long
     List<ReviewListProjection> findOwnReview(@Param("bookId") Long bookId,
                                             @Param("customerId") Long customerId, Pageable pageable);
 
-    @Query("""
-            SELECT COUNT(r) AS totalReviews, AVG(r.rate) AS averageRating,
-                   SUM(CASE WHEN r.rate = 1 THEN 1 ELSE 0 END) AS oneStar,
-                   SUM(CASE WHEN r.rate = 2 THEN 1 ELSE 0 END) AS twoStars,
-                   SUM(CASE WHEN r.rate = 3 THEN 1 ELSE 0 END) AS threeStars,
-                   SUM(CASE WHEN r.rate = 4 THEN 1 ELSE 0 END) AS fourStars,
-                   SUM(CASE WHEN r.rate = 5 THEN 1 ELSE 0 END) AS fiveStars
-            FROM JpaReviewEntity r WHERE r.bookId = :bookId
-            """)
+    @Query(REVIEW_SUMMARY + " WHERE r.bookId = :bookId")
     ReviewSummaryProjection summarizeByBookId(@Param("bookId") Long bookId);
 
-    @Query("""
-            SELECT COUNT(r) AS totalReviews, AVG(r.rate) AS averageRating,
-                   SUM(CASE WHEN r.rate = 1 THEN 1 ELSE 0 END) AS oneStar,
-                   SUM(CASE WHEN r.rate = 2 THEN 1 ELSE 0 END) AS twoStars,
-                   SUM(CASE WHEN r.rate = 3 THEN 1 ELSE 0 END) AS threeStars,
-                   SUM(CASE WHEN r.rate = 4 THEN 1 ELSE 0 END) AS fourStars,
-                   SUM(CASE WHEN r.rate = 5 THEN 1 ELSE 0 END) AS fiveStars
-            FROM JpaReviewEntity r
-            """)
+    @Query(REVIEW_SUMMARY)
     ReviewSummaryProjection summarizeAll();
 
     boolean existsByBookIdAndCustomerId(Long bookId, Long customerId);

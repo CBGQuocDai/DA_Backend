@@ -3,9 +3,9 @@ package com.backend.application.adapter.repository;
 import com.backend.application.dto.response.PageResponse;
 import com.backend.domain.model.Book;
 import com.backend.domain.model.BookStat;
+import com.backend.domain.valueobject.BestsellerPeriod;
 import com.backend.domain.valueobject.BookStatus;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -32,11 +32,8 @@ public interface BookRepository {
 
     List<Book> findAllById(List<Long> bookIds);
 
-    /**
-     * Most purchased books in [from, to), with purchases and paid revenue in that window, and purchases in
-     * [previousFrom, from) when {@code previousFrom} is not null.
-     */
-    List<BookStat> findBestsellers(Instant from, Instant to, Instant previousFrom, int limit);
+    /** Most purchased books in the window, with their purchases in it and in the window before. */
+    List<BookStat> findBestsellers(BestsellerPeriod.Window window, int limit);
 
     /** Number of books in each status; statuses no book has are left out. */
     Map<BookStatus, Long> countByStatus();

@@ -75,8 +75,7 @@ public class ResponseMapper {
                 .chapters(mapList(book.getChapters(), this::toChapterResponse));
         if (book instanceof BookStat stat) {
             response.averageRating(stat.getAverageRating()).ratingCount(stat.getRatingCount())
-                    .purchases(stat.getPurchases()).previousPurchases(stat.getPreviousPurchases())
-                    .revenue(stat.getRevenue());
+                    .purchases(stat.getPurchases()).previousPurchases(stat.getPreviousPurchases());
         }
         return response.build();
     }

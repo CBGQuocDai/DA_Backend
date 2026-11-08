@@ -1,7 +1,6 @@
 package com.backend.infrastructure.persistence.repository;
 
 import com.backend.domain.valueobject.BookStatus;
-import com.backend.domain.valueobject.PaymentStatus;
 import com.backend.infrastructure.persistence.entity.JpaBookEntity;
 import com.backend.infrastructure.persistence.projection.BookListProjection;
 import com.backend.infrastructure.persistence.projection.BookSalesProjection;
@@ -98,19 +97,22 @@ public interface JpaBookRepository extends JpaRepository<JpaBookEntity, Long> {
                                                         Pageable pageable);
 
 
-    /** Most purchased books in [from, to); revenue counts only payments paid in the same window. */
+    /**
+     * Books bought in [from, to), most purchased first, with their purchases in [since, from) beside them;
+     * one pass over [since, to) split at {@code from}.
+     */
     @Query("""
-            SELECT b.id AS id, b.title AS title, b.price AS price, b.coverImage AS coverImage, b.status AS status,
-                   COUNT(cb.id) AS purchases,
-                   (SELECT COALESCE(SUM(p.amount), 0) FROM JpaPaymentEntity p
-                     WHERE p.bookId = b.id AND p.status = :paid AND p.paidAt >= :from AND p.paidAt < :to) AS revenue
+            SELECT b.id AS id, b.title AS title, b.price AS price, b.coverImage AS coverImage,
+                   SUM(CASE WHEN cb.purchaseAt >= :from THEN 1 ELSE 0 END) AS purchases,
+                   SUM(CASE WHEN cb.purchaseAt < :from THEN 1 ELSE 0 END) AS previousPurchases
             FROM JpaCustomerBookEntity cb JOIN cb.book b
-            WHERE cb.purchaseAt >= :from AND cb.purchaseAt < :to
-            GROUP BY b.id, b.title, b.price, b.coverImage, b.status
-            ORDER BY COUNT(cb.id) DESC, b.id DESC
+            WHERE cb.purchaseAt >= :since AND cb.purchaseAt < :to
+            GROUP BY b.id, b.title, b.price, b.coverImage
+            HAVING SUM(CASE WHEN cb.purchaseAt >= :from THEN 1 ELSE 0 END) > 0
+            ORDER BY SUM(CASE WHEN cb.purchaseAt >= :from THEN 1 ELSE 0 END) DESC, b.id DESC
             """)
-    List<BookSalesProjection> findBestsellers(@Param("from") Instant from, @Param("to") Instant to,
-                                              @Param("paid") PaymentStatus paid, Pageable pageable);
+    List<BookSalesProjection> findBestsellers(@Param("since") Instant since, @Param("from") Instant from,
+                                              @Param("to") Instant to, Pageable pageable);
 
     @Query("SELECT b.status AS status, COUNT(b) AS total FROM JpaBookEntity b WHERE b.status IS NOT NULL GROUP BY b.status")
     List<BookStatusCountProjection> countByStatus();
