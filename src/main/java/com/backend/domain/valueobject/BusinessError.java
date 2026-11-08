@@ -60,6 +60,16 @@ public enum BusinessError {
     CHAPTER_AUDIO_PROCESSING(4014, "Chương đang được tạo audio, vui lòng đợi", HttpStatus.CONFLICT),
     CHAPTER_TEXT_EMPTY(4015, "Chương chưa có nội dung để tạo audio", HttpStatus.BAD_REQUEST),
     CHAPTER_CONTENT_INVALID(4016, "Nội dung chương không hợp lệ", HttpStatus.BAD_REQUEST),
+
+//  Author / category error
+    AUTHOR_NOT_FOUND(4021, "Không tìm thấy tác giả", HttpStatus.NOT_FOUND),
+    AUTHOR_IN_USE(4022, "Tác giả đang được gán cho sách, hãy gỡ khỏi sách trước khi xóa", HttpStatus.CONFLICT),
+    CATEGORY_NOT_FOUND(4023, "Không tìm thấy thể loại", HttpStatus.NOT_FOUND),
+    CATEGORY_IN_USE(4024, "Thể loại đang được gán cho sách, hãy gỡ khỏi sách trước khi xóa", HttpStatus.CONFLICT),
+    CATEGORY_EXISTED(4025, "Tên thể loại đã tồn tại", HttpStatus.CONFLICT),
+
+//  Admin account error
+    PASSWORD_UNCHANGED(4026, "Mật khẩu mới phải khác mật khẩu hiện tại", HttpStatus.BAD_REQUEST),
     ;
     private final Integer code;
     private final String message;

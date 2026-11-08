@@ -1,24 +1,24 @@
 package com.backend.presentation.controller;
 
-
-import com.backend.application.service.BookService;
-import com.backend.application.service.CategoryService;
 import com.backend.application.dto.request.book.BookRequest;
-import com.backend.presentation.dto.ApiResponse;
 import com.backend.application.dto.response.PageResponse;
 import com.backend.application.dto.response.book.BookResponse;
 import com.backend.application.dto.response.book.CustomerBookOverviewResponse;
-import com.backend.application.dto.response.chapter.CustomerChapterResponse;
 import com.backend.application.dto.response.category.CategoryResponse;
+import com.backend.application.dto.response.chapter.CustomerChapterResponse;
+import com.backend.application.service.BookService;
+import com.backend.application.service.CategoryService;
+import com.backend.domain.valueobject.BestsellerPeriod;
 import com.backend.domain.valueobject.BookStatus;
+import com.backend.presentation.dto.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import java.util.List;
-
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -41,7 +41,6 @@ public class BookController {
         return ResponseEntity.ok(bookService.getBooks(bookName, categoryId, authorId, status, page, size));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/category/{categoryId}")
     public ResponseEntity<PageResponse<BookResponse>> getBooksByCategory(
             @PathVariable Long categoryId,
@@ -49,6 +48,16 @@ public class BookController {
             @RequestParam(defaultValue = "10") Integer size
     ) {
         return ResponseEntity.ok(bookService.getBooksByCategory(categoryId, page, size));
+    }
+
+    /** Admin dashboard: the most purchased books in the period, with the period before it to compare. */
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/bestsellers")
+    public ResponseEntity<ApiResponse<List<BookResponse>>> getBestsellers(
+            @RequestParam(defaultValue = "MONTH") BestsellerPeriod period) {
+        return ResponseEntity.ok(ApiResponse.<List<BookResponse>>builder()
+                .data(bookService.getBestsellers(period))
+                .build());
     }
 
     @PreAuthorize("hasRole('ADMIN')")

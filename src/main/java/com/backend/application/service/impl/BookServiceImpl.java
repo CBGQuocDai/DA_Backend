@@ -1,8 +1,5 @@
 package com.backend.application.service.impl;
 
-
-import com.backend.application.service.BookService;
-import com.backend.application.service.FileManagementService;
 import com.backend.application.adapter.ocr.OcrService;
 import com.backend.application.adapter.repository.BookRepository;
 import com.backend.application.adapter.repository.ChapterRepository;
@@ -13,6 +10,8 @@ import com.backend.application.dto.response.book.BookResponse;
 import com.backend.application.dto.response.book.CustomerBookOverviewResponse;
 import com.backend.application.dto.response.chapter.CustomerChapterResponse;
 import com.backend.application.mapper.ResponseMapper;
+import com.backend.application.service.BookService;
+import com.backend.application.service.FileManagementService;
 import com.backend.domain.exception.BusinessException;
 import com.backend.domain.model.Author;
 import com.backend.domain.model.Book;
@@ -21,14 +20,16 @@ import com.backend.domain.model.BookCategory;
 import com.backend.domain.model.Category;
 import com.backend.domain.model.Chapter;
 import com.backend.domain.model.Voice;
+import com.backend.domain.valueobject.BestsellerPeriod;
 import com.backend.domain.valueobject.BookStatus;
 import com.backend.domain.valueobject.BusinessError;
 import com.backend.domain.valueobject.UploadType;
-import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 
@@ -36,6 +37,9 @@ import java.util.Objects;
 @RequiredArgsConstructor
 @Slf4j
 public class BookServiceImpl implements BookService {
+
+    /** Books listed in the dashboard's bestseller section. */
+    private static final int BESTSELLER_LIMIT = 10;
 
     private final BookRepository bookRepository;
     private final ChapterRepository chapterRepository;
@@ -267,5 +271,12 @@ public class BookServiceImpl implements BookService {
         } catch (Exception ex) {
             log.warn("Không xóa được file cũ {} trên GCS cho book {}: {}", oldPath, bookId, ex.getMessage());
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BookResponse> getBestsellers(BestsellerPeriod period) {
+        return bookRepository.findBestsellers(period.endingAt(Instant.now()), BESTSELLER_LIMIT)
+                .stream().map(responseMapper::toBookResponse).toList();
     }
 }

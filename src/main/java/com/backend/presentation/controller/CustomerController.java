@@ -4,7 +4,7 @@ import com.backend.application.service.CustomerBookService;
 import com.backend.application.service.CustomerService;
 import com.backend.application.dto.request.user.LoginRequest;
 import com.backend.application.dto.request.user.RegisterRequest;
-import com.backend.application.dto.request.user.customer.CustomerChangePasswordRequest;
+import com.backend.application.dto.request.user.ChangePasswordRequest;
 import com.backend.application.dto.request.user.customer.CustomerUpdateProfileRequest;
 import com.backend.presentation.dto.ApiResponse;
 import com.backend.application.dto.response.book.BookResponse;
@@ -56,7 +56,7 @@ public class CustomerController {
 
     @PostMapping("/profile/change-password")
     public ApiResponse<Void> changePassword(@AuthenticationPrincipal Long userId,
-        @Validated @RequestBody CustomerChangePasswordRequest request) {
+        @Validated @RequestBody ChangePasswordRequest request) {
         customerService.changePassword(userId, request);
         return ApiResponse.<Void>builder().message("Đổi mật khẩu thành công")
             .build();

@@ -4,6 +4,7 @@ import com.backend.application.service.AdminService;
 import com.backend.application.adapter.security.PasswordEncoder;
 import com.backend.application.adapter.security.TokenProvider;
 import com.backend.application.adapter.repository.AdminRepository;
+import com.backend.application.adapter.repository.UserRepository;
 import com.backend.application.dto.request.user.LoginRequest;
 import com.backend.application.dto.request.user.RegisterRequest;
 import com.backend.application.dto.response.user.LoginResponse;
@@ -11,17 +12,19 @@ import com.backend.application.dto.response.user.RegisterResponse;
 import com.backend.domain.exception.BusinessException;
 import com.backend.domain.model.Admin;
 import com.backend.domain.valueobject.BusinessError;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@RequiredArgsConstructor
-public class AdminServiceImpl implements AdminService {
+public class AdminServiceImpl extends AbstractUserService implements AdminService {
 
     private final AdminRepository adminRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final TokenProvider tokenProvider;
+
+    public AdminServiceImpl(AdminRepository adminRepository, UserRepository userRepository,
+                            PasswordEncoder passwordEncoder, TokenProvider tokenProvider) {
+        super(userRepository, passwordEncoder, tokenProvider);
+        this.adminRepository = adminRepository;
+    }
 
     @Override
     public LoginResponse login(LoginRequest req) {
@@ -58,4 +61,5 @@ public class AdminServiceImpl implements AdminService {
             .role("ADMIN")
             .build();
     }
+
 }

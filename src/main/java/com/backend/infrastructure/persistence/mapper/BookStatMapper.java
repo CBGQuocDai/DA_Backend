@@ -9,6 +9,7 @@ import com.backend.domain.model.Voice;
 import com.backend.infrastructure.persistence.entity.JpaBookAuthorEntity;
 import com.backend.infrastructure.persistence.entity.JpaBookCategoryEntity;
 import com.backend.infrastructure.persistence.projection.BookListProjection;
+import com.backend.infrastructure.persistence.projection.BookSalesProjection;
 
 import java.util.List;
 import java.util.Map;
@@ -87,5 +88,17 @@ public final class BookStatMapper {
         }
 
         return bookStat;
+    }
+
+    /** A bestseller row; {@code previousPurchases} is dropped when there is no earlier window to compare with. */
+    public static BookStat toBookStat(BookSalesProjection row, boolean hasPrevious) {
+        return BookStat.builder()
+                .id(row.getId())
+                .title(row.getTitle())
+                .price(row.getPrice())
+                .coverImage(row.getCoverImage())
+                .purchases(row.getPurchases())
+                .previousPurchases(hasPrevious ? row.getPreviousPurchases() : null)
+                .build();
     }
 }

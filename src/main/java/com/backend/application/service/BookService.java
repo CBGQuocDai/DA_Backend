@@ -5,8 +5,10 @@ import com.backend.application.dto.response.PageResponse;
 import com.backend.application.dto.response.book.BookResponse;
 import com.backend.application.dto.response.book.CustomerBookOverviewResponse;
 import com.backend.application.dto.response.chapter.CustomerChapterResponse;
+import com.backend.domain.valueobject.BestsellerPeriod;
 import com.backend.domain.valueobject.BookStatus;
 
+import java.util.List;
 
 public interface BookService {
 
@@ -35,4 +37,7 @@ public interface BookService {
     CustomerBookOverviewResponse getCustomerBookOverview(Long bookId);
 
     PageResponse<CustomerChapterResponse> getCustomerChapters(Long bookId, int page, int size);
+
+    /** Admin dashboard: the most purchased books in the period, each with the period before it. */
+    List<BookResponse> getBestsellers(BestsellerPeriod period);
 }

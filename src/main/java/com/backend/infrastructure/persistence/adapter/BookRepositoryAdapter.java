@@ -2,20 +2,22 @@ package com.backend.infrastructure.persistence.adapter;
 
 import com.backend.application.adapter.repository.BookRepository;
 import com.backend.application.dto.response.PageResponse;
+import com.backend.domain.model.Book;
+import com.backend.domain.model.BookAuthor;
+import com.backend.domain.model.BookCategory;
+import com.backend.domain.model.BookStat;
+import com.backend.domain.valueobject.BestsellerPeriod;
+import com.backend.domain.valueobject.BookStatus;
+import com.backend.infrastructure.persistence.entity.JpaBookAuthorEntity;
+import com.backend.infrastructure.persistence.entity.JpaBookCategoryEntity;
+import com.backend.infrastructure.persistence.entity.JpaBookEntity;
 import com.backend.infrastructure.persistence.mapper.BookAuthorMapper;
 import com.backend.infrastructure.persistence.mapper.BookCategoryMapper;
 import com.backend.infrastructure.persistence.mapper.BookMapper;
 import com.backend.infrastructure.persistence.mapper.BookStatMapper;
 import com.backend.infrastructure.persistence.mapper.ChapterMapper;
-import com.backend.domain.model.Book;
-import com.backend.domain.model.BookAuthor;
-import com.backend.domain.model.BookCategory;
-import com.backend.domain.model.BookStat;
-import com.backend.domain.valueobject.BookStatus;
-import com.backend.infrastructure.persistence.entity.JpaBookAuthorEntity;
-import com.backend.infrastructure.persistence.entity.JpaBookCategoryEntity;
-import com.backend.infrastructure.persistence.entity.JpaBookEntity;
 import com.backend.infrastructure.persistence.projection.BookListProjection;
+import com.backend.infrastructure.persistence.projection.BookStatusCountProjection;
 import com.backend.infrastructure.persistence.repository.JpaBookAuthorRepository;
 import com.backend.infrastructure.persistence.repository.JpaBookCategoryRepository;
 import com.backend.infrastructure.persistence.repository.JpaBookFavoriteRepository;
@@ -33,7 +35,9 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Repository
@@ -268,5 +272,21 @@ public class BookRepositoryAdapter implements BookRepository {
         return jpaBookRepository.findAllById(bookIds).stream()
                 .map(bookMapper::toDomain)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BookStat> findBestsellers(BestsellerPeriod.Window window, int limit) {
+        return jpaBookRepository.findBestsellers(window.since(), window.from(), window.to(), PageRequest.of(0, limit))
+                .stream()
+                .map(row -> BookStatMapper.toBookStat(row, window.hasPrevious()))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<BookStatus, Long> countByStatus() {
+        return jpaBookRepository.countByStatus().stream()
+                .collect(Collectors.toMap(BookStatusCountProjection::getStatus, BookStatusCountProjection::getTotal));
     }
 }

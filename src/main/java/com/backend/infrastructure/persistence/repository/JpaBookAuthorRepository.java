@@ -19,4 +19,5 @@ public interface JpaBookAuthorRepository extends JpaRepository<JpaBookAuthorEnti
     List<JpaBookAuthorEntity> findWithAuthorByBookId(@Param("bookId") Long bookId);
     List<JpaBookAuthorEntity> findByBookIdIn(Collection<Long> bookIds);
     void deleteByBookId(Long bookId);
+    boolean existsByAuthorId(Long authorId);
 }

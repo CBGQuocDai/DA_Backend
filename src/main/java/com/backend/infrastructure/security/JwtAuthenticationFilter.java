@@ -32,7 +32,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String jwt = extractJwtFromRequest(request);
 
-            if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
+            if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)
+                    && !tokenProvider.isRevoked(jwt)) {
                 TokenProvider.TokenInfo tokenInfo = tokenProvider.parseToken(jwt);
 
                 List<SimpleGrantedAuthority> authorities = List.of(

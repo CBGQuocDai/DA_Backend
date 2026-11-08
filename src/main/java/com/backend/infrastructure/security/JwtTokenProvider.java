@@ -9,15 +9,24 @@ import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Date;
+import java.util.UUID;
 
 @Component
+@RequiredArgsConstructor
 public class JwtTokenProvider implements TokenProvider {
+
+    private static final String BLACKLIST_PREFIX = "jwt:blacklist:";
+
+    private final StringRedisTemplate redisTemplate;
 
     @Value("${jwt.secret}")
     private String jwtSecret;
@@ -35,6 +44,7 @@ public class JwtTokenProvider implements TokenProvider {
 
         SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
         return Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 .subject(String.valueOf(user.getId()))
                 .claim("email", user.getEmail())
                 .issuer(jwtIssuer)
@@ -71,5 +81,29 @@ public class JwtTokenProvider implements TokenProvider {
                 claims.get("email", String.class),
                 claims.get("role", String.class)
         );
+    }
+
+    @Override
+    public void revoke(String token) {
+        if (!validateToken(token)) {
+            return;
+        }
+        Claims claims = parseClaims(token);
+        long ttlMillis = claims.getExpiration().getTime() - System.currentTimeMillis();
+        if (ttlMillis > 0) {
+            redisTemplate.opsForValue()
+                .set(BLACKLIST_PREFIX + claims.getId(), "1", Duration.ofMillis(ttlMillis));
+        }
+    }
+
+    @Override
+    public boolean isRevoked(String token) {
+        String id = parseClaims(token).getId();
+        return id != null && Boolean.TRUE.equals(redisTemplate.hasKey(BLACKLIST_PREFIX + id));
+    }
+
+    private Claims parseClaims(String token) {
+        SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+        return Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
     }
 }

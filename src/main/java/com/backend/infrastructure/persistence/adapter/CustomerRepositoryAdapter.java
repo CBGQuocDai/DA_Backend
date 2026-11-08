@@ -1,9 +1,9 @@
 package com.backend.infrastructure.persistence.adapter;
 
 import com.backend.application.adapter.repository.CustomerRepository;
-import com.backend.infrastructure.persistence.mapper.CustomerMapper;
 import com.backend.domain.model.Customer;
 import com.backend.infrastructure.persistence.entity.JpaCustomerEntity;
+import com.backend.infrastructure.persistence.mapper.CustomerMapper;
 import com.backend.infrastructure.persistence.repository.JpaCustomerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -35,5 +35,10 @@ public class CustomerRepositoryAdapter implements CustomerRepository {
             return Optional.empty();
         }
         return jpaCustomerRepository.findById(id).map(customerMapper::toDomain);
+    }
+
+    @Override
+    public long count() {
+        return jpaCustomerRepository.count();
     }
 }
