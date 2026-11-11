@@ -1,11 +1,16 @@
 package com.backend.presentation.controller;
 
+import com.backend.application.dto.request.user.ChangePasswordRequest;
 import com.backend.application.service.CustomerService;
 import com.backend.presentation.dto.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -27,4 +32,13 @@ public class AuthController {
         }
         return ApiResponse.<Void>builder().build();
     }
+
+//    thêm đổi mật khẩu
+//    @PostMapping("/change-password")
+//    public ApiResponse<Void> changePassword(@AuthenticationPrincipal Long adminId,
+//                                            @Validated @RequestBody ChangePasswordRequest request) {
+//        adminService.changePassword(adminId, request);
+//        return ApiResponse.<Void>builder().message("Đổi mật khẩu thành công").build();
+//    }
+
 }

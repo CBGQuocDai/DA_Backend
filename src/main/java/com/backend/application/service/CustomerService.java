@@ -9,4 +9,6 @@ public interface CustomerService extends UserService {
     CustomerProfileResponse getProfile(Long id);
 
     CustomerProfileResponse updateProfile(Long userId, CustomerUpdateProfileRequest request);
+
+//    void register()
 }

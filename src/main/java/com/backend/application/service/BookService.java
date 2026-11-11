@@ -28,11 +28,7 @@ public interface BookService {
 
     void unpublishBook(Long bookId);
 
-    PageResponse<BookResponse> getBooksByCategory(Long categoryId, int page, int size);
-
-    // chức năng của client
-    PageResponse<BookResponse> getCustomerBooks(String bookName, Long categoryId, Long authorId,
-        int page, int size);
+// chức năng customer
 
     CustomerBookOverviewResponse getCustomerBookOverview(Long bookId);
 

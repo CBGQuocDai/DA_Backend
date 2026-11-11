@@ -6,11 +6,9 @@ import com.backend.application.adapter.security.TokenProvider;
 import com.backend.application.adapter.repository.CustomerRepository;
 import com.backend.application.adapter.repository.UserRepository;
 import com.backend.application.dto.request.user.LoginRequest;
-import com.backend.application.dto.request.user.RegisterRequest;
 import com.backend.application.dto.request.user.customer.CustomerUpdateProfileRequest;
 import com.backend.application.dto.response.customer.CustomerProfileResponse;
 import com.backend.application.dto.response.user.LoginResponse;
-import com.backend.application.dto.response.user.RegisterResponse;
 import com.backend.domain.exception.BusinessException;
 import com.backend.domain.model.Customer;
 import com.backend.domain.valueobject.BusinessError;
@@ -18,7 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class CustomerServiceImpl extends AbstractUserService implements CustomerService {
+public class CustomerServiceImpl extends AbstractUserServiceImpl implements CustomerService {
 
     private final CustomerRepository customerRepository;
 
@@ -26,6 +24,7 @@ public class CustomerServiceImpl extends AbstractUserService implements Customer
         PasswordEncoder passwordEncoder, TokenProvider tokenProvider) {
         super(userRepository, passwordEncoder, tokenProvider);
         this.customerRepository = customerRepository;
+
     }
 
     @Override
@@ -43,27 +42,27 @@ public class CustomerServiceImpl extends AbstractUserService implements Customer
         String token = tokenProvider.generateToken(user);
         return LoginResponse.builder().accessToken(token).build();
     }
-
-    @Override
-    @Transactional
-    public RegisterResponse register(RegisterRequest req) {
-        if (userRepository.existsByEmail(req.getEmail())) {
-            throw new BusinessException(BusinessError.USER_EXISTED);
-        }
-
-        Customer customer = Customer.builder()
-            .email(req.getEmail())
-            .password(passwordEncoder.encode(req.getPassword()))
-            .fullName(req.getFullname())
-            .build();
-
-        Customer saved = customerRepository.save(customer);
-        return RegisterResponse.builder()
-            .email(saved.getEmail())
-            .fullname(saved.getFullName())
-            .role("CUSTOMER")
-            .build();
-    }
+//
+//    @Override
+//    @Transactional
+//    public RegisterResponse register(RegisterRequest req) {
+//        if (userRepository.existsByEmail(req.getEmail())) {
+//            throw new BusinessException(BusinessError.USER_EXISTED);
+//        }
+//
+//        Customer customer = Customer.builder()
+//            .email(req.getEmail())
+//            .password(passwordEncoder.encode(req.getPassword()))
+//            .fullName(req.getFullname())
+//            .build();
+//
+//        Customer saved = customerRepository.save(customer);
+//        return RegisterResponse.builder()
+//            .email(saved.getEmail())
+//            .fullname(saved.getFullName())
+//            .role("CUSTOMER")
+//            .build();
+//    }
 
     @Override
     @Transactional(readOnly = true)

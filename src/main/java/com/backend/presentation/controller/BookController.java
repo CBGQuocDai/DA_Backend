@@ -26,7 +26,6 @@ import java.util.List;
 public class BookController {
 
     private final BookService bookService;
-    private final CategoryService categoryService;
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
@@ -39,15 +38,6 @@ public class BookController {
             @RequestParam Integer size
     ) {
         return ResponseEntity.ok(bookService.getBooks(bookName, categoryId, authorId, status, page, size));
-    }
-
-    @GetMapping("/category/{categoryId}")
-    public ResponseEntity<PageResponse<BookResponse>> getBooksByCategory(
-            @PathVariable Long categoryId,
-            @RequestParam(defaultValue = "0") Integer page,
-            @RequestParam(defaultValue = "10") Integer size
-    ) {
-        return ResponseEntity.ok(bookService.getBooksByCategory(categoryId, page, size));
     }
 
     /** Admin dashboard: the most purchased books in the period, with the period before it to compare. */
@@ -69,40 +59,6 @@ public class BookController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/categories")
-    public ResponseEntity<ApiResponse<List<CategoryResponse>>> getCategories() {
-        return ResponseEntity.ok(com.backend.presentation.dto.ApiResponse.<List<CategoryResponse>>builder()
-                .data(categoryService.getCategories())
-                .build());
-    }
-
-    @GetMapping("/catalog")
-    public ResponseEntity<ApiResponse<PageResponse<BookResponse>>> getCustomerBooks(
-            @RequestParam(required = false) String bookName,
-            @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) Long authorId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(ApiResponse.<PageResponse<BookResponse>>builder()
-                .data(bookService.getCustomerBooks(bookName, categoryId, authorId, page, size)).build());
-    }
-
-    @GetMapping("/{bookId}/overview")
-    public ResponseEntity<ApiResponse<CustomerBookOverviewResponse>> getCustomerBookOverview(@PathVariable Long bookId) {
-        return ResponseEntity.ok(ApiResponse.<CustomerBookOverviewResponse>builder()
-                .data(bookService.getCustomerBookOverview(bookId)).build());
-    }
-
-    @GetMapping("/{bookId}/chapters/page")
-    public ResponseEntity<ApiResponse<PageResponse<CustomerChapterResponse>>> getCustomerChapters(
-            @PathVariable Long bookId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(ApiResponse.<PageResponse<CustomerChapterResponse>>builder()
-                .data(bookService.getCustomerChapters(bookId, page, size)).build());
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<ApiResponse<BookResponse>> createBook(
             @Validated @RequestBody BookRequest request) {
@@ -110,7 +66,7 @@ public class BookController {
                 ApiResponse.<BookResponse>builder()
                         .data(bookService.createBook(request))
                         .build()
-                );
+        );
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -143,5 +99,25 @@ public class BookController {
     public ResponseEntity<Void> deleteBook(@PathVariable Long bookId) {
         bookService.deleteBook(bookId);
         return ResponseEntity.noContent().build();
+    }
+
+//    ----------------------------------customer ------------------------
+
+//    get recommend
+//    thêm 1 get list riêng
+    @GetMapping("/{bookId}/overview")
+    public ResponseEntity<ApiResponse<CustomerBookOverviewResponse>> getCustomerBookOverview(@PathVariable Long bookId) {
+        return ResponseEntity.ok(ApiResponse.<CustomerBookOverviewResponse>builder()
+                .data(bookService.getCustomerBookOverview(bookId)).build());
+    }
+
+//    Bỏ phân trang
+    @GetMapping("/{bookId}/chapters/page")
+    public ResponseEntity<ApiResponse<PageResponse<CustomerChapterResponse>>> getCustomerChapters(
+            @PathVariable Long bookId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(ApiResponse.<PageResponse<CustomerChapterResponse>>builder()
+                .data(bookService.getCustomerChapters(bookId, page, size)).build());
     }
 }

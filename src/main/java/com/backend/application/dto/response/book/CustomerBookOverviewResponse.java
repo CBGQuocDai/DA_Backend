@@ -4,6 +4,8 @@ import com.backend.application.dto.response.chapter.CustomerChapterResponse;
 import lombok.Builder;
 import lombok.Getter;
 
+
+// sửa extend BookResponse
 @Getter
 @Builder
 public class CustomerBookOverviewResponse {

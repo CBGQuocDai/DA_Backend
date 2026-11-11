@@ -26,16 +26,17 @@ public class AuthorController {
 
     private final AuthorService authorService;
 
-//    có thể bỏ
-    @GetMapping("/page")
-    public ResponseEntity<ApiResponse<PageResponse<AuthorResponse>>> getCustomerAuthors(
-            @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "8") int size) {
-        return ResponseEntity.ok(ApiResponse.<PageResponse<AuthorResponse>>builder()
-                .data(authorService.getCustomerAuthors(keyword, page, size)).build());
-    }
+////    bỏ
+//    @GetMapping("/page")
+//    public ResponseEntity<ApiResponse<PageResponse<AuthorResponse>>> getCustomerAuthors(
+//            @RequestParam(required = false) String keyword,
+//            @RequestParam(defaultValue = "0") int page,
+//            @RequestParam(defaultValue = "8") int size) {
+//        return ResponseEntity.ok(ApiResponse.<PageResponse<AuthorResponse>>builder()
+//                .data(authorService.getCustomerAuthors(keyword, page, size)).build());
+//    }
 
+//  lấy thông tin tác giả
     @GetMapping("/{authorId}")
     public ResponseEntity<ApiResponse<AuthorResponse>> getAuthor(@PathVariable Long authorId) {
         return ResponseEntity.ok(ApiResponse.<AuthorResponse>builder()
@@ -43,7 +44,7 @@ public class AuthorController {
                 .build());
     }
 
-//    bỏ được
+//    lấy danh sách cho dropdown
     @GetMapping
     public ResponseEntity<ApiResponse<List<AuthorResponse>>> getAuthors() {
         return ResponseEntity.ok(ApiResponse.<List<AuthorResponse>>builder()
@@ -51,8 +52,9 @@ public class AuthorController {
                 .build());
     }
 
-    /** Admin list: {@code keyword} filters by name (contains, case-insensitive), newest first. */
-    @PreAuthorize("hasRole('ADMIN')")
+//  lấy thông tin
+//    @PreAuthorize("hasRole('ADMIN')")
+//    order theo tên luôn mặc định a -> z
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<PageResponse<AuthorResponse>>> searchAuthors(
             @RequestParam(value = "keyword", required = false) String keyword,
@@ -63,6 +65,7 @@ public class AuthorController {
                 .build());
     }
 
+//    tạo tác giả
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<ApiResponse<AuthorResponse>> createAuthor(@Valid @RequestBody AuthorRequest request) {
@@ -71,6 +74,7 @@ public class AuthorController {
                 .build());
     }
 
+//    cập nhật
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{authorId}")
     public ResponseEntity<ApiResponse<AuthorResponse>> updateAuthor(
@@ -81,6 +85,7 @@ public class AuthorController {
                 .build());
     }
 
+//    xóa tác giả
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{authorId}")
     public ResponseEntity<ApiResponse<Void>> deleteAuthor(@PathVariable Long authorId) {
