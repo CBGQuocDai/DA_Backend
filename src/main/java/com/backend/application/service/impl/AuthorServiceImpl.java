@@ -32,25 +32,16 @@ public class AuthorServiceImpl implements AuthorService {
     private final ResponseMapper responseMapper;
 
     @Override
-    @Transactional(readOnly = true)
-    public PageResponse<AuthorResponse> getCustomerAuthors(String keyword, int page, int size) {
-        if (page < 0 || size < 1 || size > 100 || (long) page * size > Integer.MAX_VALUE
-            || keyword != null && keyword.length() > 200) {
-            throw new BusinessException(BusinessError.VALIDATION_FAILED);
-        }
-        return responseMapper.toPageResponse(
-            authorRepository.searchByName(keyword, page, size), responseMapper::toAuthorResponse);
-    }
-
-    @Override
     public List<AuthorResponse> getAuthors() {
-        return authorRepository.findAll().stream().map(responseMapper::toAuthorResponse).toList();
+        return authorRepository.findAll().stream()
+                .sorted(java.util.Comparator.comparing(Author::getFullName, String.CASE_INSENSITIVE_ORDER))
+                .map(responseMapper::toAuthorResponse).toList();
     }
 
     @Override
     public PageResponse<AuthorResponse> searchAuthors(String keyword, int page, int size) {
         return responseMapper.toPageResponse(
-                authorRepository.search(keyword, page, size), responseMapper::toAuthorResponse);
+                authorRepository.searchByName(keyword, page, size), responseMapper::toAuthorResponse);
     }
 
     @Override
@@ -58,7 +49,6 @@ public class AuthorServiceImpl implements AuthorService {
         return responseMapper.toAuthorResponse(findOrThrow(authorId));
     }
 
-    /** Verifies the avatar before saving and moves it after: a failed move rolls the save back. */
     @Override
     @Transactional
     public AuthorResponse createAuthor(AuthorRequest req) {

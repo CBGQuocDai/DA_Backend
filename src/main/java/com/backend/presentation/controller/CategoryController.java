@@ -22,7 +22,7 @@ public class CategoryController {
 
     private final CategoryService categoryService;
 
-    /** Every category, unpaged: for the store tabs and pickers such as the book form. */
+//    get cho drop down.
     @GetMapping
     public ResponseEntity<ApiResponse<List<CategoryResponse>>> getCategories() {
         return ResponseEntity.ok(ApiResponse.<List<CategoryResponse>>builder()
@@ -30,7 +30,6 @@ public class CategoryController {
                 .build());
     }
 
-    /** Admin list: {@code keyword} filters by name or description (contains, case-insensitive), newest first. */
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<PageResponse<CategoryResponse>>> searchCategories(
@@ -42,20 +41,13 @@ public class CategoryController {
                 .build());
     }
 
-    /** Admin dashboard: categories by purchases in the period; a book in several categories counts in each. */
+//    thống kê thể loại yêu thích
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/bestsellers")
     public ResponseEntity<ApiResponse<List<CategoryResponse>>> getBestsellers(
             @RequestParam(defaultValue = "MONTH") BestsellerPeriod period) {
         return ResponseEntity.ok(ApiResponse.<List<CategoryResponse>>builder()
                 .data(categoryService.getBestsellers(period))
-                .build());
-    }
-
-    @GetMapping("/{categoryId}")
-    public ResponseEntity<ApiResponse<CategoryResponse>> getCategory(@PathVariable Long categoryId) {
-        return ResponseEntity.ok(ApiResponse.<CategoryResponse>builder()
-                .data(categoryService.getCategory(categoryId))
                 .build());
     }
 
@@ -85,6 +77,6 @@ public class CategoryController {
     }
 
     private static int clampSize(int size) {
-        return Math.min(Math.max(size, 1), 100);
+        return Math.clamp(size, 1, 100);
     }
 }

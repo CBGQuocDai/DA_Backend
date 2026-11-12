@@ -1,5 +1,7 @@
 package com.backend.application.service;
 
+import com.backend.application.dto.request.user.RegisterRequest;
+import com.backend.application.dto.response.user.RegisterResponse;
 
 import com.backend.application.dto.request.user.customer.CustomerUpdateProfileRequest;
 import com.backend.application.dto.response.customer.CustomerProfileResponse;
@@ -10,5 +12,6 @@ public interface CustomerService extends UserService {
 
     CustomerProfileResponse updateProfile(Long userId, CustomerUpdateProfileRequest request);
 
-//    void register()
+    RegisterResponse register(
+            RegisterRequest request);
 }

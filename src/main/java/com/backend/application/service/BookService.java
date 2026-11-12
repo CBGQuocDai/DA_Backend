@@ -32,7 +32,9 @@ public interface BookService {
 
     CustomerBookOverviewResponse getCustomerBookOverview(Long bookId);
 
-    PageResponse<CustomerChapterResponse> getCustomerChapters(Long bookId, int page, int size);
+    List<CustomerChapterResponse> getCustomerChapters(Long bookId);
+
+    PageResponse<BookResponse> getCustomerBooks(String bookName, Long categoryId, Long authorId, int page, int size);
 
     /** Admin dashboard: the most purchased books in the period, each with the period before it. */
     List<BookResponse> getBestsellers(BestsellerPeriod period);

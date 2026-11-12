@@ -4,10 +4,8 @@ import com.backend.application.dto.request.book.BookRequest;
 import com.backend.application.dto.response.PageResponse;
 import com.backend.application.dto.response.book.BookResponse;
 import com.backend.application.dto.response.book.CustomerBookOverviewResponse;
-import com.backend.application.dto.response.category.CategoryResponse;
 import com.backend.application.dto.response.chapter.CustomerChapterResponse;
 import com.backend.application.service.BookService;
-import com.backend.application.service.CategoryService;
 import com.backend.domain.valueobject.BestsellerPeriod;
 import com.backend.domain.valueobject.BookStatus;
 import com.backend.presentation.dto.ApiResponse;
@@ -40,7 +38,7 @@ public class BookController {
         return ResponseEntity.ok(bookService.getBooks(bookName, categoryId, authorId, status, page, size));
     }
 
-    /** Admin dashboard: the most purchased books in the period, with the period before it to compare. */
+//    endpoint thông kê sách bán chạy
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/bestsellers")
     public ResponseEntity<ApiResponse<List<BookResponse>>> getBestsellers(
@@ -53,7 +51,7 @@ public class BookController {
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{bookId}")
     public ResponseEntity<ApiResponse<BookResponse>> getBookById(@PathVariable Long bookId) {
-        return ResponseEntity.ok(com.backend.presentation.dto.ApiResponse.<BookResponse>builder()
+        return ResponseEntity.ok(ApiResponse.<BookResponse>builder()
                 .data(bookService.getBookById(bookId))
                 .build());
     }
@@ -101,23 +99,33 @@ public class BookController {
         return ResponseEntity.noContent().build();
     }
 
-//    ----------------------------------customer ------------------------
+    @GetMapping("/catalog")
+    public ResponseEntity<ApiResponse<PageResponse<BookResponse>>> getCustomerBooks(
+            @RequestParam(required = false) String bookName,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Long authorId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size) {
+        return ResponseEntity.ok(ApiResponse.<PageResponse<BookResponse>>builder()
+                .data(bookService.getCustomerBooks(bookName, categoryId, authorId, page, size)).build());
+    }
 
-//    get recommend
-//    thêm 1 get list riêng
+    /** Default suggestions are the latest published books. */
+    @GetMapping("/recommendations")
+    public ResponseEntity<ApiResponse<List<BookResponse>>> getRecommendations() {
+        return ResponseEntity.ok(ApiResponse.<List<BookResponse>>builder()
+                .data(bookService.getCustomerBooks(null, null, null, 0, 10).getContent()).build());
+    }
+
     @GetMapping("/{bookId}/overview")
     public ResponseEntity<ApiResponse<CustomerBookOverviewResponse>> getCustomerBookOverview(@PathVariable Long bookId) {
         return ResponseEntity.ok(ApiResponse.<CustomerBookOverviewResponse>builder()
                 .data(bookService.getCustomerBookOverview(bookId)).build());
     }
 
-//    Bỏ phân trang
-    @GetMapping("/{bookId}/chapters/page")
-    public ResponseEntity<ApiResponse<PageResponse<CustomerChapterResponse>>> getCustomerChapters(
-            @PathVariable Long bookId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(ApiResponse.<PageResponse<CustomerChapterResponse>>builder()
-                .data(bookService.getCustomerChapters(bookId, page, size)).build());
+    @GetMapping("/{bookId}/chapters/list")
+    public ResponseEntity<ApiResponse<List<CustomerChapterResponse>>> getCustomerChapters(@PathVariable Long bookId) {
+        return ResponseEntity.ok(ApiResponse.<List<CustomerChapterResponse>>builder()
+                .data(bookService.getCustomerChapters(bookId)).build());
     }
 }

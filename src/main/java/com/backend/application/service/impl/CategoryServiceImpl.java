@@ -36,11 +36,6 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public CategoryResponse getCategory(Long categoryId) {
-        return responseMapper.toCategoryResponse(findOrThrow(categoryId));
-    }
-
-    @Override
     @Transactional
     public CategoryResponse createCategory(CategoryRequest req) {
         if (categoryRepository.existsByName(req.getName(), null)) {

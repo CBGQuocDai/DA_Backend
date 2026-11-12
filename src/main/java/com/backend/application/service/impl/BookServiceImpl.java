@@ -72,11 +72,9 @@ public class BookServiceImpl implements BookService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<CustomerChapterResponse> getCustomerChapters(Long bookId, int page, int size) {
-        validateCustomerPagination(page, size);
+    public List<CustomerChapterResponse> getCustomerChapters(Long bookId) {
         requirePublished(bookRepository.findBasicById(bookId).orElse(null));
-        return responseMapper.toPageResponse(
-                chapterRepository.findCustomerPageByBookId(bookId, page, size), this::toCustomerChapter);
+        return chapterRepository.findByBookId(bookId).stream().map(this::toCustomerChapter).toList();
     }
 
     private void validateCustomerPagination(int page, int size) {
@@ -107,12 +105,6 @@ public class BookServiceImpl implements BookService {
         return responseMapper.toPageResponse(
                 bookRepository.findAllWithStats(bookName, categoryId, authorId, status, page, size),
                 responseMapper::toBookResponse);
-    }
-
-    @Override
-    public PageResponse<BookResponse> getBooksByCategory(Long categoryId, int page, int size) {
-        return responseMapper.toPageResponse(
-                bookRepository.findByCategoryId(categoryId, page, size), responseMapper::toBookResponse);
     }
 
     @Override

@@ -33,12 +33,11 @@ public class AuthController {
         return ApiResponse.<Void>builder().build();
     }
 
-//    thêm đổi mật khẩu
-//    @PostMapping("/change-password")
-//    public ApiResponse<Void> changePassword(@AuthenticationPrincipal Long adminId,
-//                                            @Validated @RequestBody ChangePasswordRequest request) {
-//        adminService.changePassword(adminId, request);
-//        return ApiResponse.<Void>builder().message("Đổi mật khẩu thành công").build();
-//    }
-
+    @PreAuthorize("isAuthenticated()")
+    @PostMapping("/change-password")
+    public ApiResponse<Void> changePassword(@AuthenticationPrincipal Long userId,
+                                           @Validated @RequestBody ChangePasswordRequest request) {
+        userService.changePassword(userId, request);
+        return ApiResponse.<Void>builder().message("Đổi mật khẩu thành công").build();
+    }
 }

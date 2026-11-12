@@ -26,16 +26,6 @@ public class AuthorController {
 
     private final AuthorService authorService;
 
-////    bỏ
-//    @GetMapping("/page")
-//    public ResponseEntity<ApiResponse<PageResponse<AuthorResponse>>> getCustomerAuthors(
-//            @RequestParam(required = false) String keyword,
-//            @RequestParam(defaultValue = "0") int page,
-//            @RequestParam(defaultValue = "8") int size) {
-//        return ResponseEntity.ok(ApiResponse.<PageResponse<AuthorResponse>>builder()
-//                .data(authorService.getCustomerAuthors(keyword, page, size)).build());
-//    }
-
 //  lấy thông tin tác giả
     @GetMapping("/{authorId}")
     public ResponseEntity<ApiResponse<AuthorResponse>> getAuthor(@PathVariable Long authorId) {
@@ -52,9 +42,6 @@ public class AuthorController {
                 .build());
     }
 
-//  lấy thông tin
-//    @PreAuthorize("hasRole('ADMIN')")
-//    order theo tên luôn mặc định a -> z
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<PageResponse<AuthorResponse>>> searchAuthors(
             @RequestParam(value = "keyword", required = false) String keyword,

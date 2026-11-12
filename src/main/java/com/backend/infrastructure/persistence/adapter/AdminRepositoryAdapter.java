@@ -35,8 +35,4 @@ public class AdminRepositoryAdapter implements AdminRepository {
         return adminMapper.toDomain(saved);
     }
 
-    @Override
-    public boolean existsByEmail(String email) {
-        return jpaAdminRepository.existsByEmail(email);
-    }
 }

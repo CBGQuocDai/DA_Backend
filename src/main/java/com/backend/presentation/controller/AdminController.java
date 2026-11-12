@@ -1,6 +1,5 @@
 package com.backend.presentation.controller;
 
-import com.backend.application.dto.request.user.ChangePasswordRequest;
 import com.backend.application.dto.request.user.LoginRequest;
 import com.backend.application.dto.response.statistics.PurchaseTrendResponse;
 import com.backend.application.dto.response.statistics.StatisticsResponse;
@@ -11,7 +10,6 @@ import com.backend.domain.valueobject.BestsellerPeriod;
 import com.backend.presentation.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,14 +29,7 @@ public class AdminController {
                 .build();
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/change-password")
-    public ApiResponse<Void> changePassword(@AuthenticationPrincipal Long adminId,
-                                            @Validated @RequestBody ChangePasswordRequest request) {
-        adminService.changePassword(adminId, request);
-        return ApiResponse.<Void>builder().message("Đổi mật khẩu thành công").build();
-    }
-
+//    endpoint thống kê doanh thu
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/statistics")
     public ApiResponse<StatisticsResponse> getStatistics(@RequestParam(defaultValue = "12") int months) {
@@ -47,7 +38,7 @@ public class AdminController {
                 .build();
     }
 
-    /** All purchases in the period against the one before; bestseller books and categories have their own endpoints. */
+//    endpoint thống kê sách bán chạy
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/statistics/purchases")
     public ApiResponse<PurchaseTrendResponse> getPurchaseTrend(

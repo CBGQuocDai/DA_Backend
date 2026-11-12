@@ -1,6 +1,8 @@
 package com.backend.application.service.impl;
 
 import com.backend.application.service.CustomerService;
+import com.backend.application.dto.request.user.RegisterRequest;
+import com.backend.application.dto.response.user.RegisterResponse;
 import com.backend.application.adapter.security.PasswordEncoder;
 import com.backend.application.adapter.security.TokenProvider;
 import com.backend.application.adapter.repository.CustomerRepository;
@@ -42,28 +44,27 @@ public class CustomerServiceImpl extends AbstractUserServiceImpl implements Cust
         String token = tokenProvider.generateToken(user);
         return LoginResponse.builder().accessToken(token).build();
     }
-//
-//    @Override
-//    @Transactional
-//    public RegisterResponse register(RegisterRequest req) {
-//        if (userRepository.existsByEmail(req.getEmail())) {
-//            throw new BusinessException(BusinessError.USER_EXISTED);
-//        }
-//
-//        Customer customer = Customer.builder()
-//            .email(req.getEmail())
-//            .password(passwordEncoder.encode(req.getPassword()))
-//            .fullName(req.getFullname())
-//            .build();
-//
-//        Customer saved = customerRepository.save(customer);
-//        return RegisterResponse.builder()
-//            .email(saved.getEmail())
-//            .fullname(saved.getFullName())
-//            .role("CUSTOMER")
-//            .build();
-//    }
 
+    @Override
+    @Transactional
+    public RegisterResponse register(RegisterRequest req) {
+        if (userRepository.existsByEmail(req.getEmail())) {
+            throw new BusinessException(BusinessError.USER_EXISTED);
+        }
+
+        Customer customer = Customer.builder()
+            .email(req.getEmail())
+            .password(passwordEncoder.encode(req.getPassword()))
+            .fullName(req.getFullname())
+            .build();
+
+        Customer saved = customerRepository.save(customer);
+        return RegisterResponse.builder()
+            .email(saved.getEmail())
+            .fullname(saved.getFullName())
+            .role("CUSTOMER")
+            .build();
+    }
     @Override
     @Transactional(readOnly = true)
     public CustomerProfileResponse getProfile(Long id) {

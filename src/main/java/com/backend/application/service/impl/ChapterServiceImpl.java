@@ -1,5 +1,8 @@
 package com.backend.application.service.impl;
 
+import com.backend.domain.valueobject.UploadType;
+import com.backend.application.service.FileManagementService;
+import com.backend.application.dto.request.book.chapter.ChapterUploadAudioRequest;
 import com.backend.application.service.ChapterService;
 import com.backend.application.adapter.content.ChapterContentParser;
 import com.backend.application.adapter.messaging.MessageQueue;
@@ -35,6 +38,7 @@ public class ChapterServiceImpl implements ChapterService {
     private final ResponseMapper responseMapper;
     private final MessageQueue messageQueue;
     private final ChapterContentParser chapterContentParser;
+    private final FileManagementService fileManagementService;
 
     @Override
     @Transactional(readOnly = true)
@@ -73,11 +77,30 @@ public class ChapterServiceImpl implements ChapterService {
 
     @Override
     @Transactional
+    public void uploadAudio(Long bookId, Long chapterId,
+            ChapterUploadAudioRequest request) {
+        Chapter chapter = chapterRepository.findByIdForUpdate(chapterId).orElseThrow(
+                () -> new BusinessException(BusinessError.CHAPTER_NOT_FOUND));
+        if (chapterRepository.findByIdAndBookId(chapterId, bookId).isEmpty()) {
+            throw new BusinessException(BusinessError.CHAPTER_NOT_FOUND);
+        }
+        if (chapter.getStatus() == ChapterStatus.PROCESSING_AUDIO) {
+            throw new BusinessException(BusinessError.CHAPTER_AUDIO_PROCESSING);
+        }
+        var type = UploadType.AUDIO;
+        fileManagementService.verifyUpload(request.getAudioPath(), type);
+        fileManagementService.moveToPermanent(request.getAudioPath(), type);
+        chapterRepository.updateAudio(chapterId, type.permanentPath(request.getAudioPath()),
+                request.getDuration(), ChapterStatus.AUDIO_READY);
+    }
+
+    @Override
+    @Transactional
     public void generateAudio(ChapterGenerateAudioRequest req) {
         Book book = bookRepository.findById(req.getBookId()).orElseThrow(
                 () -> new BusinessException(BusinessError.BOOK_NOT_FOUND)
         );
-        Chapter chapter = chapterRepository.findById(req.getChapterId()).orElseThrow(
+        Chapter chapter = chapterRepository.findByIdAndBookId(req.getChapterId(), req.getBookId()).orElseThrow(
                 () -> new BusinessException(BusinessError.CHAPTER_NOT_FOUND)
         );
         if (chapter.getRawText() == null || chapter.getRawText().isBlank()) {
