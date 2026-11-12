@@ -45,7 +45,9 @@ public class ReviewServiceImpl implements ReviewService {
         Customer customer = customerRepository.findById(userId)
             .orElseThrow(() -> new BusinessException(BusinessError.USER_NOT_FOUND));
         // The book row serializes concurrent submissions, including across app instances.
-        Book book = requirePublished(bookRepository.findBasicByIdForUpdate(request.getBookId()).orElse(null));
+        Book book = bookRepository.findBookOverviewById(request.getBookId())
+                .filter(candidate -> candidate.getStatus() == BookStatus.PUBLISHED)
+                .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
         if (!customerBookRepository.existsByCustomerIdAndBookId(userId, request.getBookId())) {
             throw new BusinessException(BusinessError.REVIEW_PURCHASE_REQUIRED);
         }
@@ -73,7 +75,7 @@ public class ReviewServiceImpl implements ReviewService {
         if (bookId == null) {
             throw new BusinessException(BusinessError.BOOK_NOT_FOUND);
         }
-        bookRepository.findBasicById(bookId)
+        bookRepository.findById(bookId)
             .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
         return reviewRepository.getReviewByBookId(bookId).stream().map(responseMapper::toReviewResponse).toList();
     }
@@ -86,7 +88,9 @@ public class ReviewServiceImpl implements ReviewService {
                 || (!"newest".equals(sort) && !"highest".equals(sort))) {
             throw new BusinessException(BusinessError.VALIDATION_FAILED);
         }
-        requirePublished(bookRepository.findBasicById(bookId).orElse(null));
+        bookRepository.findById(bookId)
+                .filter(candidate -> candidate.getStatus() == BookStatus.PUBLISHED)
+                .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
         return responseMapper.toPageResponse(reviewRepository.findPage(bookId, rating, sort, page, size),
                 responseMapper::toReviewResponse);
     }
@@ -94,7 +98,9 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional(readOnly = true)
     public ReviewSummaryResponse getSummary(Long bookId) {
-        requirePublished(bookRepository.findBasicById(bookId).orElse(null));
+        bookRepository.findById(bookId)
+                .filter(candidate -> candidate.getStatus() == BookStatus.PUBLISHED)
+                .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
         return reviewRepository.getSummary(bookId);
     }
 
@@ -102,16 +108,12 @@ public class ReviewServiceImpl implements ReviewService {
     @Transactional(readOnly = true)
     public MyReviewResponse getMyReview(Long bookId, Long customerId) {
         if (customerId == null) throw new BusinessException(BusinessError.UNAUTHORIZED);
-        requirePublished(bookRepository.findBasicById(bookId).orElse(null));
+        bookRepository.findById(bookId)
+                .filter(candidate -> candidate.getStatus() == BookStatus.PUBLISHED)
+                .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
         var review = reviewRepository.findByBookIdAndCustomerId(bookId, customerId);
         return MyReviewResponse.builder().hasReviewed(review.isPresent())
                 .review(review.map(responseMapper::toReviewResponse).orElse(null)).build();
     }
 
-    private Book requirePublished(Book book) {
-        if (book == null || book.getStatus() != BookStatus.PUBLISHED) {
-            throw new BusinessException(BusinessError.BOOK_NOT_FOUND);
-        }
-        return book;
-    }
 }

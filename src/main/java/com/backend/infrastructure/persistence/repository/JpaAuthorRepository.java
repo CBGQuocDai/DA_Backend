@@ -11,10 +11,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface JpaAuthorRepository extends JpaRepository<JpaAuthorEntity, Long> {
 
-    /** {@code pattern} is already lower-cased, escaped and wrapped in '%'. */
-    @Query("SELECT a FROM JpaAuthorEntity a WHERE LOWER(a.fullName) LIKE :pattern ESCAPE '\\' ORDER BY a.id DESC")
-    Page<JpaAuthorEntity> search(@Param("pattern") String pattern, Pageable pageable);
-
+    /** Tìm tên không phân biệt dấu và hoa thường; sắp xếp tên A–Z, rồi ID để ổn định phân trang. */
     @Query(value = """
             SELECT a.*
             FROM tbl_author a

@@ -49,27 +49,24 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Transactional
     public CategoryResponse updateCategory(Long categoryId, CategoryRequest req) {
-        Category category = findOrThrow(categoryId);
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new BusinessException(BusinessError.CATEGORY_NOT_FOUND));
         if (categoryRepository.existsByName(req.getName(), categoryId)) {
             throw new BusinessException(BusinessError.CATEGORY_EXISTED);
         }
         applyRequest(category, req);
-        return responseMapper.toCategoryResponse(categoryRepository.save(category));
+        return responseMapper.toCategoryResponse(categoryRepository.update(category));
     }
 
     @Override
     @Transactional
     public void deleteCategory(Long categoryId) {
-        findOrThrow(categoryId);
+        categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new BusinessException(BusinessError.CATEGORY_NOT_FOUND));
         if (categoryRepository.isUsedByAnyBook(categoryId)) {
             throw new BusinessException(BusinessError.CATEGORY_IN_USE);
         }
         categoryRepository.deleteById(categoryId);
-    }
-
-    private Category findOrThrow(Long categoryId) {
-        return categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new BusinessException(BusinessError.CATEGORY_NOT_FOUND));
     }
 
     private void applyRequest(Category category, CategoryRequest req) {

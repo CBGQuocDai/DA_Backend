@@ -53,35 +53,37 @@ public class ChapterServiceImpl implements ChapterService {
     @Override
     @Transactional
     public ChapterResponse createChapter(Long bookId, ChapterCreateRequest req) {
-        // The book's row lock serializes order changes, so two requests can't take the same number
-        Book book = lockBook(bookId);
-        int last = chapterRepository.findMaxOrder(bookId).orElse(0);
+        // Khóa sách để các yêu cầu đổi thứ tự chương được xử lý lần lượt.
+        bookRepository.findBookOverviewById(bookId)
+                .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
+        int last = chapterRepository.findMaxChapterOrder(bookId).orElse(0);
         int order = Math.min(req.getChapterOrder(), last + 1);
-        if (chapterRepository.existsByOrder(bookId, order)) {
+        if (order <= last) {
             chapterRepository.shiftOrders(bookId, order, last, 1);
         }
         Chapter chapter = Chapter.builder()
+                .bookId(bookId)
                 .title(req.getTitle().trim())
                 .chapterOrder(order)
                 .rawText("")
                 .readingSpeed(1D)
                 .build();
-        return responseMapper.toChapterResponse(chapterRepository.saveAll(List.of(chapter), book).get(0));
+        return responseMapper.toChapterResponse(chapterRepository.save(chapter));
     }
 
     @Override
     @Transactional
     public void deleteChapter(Long chapterId) {
-        chapterRepository.delete(chapterId);
+        chapterRepository.deleteById(chapterId);
     }
 
     @Override
     @Transactional
     public void uploadAudio(Long bookId, Long chapterId,
             ChapterUploadAudioRequest request) {
-        Chapter chapter = chapterRepository.findByIdForUpdate(chapterId).orElseThrow(
+        Chapter chapter = chapterRepository.findById(chapterId).orElseThrow(
                 () -> new BusinessException(BusinessError.CHAPTER_NOT_FOUND));
-        if (chapterRepository.findByIdAndBookId(chapterId, bookId).isEmpty()) {
+        if (!Objects.equals(chapter.getBookId(), bookId)) {
             throw new BusinessException(BusinessError.CHAPTER_NOT_FOUND);
         }
         if (chapter.getStatus() == ChapterStatus.PROCESSING_AUDIO) {
@@ -90,8 +92,10 @@ public class ChapterServiceImpl implements ChapterService {
         var type = UploadType.AUDIO;
         fileManagementService.verifyUpload(request.getAudioPath(), type);
         fileManagementService.moveToPermanent(request.getAudioPath(), type);
-        chapterRepository.updateAudio(chapterId, type.permanentPath(request.getAudioPath()),
-                request.getDuration(), ChapterStatus.AUDIO_READY);
+        chapter.setAudioUrl(type.permanentPath(request.getAudioPath()));
+        chapter.setDuration(request.getDuration());
+        chapter.setStatus(ChapterStatus.AUDIO_READY);
+        chapterRepository.update(chapter);
     }
 
     @Override
@@ -100,7 +104,8 @@ public class ChapterServiceImpl implements ChapterService {
         Book book = bookRepository.findById(req.getBookId()).orElseThrow(
                 () -> new BusinessException(BusinessError.BOOK_NOT_FOUND)
         );
-        Chapter chapter = chapterRepository.findByIdAndBookId(req.getChapterId(), req.getBookId()).orElseThrow(
+        Chapter chapter = chapterRepository.findById(req.getChapterId())
+                .filter(candidate -> Objects.equals(candidate.getBookId(), req.getBookId())).orElseThrow(
                 () -> new BusinessException(BusinessError.CHAPTER_NOT_FOUND)
         );
         if (chapter.getRawText() == null || chapter.getRawText().isBlank()) {
@@ -108,9 +113,13 @@ public class ChapterServiceImpl implements ChapterService {
         }
 
         double readingSpeed = Objects.requireNonNullElse(req.getSpeed(), 1.0);
-        if (!chapterRepository.markProcessingAudio(chapter.getId(), readingSpeed)) {
+        if (chapter.getStatus() == ChapterStatus.PROCESSING_AUDIO) {
             throw new BusinessException(BusinessError.CHAPTER_AUDIO_PROCESSING);
         }
+
+        chapter.setStatus(ChapterStatus.PROCESSING_AUDIO);
+        chapter.setReadingSpeed(readingSpeed);
+        chapterRepository.update(chapter);
 
         log.info("Queueing audio for book {} with voiceId {} and chapter {} at speed {}",
                 book.getId(), book.getVoice() != null ? book.getVoice().getId() : null, chapter.getId(), readingSpeed);
@@ -128,18 +137,20 @@ public class ChapterServiceImpl implements ChapterService {
     @Transactional
     public void update(Long bookId, Long chapterId, ChapterUpdateRequest req) {
         if (Objects.nonNull(req.getChapterOrder())) {
-            lockBook(bookId);
+            bookRepository.findBookOverviewById(bookId)
+                    .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
         }
-        Chapter chapter = chapterRepository.findByIdAndBookId(chapterId, bookId).orElseThrow(
+        Chapter chapter = chapterRepository.findById(chapterId)
+                .filter(candidate -> Objects.equals(candidate.getBookId(), bookId)).orElseThrow(
                 () -> new BusinessException(BusinessError.CHAPTER_NOT_FOUND)
         );
         String contentJson = req.getContentJson();
         if (contentJson != null && !contentJson.isBlank()) {
-            // The document is the source of rawText, so the two columns can't disagree
+            // Lấy văn bản từ tài liệu biên tập để hai trường nội dung nhất quán.
             chapter.setRawText(chapterContentParser.extractText(contentJson));
             chapter.setContentJson(contentJson);
         } else if (Objects.nonNull(req.getRawText())) {
-            // New text without a document: the old formatting no longer describes it
+            // Văn bản mới không còn tương ứng với định dạng của tài liệu cũ.
             chapter.setRawText(req.getRawText());
             chapter.setContentJson(null);
         }
@@ -152,16 +163,10 @@ public class ChapterServiceImpl implements ChapterService {
         chapterRepository.update(chapter);
     }
 
-    private Book lockBook(Long bookId) {
-        return bookRepository.findBasicByIdForUpdate(bookId).orElseThrow(
-                () -> new BusinessException(BusinessError.BOOK_NOT_FOUND)
-        );
-    }
-
-    /** Closes the chapter's old position and opens the new one by shifting only the chapters in between. */
+    /** Dịch các chương nằm giữa vị trí cũ và mới để giữ thứ tự liên tục. */
     private void moveChapter(Long bookId, Chapter chapter, int requestedOrder) {
         int current = chapter.getChapterOrder();
-        int target = Math.min(requestedOrder, chapterRepository.findMaxOrder(bookId).orElse(current));
+        int target = Math.min(requestedOrder, chapterRepository.findMaxChapterOrder(bookId).orElse(current));
         if (target < current) {
             chapterRepository.shiftOrders(bookId, target, current - 1, 1);
         } else if (target > current) {
@@ -176,7 +181,7 @@ public class ChapterServiceImpl implements ChapterService {
         if (result.getChapterId() == null) {
             throw new IllegalArgumentException("TTS result is missing chapterId");
         }
-        Chapter chapter = chapterRepository.findByIdForUpdate(result.getChapterId()).orElse(null);
+        Chapter chapter = chapterRepository.findById(result.getChapterId()).orElse(null);
         if (chapter == null) {
             log.warn("TTS result for unknown chapter {}, ignoring", result.getChapterId());
             return;
@@ -186,12 +191,13 @@ public class ChapterServiceImpl implements ChapterService {
             return;
         }
         if (result.isSuccess() && result.getAudioPath() != null && !result.getAudioPath().isBlank()) {
-            chapterRepository.updateAudio(chapter.getId(), result.getAudioPath(), result.getDuration(),
-                    ChapterStatus.AUDIO_READY);
+            chapter.setAudioUrl(result.getAudioPath());
+            chapter.setDuration(result.getDuration());
+            chapter.setStatus(ChapterStatus.AUDIO_READY);
         } else {
             log.error("TTS failed for chapter {}: {}", chapter.getId(), result.getError());
-            chapterRepository.updateAudio(chapter.getId(), chapter.getAudioUrl(), chapter.getDuration(),
-                    ChapterStatus.FAILED);
+            chapter.setStatus(ChapterStatus.FAILED);
         }
+        chapterRepository.update(chapter);
     }
 }

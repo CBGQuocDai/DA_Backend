@@ -10,6 +10,8 @@ public interface ChapterMapper {
 
     Chapter toDomain(JpaChapterEntity entity);
 
+    // Quan hệ book chỉ dùng để đọc; khóa ngoại được ánh xạ từ bookId của domain.
+    @Mapping(target = "book", ignore = true)
     @Mapping(target = "attachFileId", source = "attachFile.id")
     JpaChapterEntity toEntity(Chapter domain);
 }

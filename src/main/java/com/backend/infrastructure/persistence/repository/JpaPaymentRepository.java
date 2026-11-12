@@ -19,7 +19,7 @@ public interface JpaPaymentRepository extends JpaRepository<JpaPaymentEntity, Lo
 
     Optional<JpaPaymentEntity> findFirstByCustomerIdAndBookIdAndStatusOrderByCreatedAtDesc(Long customerId, Long bookId, PaymentStatus status);
 
-    /** Paid payments grouped by calendar month in {@code zone} (an IANA id such as Asia/Ho_Chi_Minh). */
+    /** Nhóm thanh toán thành công theo tháng với múi giờ IANA {@code zone}, ví dụ Asia/Ho_Chi_Minh. */
     @Query(value = """
             SELECT t.yr AS yr, t.mo AS mo, COUNT(*) AS total, SUM(t.amount) AS amount
             FROM (SELECT CAST(EXTRACT(YEAR FROM p.paid_at AT TIME ZONE :zone) AS INTEGER) AS yr,

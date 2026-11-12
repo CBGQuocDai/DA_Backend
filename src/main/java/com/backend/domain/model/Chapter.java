@@ -17,6 +17,7 @@ public class Chapter {
     public static final String PAGE_BREAK = "-------------page_break------------------";
 
     private Long id;
+    private Long bookId;
     private String title;
     private Integer chapterOrder;
     private Integer duration; // seconds

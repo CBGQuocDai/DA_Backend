@@ -4,7 +4,6 @@ import com.backend.domain.valueobject.BookStatus;
 import com.backend.infrastructure.persistence.entity.JpaBookEntity;
 import com.backend.infrastructure.persistence.projection.BookListProjection;
 import com.backend.infrastructure.persistence.projection.BookSalesProjection;
-import com.backend.infrastructure.persistence.projection.BookStatusCountProjection;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,10 +27,10 @@ public interface JpaBookRepository extends JpaRepository<JpaBookEntity, Long> {
             """)
     Optional<JpaBookEntity> findByIdWithVoice(@Param("id") Long id);
 
-    // No fetch join: Postgres can't apply FOR UPDATE to the nullable side of an outer join
+    // Không dùng fetch join vì PostgreSQL không cho khóa FOR UPDATE ở phía có thể null của outer join.
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT b FROM JpaBookEntity b WHERE b.id = :id")
-    Optional<JpaBookEntity> findByIdForUpdate(@Param("id") Long id);
+    Optional<JpaBookEntity> findBookOverviewById(@Param("id") Long id);
 
     @Query(value = """
             SELECT
@@ -98,8 +97,8 @@ public interface JpaBookRepository extends JpaRepository<JpaBookEntity, Long> {
 
 
     /**
-     * Books bought in [from, to), most purchased first, with their purchases in [since, from) beside them;
-     * one pass over [since, to) split at {@code from}.
+     * Lấy sách được mua trong [from, to), lượt mua giảm dần, kèm lượt mua kỳ trước [since, from);
+     * quét một lần trong [since, to) và chia hai kỳ tại {@code from}.
      */
     @Query("""
             SELECT b.id AS id, b.title AS title, b.price AS price, b.coverImage AS coverImage,
@@ -114,6 +113,4 @@ public interface JpaBookRepository extends JpaRepository<JpaBookEntity, Long> {
     List<BookSalesProjection> findBestsellers(@Param("since") Instant since, @Param("from") Instant from,
                                               @Param("to") Instant to, Pageable pageable);
 
-    @Query("SELECT b.status AS status, COUNT(b) AS total FROM JpaBookEntity b WHERE b.status IS NOT NULL GROUP BY b.status")
-    List<BookStatusCountProjection> countByStatus();
 }

@@ -6,15 +6,15 @@ import com.backend.application.dto.response.PageResponse;
 import java.util.Locale;
 import java.util.function.Function;
 
-/** Helpers for the "contains, case-insensitive" filters used by admin list screens. */
+/** Tiện ích lọc chuỗi chứa từ khóa, không phân biệt hoa thường, cho các danh sách quản trị. */
 public final class LikePatterns {
 
     private LikePatterns() {
     }
 
     /**
-     * Lower-cases the keyword, escapes LIKE wildcards with '\' and wraps it in '%'.
-     * A blank keyword becomes "%", which matches every row.
+     * Chuyển từ khóa sang chữ thường, thoát ký tự đại diện LIKE bằng '\' và bọc trong '%'.
+     * Từ khóa trống trở thành "%", khớp với mọi bản ghi.
      */
     public static String contains(String keyword) {
         if (keyword == null || keyword.isBlank()) {
@@ -27,6 +27,7 @@ public final class LikePatterns {
         return "%" + escaped + "%";
     }
 
+    /** Chuyển trang dữ liệu JPA sang PageResponse bằng hàm ánh xạ được cung cấp. */
     public static <E, D> PageResponse<D> toPageResponse(Page<E> page, Function<E, D> mapper) {
         return PageResponse.<D>builder()
                 .page(page.getNumber())

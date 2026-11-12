@@ -30,10 +30,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/**
- * Puts the dashboard together from each aggregate's own repository; every figure is a grouped query there,
- * this class only lines the months up and picks this month and last.
- */
+/** Tổng hợp số liệu dashboard từ các repository và sắp xếp theo tháng. */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -88,10 +85,10 @@ public class StatisticsServiceImpl implements StatisticsService {
                 .averageRating(reviews.getAverageRating())
                 .build();
 
-        Map<BookStatus, Long> counted = bookRepository.countByStatus();
         Map<BookStatus, Long> bookStatus = new EnumMap<>(BookStatus.class);
         for (BookStatus status : BookStatus.values()) {
-            bookStatus.put(status, counted.getOrDefault(status, 0L));
+            long total = bookRepository.findAllWithStats(null, null, null, status, 0, 1).getTotal();
+            bookStatus.put(status, total);
         }
 
         return StatisticsResponse.builder().overview(overview).bookStatus(bookStatus).months(points).build();

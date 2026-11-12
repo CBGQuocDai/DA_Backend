@@ -16,7 +16,7 @@ public interface JpaCustomerBookRepository extends JpaRepository<JpaCustomerBook
     void deleteByBookId(Long bookId);
     boolean existsByCustomerIdAndBookId(Long customerId, Long bookId);
 
-    /** Purchases in [from, to) and in [since, from), in one pass over [since, to). */
+    /** Đếm lượt sở hữu trong kỳ [from, to) và kỳ trước [since, from) bằng một lượt quét [since, to). */
     @Query("""
             SELECT COALESCE(SUM(CASE WHEN cb.purchaseAt >= :from THEN 1 ELSE 0 END), 0) AS purchases,
                    COALESCE(SUM(CASE WHEN cb.purchaseAt < :from THEN 1 ELSE 0 END), 0) AS previousPurchases

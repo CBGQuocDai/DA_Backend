@@ -80,7 +80,8 @@ public class OcrServiceImpl implements OcrService {
                 throw new IllegalStateException("No chapters extracted from document");
             }
 
-            chapterRepository.saveAll(chapters, book);
+            chapters.forEach(chapter -> chapter.setBookId(book.getId()));
+            chapterRepository.saveAll(chapters);
             log.info("Saved {} chapters for book {}", chapters.size(), book.getId());
             updateStatus(book, BookStatus.UNPUBLISHED);
         } catch (Exception e) {

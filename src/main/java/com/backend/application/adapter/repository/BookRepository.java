@@ -12,29 +12,27 @@ import java.util.Optional;
 
 public interface BookRepository {
 
+    /** Tạo sách mới và lưu các liên kết tác giả, thể loại. */
     Book insert(Book book);
 
-    void update(Book book);
-
+    /** Lấy sách theo ID kèm giọng đọc, tác giả, thể loại và chương; trả về rỗng nếu không tồn tại. */
     Optional<Book> findById(Long id);
-    /** Includes voice, authors and categories, without loading chapters. */
-    Optional<Book> findDetailWithoutChapters(Long id);
-    /** Only the book's own fields, without its authors, categories and chapters. */
-    Optional<Book> findBasicById(Long id);
-    /** Like findBasicById, with a pessimistic write lock held until the caller's transaction ends. */
-    Optional<Book> findBasicByIdForUpdate(Long id);
 
+    /** Chỉ lấy dữ liệu bảng sách, không join các entity liên quan; giữ khóa ghi đến hết giao dịch. */
+    Optional<Book> findBookOverviewById(Long id);
+
+    /** Lọc và phân trang sách theo tên, thể loại, tác giả, trạng thái, kèm điểm đánh giá. */
     PageResponse<BookStat> findAllWithStats(String bookName, Long categoryId, Long authorId,
                                             BookStatus status, int page, int size);
 
-    PageResponse<BookStat> findByCategoryId(Long categoryId, int page, int size);
+    /** Cập nhật dữ liệu của sách hiện có. */
+    void update(Book book);
+    /** Xóa sách theo ID. */
     void deleteById(Long id);
 
+    /** Lấy danh sách sách theo các ID được chỉ định. */
     List<Book> findAllById(List<Long> bookIds);
 
-    /** Most purchased books in the window, with their purchases in it and in the window before. */
+    /** Lấy thống kê lượt mua trong kỳ và kỳ trước, sắp xếp lượt mua giảm dần. */
     List<BookStat> findBestsellers(BestsellerPeriod.Window window, int limit);
-
-    /** Number of books in each status; statuses no book has are left out. */
-    Map<BookStatus, Long> countByStatus();
 }

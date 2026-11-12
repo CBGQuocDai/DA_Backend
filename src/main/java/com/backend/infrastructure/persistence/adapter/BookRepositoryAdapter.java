@@ -17,7 +17,6 @@ import com.backend.infrastructure.persistence.mapper.BookMapper;
 import com.backend.infrastructure.persistence.mapper.BookStatMapper;
 import com.backend.infrastructure.persistence.mapper.ChapterMapper;
 import com.backend.infrastructure.persistence.projection.BookListProjection;
-import com.backend.infrastructure.persistence.projection.BookStatusCountProjection;
 import com.backend.infrastructure.persistence.repository.JpaBookAuthorRepository;
 import com.backend.infrastructure.persistence.repository.JpaBookCategoryRepository;
 import com.backend.infrastructure.persistence.repository.JpaBookFavoriteRepository;
@@ -136,8 +135,18 @@ public class BookRepositoryAdapter implements BookRepository {
     @Override
     @Transactional(readOnly = true)
     public Optional<Book> findById(Long id) {
-        return findDetailWithoutChapters(id).map(book -> {
-            book.setChapters(jpaChapterRepository.findWithAttachFileByBookId(id).stream()
+        if (id == null) {
+            return Optional.empty();
+        }
+        return jpaBookRepository.findByIdWithVoice(id).map(entity -> {
+            Book book = bookMapper.toDomain(entity);
+            book.setAuthors(jpaBookAuthorRepository.findWithAuthorByBookId(id).stream()
+                    .map(bookAuthorMapper::toDomain)
+                    .toList());
+            book.setCategories(jpaBookCategoryRepository.findWithCategoryByBookId(id).stream()
+                    .map(bookCategoryMapper::toDomain)
+                    .toList());
+            book.setChapters(jpaChapterRepository.findByBookId(id).stream()
                     .map(chapterMapper::toDomain)
                     .toList());
             return book;
@@ -145,34 +154,9 @@ public class BookRepositoryAdapter implements BookRepository {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public Optional<Book> findDetailWithoutChapters(Long id) {
-        if (id == null) {
-            return Optional.empty();
-        }
-        return jpaBookRepository.findByIdWithVoice(id)
-                .map(entity -> {
-                    Book book = bookMapper.toDomain(entity);
-                    book.setAuthors(jpaBookAuthorRepository.findWithAuthorByBookId(id).stream()
-                            .map(bookAuthorMapper::toDomain)
-                            .toList());
-                    book.setCategories(jpaBookCategoryRepository.findWithCategoryByBookId(id).stream()
-                            .map(bookCategoryMapper::toDomain)
-                            .toList());
-                    return book;
-                });
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Optional<Book> findBasicById(Long id) {
-        return jpaBookRepository.findByIdWithVoice(id).map(bookMapper::toDomain);
-    }
-
-    @Override
     @Transactional
-    public Optional<Book> findBasicByIdForUpdate(Long id) {
-        return jpaBookRepository.findByIdForUpdate(id).map(bookMapper::toDomain);
+    public Optional<Book> findBookOverviewById(Long id) {
+        return jpaBookRepository.findBookOverviewById(id).map(bookMapper::toDomain);
     }
 
     @Override
@@ -184,40 +168,8 @@ public class BookRepositoryAdapter implements BookRepository {
                 .replace("%", "\\%")
                 .replace("_", "\\_")) + "%";
         Page<BookListProjection> projectionPage = jpaBookRepository.findAllBookListProjections(
-                // Books have no creation timestamp; identity order represents newest additions.
+                // Sách chưa có thời điểm tạo; dùng ID giảm dần để lấy sách mới thêm trước.
                 keyword, categoryId, authorId, status, PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id")));
-
-        List<Long> bookIds = projectionPage.getContent().stream()
-                .map(BookListProjection::getId)
-                .toList();
-
-        List<JpaBookAuthorEntity> allAuthors = bookIds.isEmpty()
-                ? List.of()
-                : jpaBookAuthorRepository.findByBookIdIn(bookIds);
-        List<JpaBookCategoryEntity> allCategories = bookIds.isEmpty()
-                ? List.of()
-                : jpaBookCategoryRepository.findByBookIdIn(bookIds);
-
-        List<BookStat> bookStats = projectionPage.getContent().stream()
-                .map(proj -> BookStatMapper.toBookStat(proj, allAuthors, allCategories))
-                .toList();
-
-        return PageResponse.<BookStat>builder()
-                .content(bookStats)
-                .total((int) projectionPage.getTotalElements())
-                .totalPage(projectionPage.getTotalPages())
-                .page(page)
-                .pageSize(size)
-                .build();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public PageResponse<BookStat> findByCategoryId(Long categoryId, int page, int size) {
-        Page<BookListProjection> projectionPage = jpaBookRepository.findBookListProjectionsByCategoryId(
-                categoryId,
-                PageRequest.of(page, size)
-        );
 
         List<Long> bookIds = projectionPage.getContent().stream()
                 .map(BookListProjection::getId)
@@ -281,12 +233,5 @@ public class BookRepositoryAdapter implements BookRepository {
                 .stream()
                 .map(row -> BookStatMapper.toBookStat(row, window.hasPrevious()))
                 .toList();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Map<BookStatus, Long> countByStatus() {
-        return jpaBookRepository.countByStatus().stream()
-                .collect(Collectors.toMap(BookStatusCountProjection::getStatus, BookStatusCountProjection::getTotal));
     }
 }

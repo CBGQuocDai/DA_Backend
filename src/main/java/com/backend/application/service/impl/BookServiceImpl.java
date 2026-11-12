@@ -60,20 +60,24 @@ public class BookServiceImpl implements BookService {
     @Override
     @Transactional(readOnly = true)
     public CustomerBookOverviewResponse getCustomerBookOverview(Long bookId) {
-        Book book = requirePublished(bookRepository.findDetailWithoutChapters(bookId).orElse(null));
-        var firstPage = chapterRepository.findCustomerPageByBookId(bookId, 0, 1);
+        Book book = bookRepository.findById(bookId)
+                .filter(candidate -> candidate.getStatus() == BookStatus.PUBLISHED)
+                .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
+        var chapters = book.getChapters();
         return CustomerBookOverviewResponse.builder()
                 .book(responseMapper.toBookResponse(book))
-                .chapterCount(firstPage.getTotal())
-                .totalDuration(chapterRepository.sumDurationByBookId(bookId))
-                .firstChapter(firstPage.getContent().isEmpty() ? null : toCustomerChapter(firstPage.getContent().get(0)))
+                .chapterCount(chapters.size())
+                .totalDuration(chapters.stream().mapToLong(chapter -> chapter.getDuration() == null ? 0 : chapter.getDuration()).sum())
+                .firstChapter(chapters.isEmpty() ? null : toCustomerChapter(chapters.get(0)))
                 .build();
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<CustomerChapterResponse> getCustomerChapters(Long bookId) {
-        requirePublished(bookRepository.findBasicById(bookId).orElse(null));
+        bookRepository.findById(bookId)
+                .filter(candidate -> candidate.getStatus() == BookStatus.PUBLISHED)
+                .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
         return chapterRepository.findByBookId(bookId).stream().map(this::toCustomerChapter).toList();
     }
 
@@ -81,13 +85,6 @@ public class BookServiceImpl implements BookService {
         if (page < 0 || size < 1 || size > 100 || (long) page * size > Integer.MAX_VALUE) {
             throw new BusinessException(BusinessError.VALIDATION_FAILED);
         }
-    }
-
-    private Book requirePublished(Book book) {
-        if (book == null || book.getStatus() != BookStatus.PUBLISHED) {
-            throw new BusinessException(BusinessError.BOOK_NOT_FOUND);
-        }
-        return book;
     }
 
     private CustomerChapterResponse toCustomerChapter(Chapter chapter) {

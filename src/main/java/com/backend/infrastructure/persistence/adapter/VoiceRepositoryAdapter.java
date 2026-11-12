@@ -12,7 +12,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
-import java.util.Locale;
+import com.backend.infrastructure.persistence.util.LikePatterns;
 import java.util.Optional;
 
 @Repository
@@ -23,50 +23,12 @@ public class VoiceRepositoryAdapter implements VoiceRepository {
     private final VoiceMapper voiceMapper;
 
     @Override
-    public PageResponse<Voice> findAll(int page, int size) {
-        // Newest first, so pages stay stable between requests
-        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
-        Page<JpaVoiceEntity> pageResult = jpaVoiceRepository.findAll(pageRequest);
-        return PageResponse.<Voice>builder()
-                .page(pageRequest.getPageNumber())
-                .pageSize(pageRequest.getPageSize())
-                .total((int) pageResult.getTotalElements())
-                .totalPage(pageResult.getTotalPages())
-                .content(pageResult.getContent().stream().map(voiceMapper::toDomain).toList())
-                .build();
-    }
-
-    private String normalizeString(String key) {
-        if (key == null || key.isBlank()) {
-            return "%%"; // Hoặc trả về "" tùy thuộc vào logic query của bạn
-        }
-
-        // 1. Trim khoảng trắng thừa ở 2 đầu
-        // 2. Escape dấu '\' trước tiên (để tránh escape chồng chéo lên các dấu '\' thêm vào sau)
-        // 3. Escape dấu '%' và '_'
-        String escaped = key.trim().toLowerCase(Locale.ROOT)
-                .replace("\\", "\\\\")
-                .replace("%", "\\%")
-                .replace("_", "\\_");
-
-        // 4. Bọc chuỗi trong cặp dấu '%' vì method findAllByNameLike của JPA
-        // KHÔNG tự động thêm '%' giống như findAllByNameContaining
-        return "%" + escaped + "%";
-    }
-
-    @Override
     public PageResponse<Voice> findAllByNameLike(String voiceName, int page, int size) {
-        // Newest first, so pages stay stable between requests
+        // Sắp xếp theo ID giảm dần để thứ tự phân trang ổn định.
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
-        String voiceNameNormal = normalizeString(voiceName);
+        String voiceNameNormal = LikePatterns.contains(voiceName);
         Page<JpaVoiceEntity> pageResult = jpaVoiceRepository.findAllByNameLike(voiceNameNormal,pageRequest);
-        return PageResponse.<Voice>builder()
-                .page(pageRequest.getPageNumber())
-                .pageSize(pageRequest.getPageSize())
-                .total((int) pageResult.getTotalElements())
-                .totalPage(pageResult.getTotalPages())
-                .content(pageResult.getContent().stream().map(voiceMapper::toDomain).toList())
-                .build();
+        return LikePatterns.toPageResponse(pageResult, voiceMapper::toDomain);
     }
     @Override
     public Voice save(Voice v) {

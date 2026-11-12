@@ -38,6 +38,7 @@ public class AuthorRepositoryAdapter implements AuthorRepository {
                 authorMapper::toDomain);
     }
 
+    /** Bỏ dấu tiếng Việt, chuyển sang chữ thường và bỏ khoảng trắng ở hai đầu. */
     private static String normalize(String value) {
         return Normalizer.normalize(value, Normalizer.Form.NFD).replaceAll("\\p{M}+", "")
                 .toLowerCase(Locale.ROOT).replace('đ', 'd').trim();
@@ -48,13 +49,6 @@ public class AuthorRepositoryAdapter implements AuthorRepository {
         return jpaAuthorRepository.findAll().stream()
                 .map(authorMapper::toDomain)
                 .toList();
-    }
-
-    @Override
-    public PageResponse<Author> search(String keyword, int page, int size) {
-        return LikePatterns.toPageResponse(
-                jpaAuthorRepository.search(LikePatterns.contains(keyword), PageRequest.of(page, size)),
-                authorMapper::toDomain);
     }
 
     @Override
