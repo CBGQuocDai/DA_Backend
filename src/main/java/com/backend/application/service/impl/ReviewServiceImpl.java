@@ -34,7 +34,7 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     @Transactional
-    public ReviewResponse save(Long userId, ReviewCreateRequest request) {
+    public ReviewResponse createReview(Long userId, ReviewCreateRequest request) {
         if (userId == null) {
             throw new BusinessException(BusinessError.UNAUTHORIZED);
         }
@@ -46,8 +46,8 @@ public class ReviewServiceImpl implements ReviewService {
             .orElseThrow(() -> new BusinessException(BusinessError.USER_NOT_FOUND));
         // The book row serializes concurrent submissions, including across app instances.
         Book book = bookRepository.findBookOverviewById(request.getBookId())
-                .filter(candidate -> candidate.getStatus() == BookStatus.PUBLISHED)
-                .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
+            .filter(candidate -> candidate.getStatus() == BookStatus.PUBLISHED)
+            .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
         if (!customerBookRepository.existsByCustomerIdAndBookId(userId, request.getBookId())) {
             throw new BusinessException(BusinessError.REVIEW_PURCHASE_REQUIRED);
         }
@@ -77,43 +77,48 @@ public class ReviewServiceImpl implements ReviewService {
         }
         bookRepository.findById(bookId)
             .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
-        return reviewRepository.getReviewByBookId(bookId).stream().map(responseMapper::toReviewResponse).toList();
+        return reviewRepository.getReviewByBookId(bookId).stream()
+            .map(responseMapper::toReviewResponse).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<ReviewResponse> getPage(Long bookId, Integer rating, String sort, int page, int size) {
+    public PageResponse<ReviewResponse> getPage(Long bookId, Integer rating, String sort, int page,
+        int size) {
         if (page < 0 || size < 1 || size > 100 || (long) page * size > Integer.MAX_VALUE
-                || (rating != null && (rating < 1 || rating > 5))
-                || (!"newest".equals(sort) && !"highest".equals(sort))) {
+            || (rating != null && (rating < 1 || rating > 5))
+            || (!"newest".equals(sort) && !"highest".equals(sort))) {
             throw new BusinessException(BusinessError.VALIDATION_FAILED);
         }
         bookRepository.findById(bookId)
-                .filter(candidate -> candidate.getStatus() == BookStatus.PUBLISHED)
-                .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
-        return responseMapper.toPageResponse(reviewRepository.findPage(bookId, rating, sort, page, size),
-                responseMapper::toReviewResponse);
+            .filter(candidate -> candidate.getStatus() == BookStatus.PUBLISHED)
+            .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
+        return responseMapper.toPageResponse(
+            reviewRepository.findPage(bookId, rating, sort, page, size),
+            responseMapper::toReviewResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
     public ReviewSummaryResponse getSummary(Long bookId) {
         bookRepository.findById(bookId)
-                .filter(candidate -> candidate.getStatus() == BookStatus.PUBLISHED)
-                .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
+            .filter(candidate -> candidate.getStatus() == BookStatus.PUBLISHED)
+            .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
         return reviewRepository.getSummary(bookId);
     }
 
     @Override
     @Transactional(readOnly = true)
     public MyReviewResponse getMyReview(Long bookId, Long customerId) {
-        if (customerId == null) throw new BusinessException(BusinessError.UNAUTHORIZED);
+        if (customerId == null) {
+            throw new BusinessException(BusinessError.UNAUTHORIZED);
+        }
         bookRepository.findById(bookId)
-                .filter(candidate -> candidate.getStatus() == BookStatus.PUBLISHED)
-                .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
+            .filter(candidate -> candidate.getStatus() == BookStatus.PUBLISHED)
+            .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
         var review = reviewRepository.findByBookIdAndCustomerId(bookId, customerId);
         return MyReviewResponse.builder().hasReviewed(review.isPresent())
-                .review(review.map(responseMapper::toReviewResponse).orElse(null)).build();
+            .review(review.map(responseMapper::toReviewResponse).orElse(null)).build();
     }
 
 }

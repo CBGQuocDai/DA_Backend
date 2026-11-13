@@ -9,10 +9,14 @@ import java.util.List;
 
 public interface ReviewService {
 
-    ReviewResponse save(Long userId, ReviewCreateRequest request);
+    ReviewResponse createReview(Long userId, ReviewCreateRequest request);
 
     List<ReviewResponse> getReviewByBookId(Long bookId);
-    PageResponse<ReviewResponse> getPage(Long bookId, Integer rating, String sort, int page, int size);
+
+    PageResponse<ReviewResponse> getPage(Long bookId, Integer rating, String sort, int page,
+        int size);
+
     ReviewSummaryResponse getSummary(Long bookId);
+
     MyReviewResponse getMyReview(Long bookId, Long customerId);
 }

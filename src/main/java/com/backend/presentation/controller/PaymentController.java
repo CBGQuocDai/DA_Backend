@@ -7,6 +7,7 @@ import com.backend.presentation.dto.ApiResponse;
 import com.backend.application.dto.response.payment.PaymentResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,39 +22,39 @@ public class PaymentController {
     private final CustomerBookService customerBookService;
 
     @PostMapping
-    public ApiResponse<PaymentResponse> createPayment(
+    public ResponseEntity<ApiResponse<PaymentResponse>> createPayment(
             @AuthenticationPrincipal Long customerId,
             @Valid @RequestBody CreatePaymentRequest request
     ) {
         PaymentResponse response = paymentService.createPayment(customerId, request.getBookId());
-        return ApiResponse.<PaymentResponse>builder()
+        return ResponseEntity.ok(ApiResponse.<PaymentResponse>builder()
                 .message("Tạo hoặc lấy thông tin thanh toán thành công")
                 .data(response)
-                .build();
+                .build());
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<PaymentResponse> getPaymentStatus(
+    public ResponseEntity<ApiResponse<PaymentResponse>> getPaymentStatus(
             @PathVariable Long id,
             @AuthenticationPrincipal Long customerId
     ) {
         PaymentResponse response = paymentService.getPaymentStatus(id, customerId);
-        return ApiResponse.<PaymentResponse>builder()
+        return ResponseEntity.ok(ApiResponse.<PaymentResponse>builder()
                 .message("Lấy trạng thái thanh toán thành công")
                 .data(response)
-                .build();
+                .build());
     }
 
     @GetMapping("/pending/{bookId}")
-    public ApiResponse<PaymentResponse> getPendingPayment(
+    public ResponseEntity<ApiResponse<PaymentResponse>> getPendingPayment(
             @PathVariable Long bookId,
             @AuthenticationPrincipal Long customerId
     ) {
         PaymentResponse response = paymentService.getPendingPaymentByBook(customerId, bookId);
-        return ApiResponse.<PaymentResponse>builder()
+        return ResponseEntity.ok(ApiResponse.<PaymentResponse>builder()
                 .message(response != null ? "Tìm thấy đơn chờ thanh toán" : "Không có đơn chờ thanh toán")
                 .data(response)
-                .build();
+                .build());
     }
 
     /**
@@ -62,14 +63,14 @@ public class PaymentController {
      */
     @Deprecated
     @GetMapping("/check/{bookId}")
-    public ApiResponse<Map<String, Boolean>> checkPurchase(
+    public ResponseEntity<ApiResponse<Map<String, Boolean>>> checkPurchase(
             @PathVariable Long bookId,
             @AuthenticationPrincipal Long customerId
     ) {
         boolean purchased = customerBookService.hasPurchasedBook(customerId, bookId);
-        return ApiResponse.<Map<String, Boolean>>builder()
+        return ResponseEntity.ok(ApiResponse.<Map<String, Boolean>>builder()
                 .message("Kiểm tra trạng thái sở hữu sách")
                 .data(Map.of("purchased", purchased))
-                .build();
+                .build());
     }
 }

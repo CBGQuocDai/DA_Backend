@@ -6,6 +6,7 @@ import com.backend.presentation.dto.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
@@ -25,19 +26,19 @@ public class AuthController {
     private final CustomerService userService;
 
     @PostMapping("/logout")
-    public ApiResponse<Void> logout(HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<Void>> logout(HttpServletRequest request) {
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
         if (header != null && header.startsWith(BEARER_PREFIX)) {
             userService.logout(header.substring(BEARER_PREFIX.length()));
         }
-        return ApiResponse.<Void>builder().build();
+        return ResponseEntity.ok(ApiResponse.<Void>builder().message("Đăng xuất thành công").build());
     }
 
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/change-password")
-    public ApiResponse<Void> changePassword(@AuthenticationPrincipal Long userId,
+    public ResponseEntity<ApiResponse<Void>> changePassword(@AuthenticationPrincipal Long userId,
                                            @Validated @RequestBody ChangePasswordRequest request) {
         userService.changePassword(userId, request);
-        return ApiResponse.<Void>builder().message("Đổi mật khẩu thành công").build();
+        return ResponseEntity.ok(ApiResponse.<Void>builder().message("Đổi mật khẩu thành công").build());
     }
 }

@@ -27,36 +27,39 @@ public class ChapterController {
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{chapterId}/audio")
     public ResponseEntity<ApiResponse<Void>> uploadAudio(
-            @PathVariable Long bookId, @PathVariable Long chapterId,
-            @Validated @RequestBody ChapterUploadAudioRequest request) {
+        @PathVariable Long bookId, @PathVariable Long chapterId,
+        @Validated @RequestBody ChapterUploadAudioRequest request) {
         chapterService.uploadAudio(bookId, chapterId, request);
         return ResponseEntity.ok(ApiResponse.<Void>builder().build());
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
-    public ResponseEntity<List<ChapterResponse>> getChapters(@PathVariable Long bookId) {
-        return ResponseEntity.ok(chapterService.getChaptersByBookId(bookId));
+    public ResponseEntity<ApiResponse<List<ChapterResponse>>> getChapters(
+        @PathVariable Long bookId) {
+        return ResponseEntity.ok(ApiResponse.<List<ChapterResponse>>builder()
+            .data(chapterService.getChaptersByBookId(bookId))
+            .build());
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<ApiResponse<ChapterResponse>> createChapter(
-            @PathVariable Long bookId,
-            @Validated @RequestBody ChapterCreateRequest req) {
+        @PathVariable Long bookId,
+        @Validated @RequestBody ChapterCreateRequest req) {
         return ResponseEntity.ok(ApiResponse.<ChapterResponse>builder()
-                .data(chapterService.createChapter(bookId, req))
-                .build());
+            .data(chapterService.createChapter(bookId, req))
+            .build());
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{chapterId}/audio")
     public ResponseEntity<ApiResponse<?>> generateAudio(
-            @PathVariable Long bookId, @PathVariable Long chapterId,
-            @Validated @RequestBody ChapterGenerateAudioRequest req) {
+        @PathVariable Long bookId, @PathVariable Long chapterId,
+        @Validated @RequestBody ChapterGenerateAudioRequest req) {
         if (!bookId.equals(req.getBookId()) || !chapterId.equals(req.getChapterId())) {
             throw new BusinessException(
-                    BusinessError.VALIDATION_FAILED);
+                BusinessError.VALIDATION_FAILED);
         }
         chapterService.generateAudio(req);
         return ResponseEntity.ok(ApiResponse.builder().build());
@@ -64,10 +67,10 @@ public class ChapterController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{chapterId}")
-    public ResponseEntity<ApiResponse<?>> update (
-            @PathVariable Long bookId,
-            @PathVariable Long chapterId,
-            @Validated @RequestBody ChapterUpdateRequest req) {
+    public ResponseEntity<ApiResponse<?>> update(
+        @PathVariable Long bookId,
+        @PathVariable Long chapterId,
+        @Validated @RequestBody ChapterUpdateRequest req) {
         chapterService.update(bookId, chapterId, req);
         return ResponseEntity.ok(ApiResponse.builder().build());
     }
@@ -75,7 +78,7 @@ public class ChapterController {
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{chapterId}")
     public ResponseEntity<Void> deleteChapter(
-            @PathVariable Long chapterId) {
+        @PathVariable Long chapterId) {
         chapterService.deleteChapter(chapterId);
         return ResponseEntity.noContent().build();
     }

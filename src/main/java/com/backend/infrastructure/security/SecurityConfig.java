@@ -71,14 +71,14 @@ public class SecurityConfig {
                 }))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/review/*/me").hasRole("CUSTOMER")
+                .requestMatchers(HttpMethod.GET, "/reviews/*/me").hasRole("CUSTOMER")
                 // /health/** gồm cả /health/liveness, /health/readiness mà Kubernetes probe gọi
                 .requestMatchers(HttpMethod.GET,
                     "/health", "/health/**",
                     "/books/catalog", "/books/recommendations", "/books/*/overview", "/books/*/chapters/list",
                     "/categories", "/categories/**",
                     "/authors", "/authors/**",
-                    "/review/**"
+                    "/reviews/**"
                 ).permitAll()
                 // .requestMatchers(HttpMethod.GET,
                 //     "/health", "/health/**"
