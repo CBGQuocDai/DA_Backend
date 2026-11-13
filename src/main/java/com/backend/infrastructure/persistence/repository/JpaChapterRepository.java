@@ -1,13 +1,12 @@
 package com.backend.infrastructure.persistence.repository;
 
 import com.backend.infrastructure.persistence.entity.JpaChapterEntity;
-import com.backend.infrastructure.persistence.projection.CustomerChapterProjection;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
+import com.backend.domain.valueobject.ChapterStatus;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -16,38 +15,62 @@ import java.util.Optional;
 
 @Repository
 public interface JpaChapterRepository extends JpaRepository<JpaChapterEntity, Long> {
-    List<JpaChapterEntity> findByBookIdOrderByChapterOrderAsc(Long bookId);
-
-    @Query(value = """
-            SELECT c.id AS id, c.title AS title, c.chapterOrder AS chapterOrder,
-                   c.duration AS duration, c.audioUrl AS audioUrl, c.status AS status
-            FROM JpaChapterEntity c
-            WHERE c.bookId = :bookId
-            ORDER BY c.chapterOrder ASC, c.id ASC
-            """, countQuery = "SELECT COUNT(c) FROM JpaChapterEntity c WHERE c.bookId = :bookId")
-    Page<CustomerChapterProjection> findCustomerPageByBookId(@Param("bookId") Long bookId, Pageable pageable);
-
-    @Query("SELECT COALESCE(SUM(c.duration), 0) FROM JpaChapterEntity c WHERE c.bookId = :bookId")
-    long sumDurationByBookId(@Param("bookId") Long bookId);
-
+    /** Lấy chương của sách kèm tệp đính kèm, theo thứ tự chương tăng dần. */
     @Query("""
             SELECT c FROM JpaChapterEntity c
             LEFT JOIN FETCH c.attachFile
             WHERE c.bookId = :bookId
             ORDER BY c.chapterOrder ASC
             """)
-    List<JpaChapterEntity> findWithAttachFileByBookId(@Param("bookId") Long bookId);
+    List<JpaChapterEntity> findByBookId(@Param("bookId") Long bookId);
 
+    /** Lấy chương theo ID và giữ khóa ghi đến hết giao dịch. */
+    @Override
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT c FROM JpaChapterEntity c WHERE c.id = :id")
-    Optional<JpaChapterEntity> findByIdForUpdate(@Param("id") Long id);
+    Optional<JpaChapterEntity> findById(@Param("id") Long id);
 
-    Optional<JpaChapterEntity> findByIdAndBookId(Long id, Long bookId);
-
+    /** Lấy thứ tự chương lớn nhất của sách. */
     @Query("SELECT MAX(c.chapterOrder) FROM JpaChapterEntity c WHERE c.bookId = :bookId")
     Optional<Integer> findMaxChapterOrder(@Param("bookId") Long bookId);
 
-    boolean existsByBookIdAndChapterOrder(Long bookId, Integer chapterOrder);
-
+    /** Xóa toàn bộ chương thuộc sách. */
     void deleteByBookId(Long bookId);
+
+    /** Cập nhật dữ liệu chương theo các trường của domain entity. */
+    @Modifying
+    @Query("UPDATE JpaChapterEntity c SET " +
+            "c.title = :title, " +
+            "c.chapterOrder = :chapterOrder, " +
+            "c.duration = :duration, " +
+            "c.audioUrl = :audioUrl, " +
+            "c.rawText = :rawText, " +
+            "c.contentJson = :contentJson, " +
+            "c.status = :status, " +
+            "c.attachFileId = :attachFileId, c.readingSpeed = :readingSpeed " +
+            "WHERE c.id = :id")
+    void updateChapter(
+            @Param("id") Long id,
+            @Param("title") String title,
+            @Param("chapterOrder") Integer chapterOrder,
+            @Param("duration") Integer duration,
+            @Param("audioUrl") String audioUrl,
+            @Param("rawText") String rawText,
+            @Param("contentJson") String contentJson,
+            @Param("status") ChapterStatus status,
+            @Param("attachFileId") Long attachFileId,
+            @Param("readingSpeed") Double readingSpeed
+    );
+
+    /** Dịch thứ tự chương trong đoạn chỉ định bằng một câu lệnh cập nhật. */
+    @Modifying
+    @Query("UPDATE JpaChapterEntity c SET c.chapterOrder = c.chapterOrder + :delta " +
+            "WHERE c.bookId = :bookId AND c.chapterOrder BETWEEN :from AND :to")
+    void shiftOrders(
+            @Param("bookId") Long bookId,
+            @Param("from") int from,
+            @Param("to") int to,
+            @Param("delta") int delta
+    );
+
 }

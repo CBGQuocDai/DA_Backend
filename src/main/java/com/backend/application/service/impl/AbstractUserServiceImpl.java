@@ -8,17 +8,18 @@ import com.backend.application.service.UserService;
 import com.backend.domain.exception.BusinessException;
 import com.backend.domain.model.User;
 import com.backend.domain.valueobject.BusinessError;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** The account use cases that do not depend on the role. */
-public abstract class AbstractUserService implements UserService {
+@Service
+public abstract class AbstractUserServiceImpl implements UserService {
 
     protected final UserRepository userRepository;
     protected final PasswordEncoder passwordEncoder;
     protected final TokenProvider tokenProvider;
 
-    protected AbstractUserService(UserRepository userRepository, PasswordEncoder passwordEncoder,
-                                  TokenProvider tokenProvider) {
+    protected AbstractUserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder,
+                                      TokenProvider tokenProvider) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenProvider = tokenProvider;

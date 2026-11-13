@@ -46,7 +46,7 @@ public class PaymentServiceImpl implements PaymentService {
             throw new BusinessException(BusinessError.BOOK_NOT_FOUND);
         }
 
-        Book book = bookRepository.findBasicById(bookId)
+        Book book = bookRepository.findById(bookId)
             .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
 
         if (customerBookService.hasPurchasedBook(customerId, bookId)) {
@@ -103,7 +103,7 @@ public class PaymentServiceImpl implements PaymentService {
             throw new BusinessException(BusinessError.FORBIDDEN);
         }
 
-        Book book = bookRepository.findBasicById(payment.getBookId())
+        Book book = bookRepository.findById(payment.getBookId())
             .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
         return buildResponse(payment, book);
     }
@@ -124,7 +124,7 @@ public class PaymentServiceImpl implements PaymentService {
             return null;
         }
 
-        Book book = bookRepository.findBasicById(bookId)
+        Book book = bookRepository.findById(bookId)
             .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
         return buildResponse(pendingOpt.get(), book);
     }

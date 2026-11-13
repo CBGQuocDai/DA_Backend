@@ -8,10 +8,9 @@ import java.util.List;
 
 
 public interface AuthorService {
-    /** Every author, for pickers such as the book form. */
+
     List<AuthorResponse> getAuthors();
 
-    /** Admin list: filtered by name, newest first. */
     PageResponse<AuthorResponse> searchAuthors(String keyword, int page, int size);
 
     AuthorResponse getAuthor(Long authorId);
@@ -20,8 +19,6 @@ public interface AuthorService {
 
     AuthorResponse updateAuthor(Long authorId, AuthorRequest request);
 
-    /** Refused while any book still lists the author. */
     void deleteAuthor(Long authorId);
-    /** Public list: accent-insensitive name filter, sorted by name. */
-    PageResponse<AuthorResponse> getCustomerAuthors(String keyword, int page, int size);
+
 }

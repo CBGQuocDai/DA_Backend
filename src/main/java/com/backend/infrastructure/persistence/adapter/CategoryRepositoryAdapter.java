@@ -3,6 +3,8 @@ package com.backend.infrastructure.persistence.adapter;
 import com.backend.application.adapter.repository.CategoryRepository;
 import com.backend.application.dto.response.PageResponse;
 import com.backend.domain.model.Category;
+import com.backend.domain.exception.BusinessException;
+import com.backend.domain.valueobject.BusinessError;
 import com.backend.domain.model.CategoryStat;
 import com.backend.domain.valueobject.BestsellerPeriod;
 import com.backend.infrastructure.persistence.mapper.CategoryMapper;
@@ -12,6 +14,7 @@ import com.backend.infrastructure.persistence.util.LikePatterns;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -46,6 +49,16 @@ public class CategoryRepositoryAdapter implements CategoryRepository {
     @Override
     public Category save(Category category) {
         return categoryMapper.toDomain(jpaCategoryRepository.save(categoryMapper.toEntity(category)));
+    }
+
+    @Override
+    @Transactional
+    public Category update(Category category) {
+        var entity = jpaCategoryRepository.findById(category.getId())
+                .orElseThrow(() -> new BusinessException(BusinessError.CATEGORY_NOT_FOUND));
+        entity.setName(category.getName());
+        entity.setDescription(category.getDescription());
+        return categoryMapper.toDomain(jpaCategoryRepository.save(entity));
     }
 
     @Override

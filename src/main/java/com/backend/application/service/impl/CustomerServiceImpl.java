@@ -1,16 +1,16 @@
 package com.backend.application.service.impl;
 
 import com.backend.application.service.CustomerService;
+import com.backend.application.dto.request.user.RegisterRequest;
+import com.backend.application.dto.response.user.RegisterResponse;
 import com.backend.application.adapter.security.PasswordEncoder;
 import com.backend.application.adapter.security.TokenProvider;
 import com.backend.application.adapter.repository.CustomerRepository;
 import com.backend.application.adapter.repository.UserRepository;
 import com.backend.application.dto.request.user.LoginRequest;
-import com.backend.application.dto.request.user.RegisterRequest;
 import com.backend.application.dto.request.user.customer.CustomerUpdateProfileRequest;
 import com.backend.application.dto.response.customer.CustomerProfileResponse;
 import com.backend.application.dto.response.user.LoginResponse;
-import com.backend.application.dto.response.user.RegisterResponse;
 import com.backend.domain.exception.BusinessException;
 import com.backend.domain.model.Customer;
 import com.backend.domain.valueobject.BusinessError;
@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class CustomerServiceImpl extends AbstractUserService implements CustomerService {
+public class CustomerServiceImpl extends AbstractUserServiceImpl implements CustomerService {
 
     private final CustomerRepository customerRepository;
 
@@ -26,6 +26,7 @@ public class CustomerServiceImpl extends AbstractUserService implements Customer
         PasswordEncoder passwordEncoder, TokenProvider tokenProvider) {
         super(userRepository, passwordEncoder, tokenProvider);
         this.customerRepository = customerRepository;
+
     }
 
     @Override
@@ -64,7 +65,6 @@ public class CustomerServiceImpl extends AbstractUserService implements Customer
             .role("CUSTOMER")
             .build();
     }
-
     @Override
     @Transactional(readOnly = true)
     public CustomerProfileResponse getProfile(Long id) {
