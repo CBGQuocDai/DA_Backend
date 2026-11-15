@@ -37,6 +37,12 @@ public class CustomerRepositoryAdapter implements CustomerRepository {
         return jpaCustomerRepository.findById(id).map(customerMapper::toDomain);
     }
 
+    // Khóa bi quan (Pessimistic Lock) dòng khách hàng theo ID để chống xung đột ghi
+    @Override
+    public Optional<Customer> findByIdForUpdate(Long id) {
+        return jpaCustomerRepository.findByIdForUpdate(id).map(customerMapper::toDomain);
+    }
+
     @Override
     public long count() {
         return jpaCustomerRepository.count();

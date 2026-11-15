@@ -19,6 +19,9 @@ import java.util.Optional;
 
 @Repository
 public interface JpaBookRepository extends JpaRepository<JpaBookEntity, Long> {
+    // Truy vấn nhanh trạng thái sách theo ID
+    @Query("SELECT b.status FROM JpaBookEntity b WHERE b.id = :id")
+    Optional<BookStatus> findStatusById(@Param("id") Long id);
 
     @Query("""
             SELECT b FROM JpaBookEntity b

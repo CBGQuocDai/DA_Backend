@@ -2,6 +2,7 @@ package com.backend.infrastructure.persistence.adapter;
 
 import com.backend.application.adapter.repository.ChapterRepository;
 import com.backend.domain.model.Chapter;
+import com.backend.domain.valueobject.PlaybackChapter;
 import com.backend.infrastructure.persistence.mapper.ChapterMapper;
 import com.backend.infrastructure.persistence.repository.JpaChapterRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,12 @@ import java.util.Optional;
 public class ChapterRepositoryAdapter implements ChapterRepository {
     private final JpaChapterRepository jpaChapterRepository;
     private final ChapterMapper chapterMapper;
+
+    // Lấy danh sách chương rút gọn phục vụ phát audio theo ID sách
+    @Override
+    public List<PlaybackChapter> findPlaybackChaptersByBookId(Long bookId) {
+        return jpaChapterRepository.findPlaybackChaptersByBookId(bookId);
+    }
 
     @Override
     @Transactional(readOnly = true)

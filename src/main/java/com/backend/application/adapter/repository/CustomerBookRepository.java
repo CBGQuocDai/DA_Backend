@@ -9,6 +9,9 @@ import java.util.List;
 public interface CustomerBookRepository {
     /** Kiểm tra liên kết giữa khách hàng và sách đã tồn tại hay chưa. */
     boolean existsByCustomerIdAndBookId(Long customerId, Long bookId);
+
+    // Cập nhật trạng thái đã nghe xong toàn bộ sách (isReadComplete) của khách hàng
+    void updateReadComplete(Long customerId, Long bookId, boolean complete);
     /** Lưu dữ liệu và trả về quyền sở hữu sách đã lưu. */
     CustomerBook save(CustomerBook customerBook);
     /** Lấy danh sách sách mà khách hàng sở hữu. */

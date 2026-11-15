@@ -18,11 +18,11 @@ import com.backend.domain.model.Book;
 import com.backend.domain.model.BookAuthor;
 import com.backend.domain.model.BookCategory;
 import com.backend.domain.model.Category;
-import com.backend.domain.model.Chapter;
 import com.backend.domain.model.Voice;
 import com.backend.domain.valueobject.BestsellerPeriod;
 import com.backend.domain.valueobject.BookStatus;
 import com.backend.domain.valueobject.BusinessError;
+import com.backend.domain.valueobject.PlaybackChapter;
 import com.backend.domain.valueobject.UploadType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -60,14 +60,14 @@ public class BookServiceImpl implements BookService {
     @Override
     @Transactional(readOnly = true)
     public CustomerBookOverviewResponse getCustomerBookOverview(Long bookId) {
-        Book book = bookRepository.findById(bookId)
+        Book book = bookRepository.findBookWithMetadataById(bookId)
                 .filter(candidate -> candidate.getStatus() == BookStatus.PUBLISHED)
                 .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
-        var chapters = book.getChapters();
+        var chapters = chapterRepository.findPlaybackChaptersByBookId(bookId);
         return CustomerBookOverviewResponse.builder()
                 .book(responseMapper.toBookResponse(book))
                 .chapterCount(chapters.size())
-                .totalDuration(chapters.stream().mapToLong(chapter -> chapter.getDuration() == null ? 0 : chapter.getDuration()).sum())
+                .totalDuration(chapters.stream().mapToLong(chapter -> chapter.duration() == null ? 0 : chapter.duration()).sum())
                 .firstChapter(chapters.isEmpty() ? null : toCustomerChapter(chapters.get(0)))
                 .build();
     }
@@ -75,10 +75,11 @@ public class BookServiceImpl implements BookService {
     @Override
     @Transactional(readOnly = true)
     public List<CustomerChapterResponse> getCustomerChapters(Long bookId) {
-        bookRepository.findById(bookId)
-                .filter(candidate -> candidate.getStatus() == BookStatus.PUBLISHED)
+        bookRepository.findStatusById(bookId)
+                .filter(status -> status == BookStatus.PUBLISHED)
                 .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
-        return chapterRepository.findByBookId(bookId).stream().map(this::toCustomerChapter).toList();
+        // Trình nghe chỉ cần metadata, không tải văn bản và tài liệu biên tập của cả sách.
+        return chapterRepository.findPlaybackChaptersByBookId(bookId).stream().map(this::toCustomerChapter).toList();
     }
 
     private void validateCustomerPagination(int page, int size) {
@@ -87,11 +88,11 @@ public class BookServiceImpl implements BookService {
         }
     }
 
-    private CustomerChapterResponse toCustomerChapter(Chapter chapter) {
-        String audio = chapter.getAudioUrl();
+    private CustomerChapterResponse toCustomerChapter(PlaybackChapter chapter) {
+        String audio = chapter.audioUrl();
         return CustomerChapterResponse.builder()
-                .id(chapter.getId()).title(chapter.getTitle()).chapterOrder(chapter.getChapterOrder())
-                .duration(chapter.getDuration()).status(chapter.getStatus())
+                .id(chapter.id()).title(chapter.title()).chapterOrder(chapter.chapterOrder())
+                .duration(chapter.duration()).status(chapter.status())
                 .audioUrl(audio == null || audio.isBlank() ? null : responseMapper.signUrl(audio))
                 .build();
     }

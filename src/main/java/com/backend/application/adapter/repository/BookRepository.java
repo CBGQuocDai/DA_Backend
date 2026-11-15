@@ -11,6 +11,11 @@ import java.util.Map;
 import java.util.Optional;
 
 public interface BookRepository {
+    // Đọc trạng thái xuất bản của sách nhanh theo ID mà không cần nạp toàn bộ entity nặng
+    Optional<BookStatus> findStatusById(Long id);
+
+    /** Lấy thông tin sách, giọng đọc, tác giả và thể loại, không nạp nội dung chương. */
+    Optional<Book> findBookWithMetadataById(Long id);
 
     /** Tạo sách mới và lưu các liên kết tác giả, thể loại. */
     Book insert(Book book);

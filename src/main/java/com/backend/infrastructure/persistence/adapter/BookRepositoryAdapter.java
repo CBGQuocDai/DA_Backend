@@ -56,6 +56,31 @@ public class BookRepositoryAdapter implements BookRepository {
     private final BookCategoryMapper bookCategoryMapper;
     private final ChapterMapper chapterMapper;
 
+    // Lấy trạng thái xuất bản của sách theo ID
+    @Override
+    public Optional<BookStatus> findStatusById(Long id) {
+        return jpaBookRepository.findStatusById(id);
+    }
+
+    // Lấy thông tin sách kèm giọng đọc, tác giả và thể loại (không tải danh sách chương nặng)
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Book> findBookWithMetadataById(Long id) {
+        if (id == null) {
+            return Optional.empty();
+        }
+        return jpaBookRepository.findByIdWithVoice(id).map(entity -> {
+            Book book = bookMapper.toDomain(entity);
+            book.setAuthors(jpaBookAuthorRepository.findWithAuthorByBookId(id).stream()
+                    .map(bookAuthorMapper::toDomain)
+                    .toList());
+            book.setCategories(jpaBookCategoryRepository.findWithCategoryByBookId(id).stream()
+                    .map(bookCategoryMapper::toDomain)
+                    .toList());
+            return book;
+        });
+    }
+
     @Override
     @Transactional
     public Book insert(Book book) {
@@ -205,8 +230,8 @@ public class BookRepositoryAdapter implements BookRepository {
             return;
         }
         // Bảng phụ thuộc trước, book chính cuối cùng
-        jpaChapterRepository.deleteByBookId(id);
         jpaListenProgressRepository.deleteByBookId(id);
+        jpaChapterRepository.deleteByBookId(id);
         jpaBookFavoriteRepository.deleteByBookId(id);
         jpaReviewRepository.deleteByBookId(id);
         jpaCustomerBookRepository.deleteByBookId(id);

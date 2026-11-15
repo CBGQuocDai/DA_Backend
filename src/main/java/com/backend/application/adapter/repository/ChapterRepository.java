@@ -1,10 +1,14 @@
 package com.backend.application.adapter.repository;
 
 import com.backend.domain.model.Chapter;
+import com.backend.domain.valueobject.PlaybackChapter;
 import java.util.List;
 import java.util.Optional;
 
 public interface ChapterRepository {
+    // Lấy danh sách chương rút gọn theo sách để phục vụ trình phát audio
+    List<PlaybackChapter> findPlaybackChaptersByBookId(Long bookId);
+
     /** Lấy các chương của sách theo thứ tự chương tăng dần. */
     List<Chapter> findByBookId(Long bookId);
 

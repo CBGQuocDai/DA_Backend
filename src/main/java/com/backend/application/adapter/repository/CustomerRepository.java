@@ -5,13 +5,27 @@ import com.backend.domain.model.Customer;
 import java.util.Optional;
 
 public interface CustomerRepository {
-    /** Tìm tài khoản theo địa chỉ email. */
+
+    /**
+     * Tìm tài khoản theo địa chỉ email.
+     */
     Optional<Customer> findByEmail(String email);
-    /** Lưu dữ liệu và trả về khách hàng đã lưu. */
+
+    /**
+     * Lưu dữ liệu và trả về khách hàng đã lưu.
+     */
     Customer save(Customer customer);
-    /** Tìm khách hàng theo ID; trả về Optional rỗng nếu không tồn tại. */
+
+    /**
+     * Tìm khách hàng theo ID; trả về Optional rỗng nếu không tồn tại.
+     */
     Optional<Customer> findById(Long id);
 
-    /** Đếm tổng số khách hàng. */
+    // (Pessimistic Lock) chống xung đột ghi đồng thời
+    Optional<Customer> findByIdForUpdate(Long id);
+
+    /**
+     * Đếm tổng số khách hàng.
+     */
     long count();
 }
