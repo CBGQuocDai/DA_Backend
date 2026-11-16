@@ -75,7 +75,7 @@ public class SecurityConfig {
                 // /health/** gồm cả /health/liveness, /health/readiness mà Kubernetes probe gọi
                 .requestMatchers(HttpMethod.GET,
                     "/health", "/health/**",
-                    "/books/catalog", "/books/recommendations", "/books/*/overview", "/books/*/chapters/list",
+                    "/books/catalog", "/books/recommendations", "/books/*/recommendations", "/books/*/overview", "/books/*/chapters/list",
                     "/categories", "/categories/**",
                     "/authors", "/authors/**",
                     "/reviews/**"

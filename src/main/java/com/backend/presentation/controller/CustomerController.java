@@ -1,6 +1,7 @@
 package com.backend.presentation.controller;
 
 import com.backend.application.service.CustomerBookService;
+import com.backend.application.service.BookService;
 import com.backend.application.service.CustomerService;
 import com.backend.application.dto.request.user.LoginRequest;
 import com.backend.application.dto.request.user.RegisterRequest;
@@ -14,6 +15,8 @@ import com.backend.application.dto.response.user.RegisterResponse;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.CacheControl;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +31,17 @@ public class CustomerController {
 
     private final CustomerService customerService;
     private final CustomerBookService customerBookService;
+    private final BookService bookService;
+
+    // API gợi ý sách cá nhân hóa theo thể loại cho khách hàng đã đăng nhập
+    @GetMapping("/recommendations")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<ApiResponse<List<BookResponse>>> getRecommendations(
+        @AuthenticationPrincipal Long customerId, @RequestParam(defaultValue = "10") int limit) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+            .body(ApiResponse.<List<BookResponse>>builder()
+                .data(bookService.getCustomerRecommendations(customerId, limit)).build());
+    }
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(@Validated @RequestBody LoginRequest loginRequest) {

@@ -36,6 +36,15 @@ public interface BookService {
 
     PageResponse<BookResponse> getCustomerBooks(String bookName, Long categoryId, Long authorId, int page, int size);
 
+    /** Lấy danh sách sách gợi ý mới nhất */
+    List<BookResponse> getRecommendations(int limit);
+
+    /** Lấy gợi ý sách cá nhân hóa theo thể loại cho khách hàng (kèm bù sách mới). */
+    List<BookResponse> getCustomerRecommendations(Long customerId, int limit);
+
+    /** Lấy danh sách sách tương tự (cùng thể loại hoặc cùng tác giả) với sách đang xem. */
+    List<BookResponse> getSimilarBooks(Long bookId, int limit);
+
     /** Admin dashboard: the most purchased books in the period, each with the period before it. */
     List<BookResponse> getBestsellers(BestsellerPeriod period);
 }

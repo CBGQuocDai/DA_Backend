@@ -30,7 +30,9 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.function.Function;
 
-/** Turns domain models into the responses use cases hand to the outside world. */
+/**
+ * Turns domain models into the responses use cases hand to the outside world.
+ */
 @Component
 @RequiredArgsConstructor
 public class ResponseMapper {
@@ -41,12 +43,12 @@ public class ResponseMapper {
 
     public <T, R> PageResponse<R> toPageResponse(PageResponse<T> page, Function<T, R> mapper) {
         return PageResponse.<R>builder()
-                .content(mapList(page.getContent(), mapper))
-                .total(page.getTotal())
-                .totalPage(page.getTotalPage())
-                .page(page.getPage())
-                .pageSize(page.getPageSize())
-                .build();
+            .content(mapList(page.getContent(), mapper))
+            .total(page.getTotal())
+            .totalPage(page.getTotalPage())
+            .page(page.getPage())
+            .pageSize(page.getPageSize())
+            .build();
     }
 
     public FileResponse toFileResponse(String path) {
@@ -62,61 +64,84 @@ public class ResponseMapper {
 
     public BookResponse toBookResponse(Book book) {
         BookResponse.BookResponseBuilder response = BookResponse.builder()
-                .id(book.getId())
-                .title(book.getTitle())
-                .price(book.getPrice())
-                .description(book.getDescription())
-                .coverImage(toFileResponse(book.getCoverImage()))
-                .contentFile(toFileResponse(book.getContentFile()))
-                .voice(book.getVoice() == null ? null : toVoiceResponse(book.getVoice()))
-                .status(book.getStatus())
-                .categories(mapList(book.getCategories(), this::toBookCategoryResponse))
-                .authors(mapList(book.getAuthors(), this::toBookAuthorResponse))
-                .chapters(mapList(book.getChapters(), this::toChapterResponse));
+            .id(book.getId())
+            .title(book.getTitle())
+            .price(book.getPrice())
+            .description(book.getDescription())
+            .coverImage(toFileResponse(book.getCoverImage()))
+            .contentFile(toFileResponse(book.getContentFile()))
+            .voice(book.getVoice() == null ? null : toVoiceResponse(book.getVoice()))
+            .status(book.getStatus())
+            .categories(mapList(book.getCategories(), this::toBookCategoryResponse))
+            .authors(mapList(book.getAuthors(), this::toBookAuthorResponse))
+            .chapters(mapList(book.getChapters(), this::toChapterResponse));
         if (book instanceof BookStat stat) {
             response.averageRating(stat.getAverageRating()).ratingCount(stat.getRatingCount())
-                    .purchases(stat.getPurchases()).previousPurchases(stat.getPreviousPurchases());
+                .purchases(stat.getPurchases()).previousPurchases(stat.getPreviousPurchases());
         }
         return response.build();
     }
 
+    /**
+     * chỉ hiển thị thông tin công khai
+     */
+    public BookResponse toBookCardResponse(BookStat book) {
+        return BookResponse.builder()
+            .id(book.getId())
+            .title(book.getTitle())
+            .price(book.getPrice())
+            .status(book.getStatus())
+            .coverImage(toFileResponse(book.getCoverImage()))
+            .averageRating(book.getAverageRating())
+            .ratingCount(book.getRatingCount())
+            .authors(mapList(book.getAuthors(), link -> BookAuthorResponse.builder()
+                .id(link.getId())
+                .author(AuthorResponse.builder().id(link.getAuthor().getId())
+                    .fullName(link.getAuthor().getFullName()).build())
+                .build()))
+            .categories(mapList(book.getCategories(), link -> BookCategoryResponse.builder()
+                .id(link.getId()).category(CategoryResponse.builder().id(link.getCategory().getId())
+                    .name(link.getCategory().getName()).build()).build()))
+            .build();
+    }
+
     public VoiceResponse toVoiceResponse(Voice voice) {
         return VoiceResponse.builder()
-                .id(voice.getId())
-                .name(voice.getName())
-                .description(voice.getDescription())
-                .exampleAudio(toFileResponse(voice.getExampleAudio()))
-                .build();
+            .id(voice.getId())
+            .name(voice.getName())
+            .description(voice.getDescription())
+            .exampleAudio(toFileResponse(voice.getExampleAudio()))
+            .build();
     }
 
     public ChapterResponse toChapterResponse(Chapter chapter) {
         return ChapterResponse.builder()
-                .id(chapter.getId())
-                .title(chapter.getTitle())
-                .chapterOrder(chapter.getChapterOrder())
-                .duration(chapter.getDuration())
-                .audioUrl(chapter.getAudioUrl())
-                .rawText(chapter.getRawText())
-                .contentJson(chapter.getContentJson())
-                .readingSpeed(chapter.getReadingSpeed())
-                .status(chapter.getStatus())
-                .build();
+            .id(chapter.getId())
+            .title(chapter.getTitle())
+            .chapterOrder(chapter.getChapterOrder())
+            .duration(chapter.getDuration())
+            .audioUrl(chapter.getAudioUrl())
+            .rawText(chapter.getRawText())
+            .contentJson(chapter.getContentJson())
+            .readingSpeed(chapter.getReadingSpeed())
+            .status(chapter.getStatus())
+            .build();
     }
 
     public AuthorResponse toAuthorResponse(Author author) {
         return AuthorResponse.builder()
-                .id(author.getId())
-                .fullName(author.getFullName())
-                .avatar(toFileResponse(author.getAvatar()))
-                .bio(author.getBio())
-                .build();
+            .id(author.getId())
+            .fullName(author.getFullName())
+            .avatar(toFileResponse(author.getAvatar()))
+            .bio(author.getBio())
+            .build();
     }
 
     public CategoryResponse toCategoryResponse(Category category) {
         CategoryResponse.CategoryResponseBuilder response = CategoryResponse.builder()
-                .id(category.getId())
-                .name(category.getName())
-                .description(category.getDescription());
+            .id(category.getId())
+            .name(category.getName())
+            .description(category.getDescription());
         if (category instanceof CategoryStat stat) {
             response.purchases(stat.getPurchases()).previousPurchases(stat.getPreviousPurchases());
         }
@@ -127,58 +152,62 @@ public class ResponseMapper {
         Customer customer = review.getCustomer();
         Long customerId = customer == null ? null : customer.getId();
         String customerName = customer == null ? null : customer.getFullName();
-        if (customerName == null || customerName.isBlank()) customerName = "Bạn đọc";
+        if (customerName == null || customerName.isBlank()) {
+            customerName = "Bạn đọc";
+        }
         String customerAvatar = customer == null ? null : customer.getAvatarUrl();
         return ReviewResponse.builder()
-                .id(review.getId())
-                .bookId(review.getBook() == null ? null : review.getBook().getId())
-                .rate(review.getRate())
-                .rating(review.getRate())
-                .content(review.getContent())
-                .comment(review.getContent())
-                .createAt(review.getCreateAt())
-                .createdAt(review.getCreateAt())
-                .customerId(customerId)
-                .userId(customerId)
-                .customerName(customerName)
-                .userName(customerName)
-                .customerAvatar(customerAvatar)
-                .userAvatar(customerAvatar)
-                .verifiedPurchase(review.isVerifiedPurchase())
-                .build();
+            .id(review.getId())
+            .bookId(review.getBook() == null ? null : review.getBook().getId())
+            .rate(review.getRate())
+            .rating(review.getRate())
+            .content(review.getContent())
+            .comment(review.getContent())
+            .createAt(review.getCreateAt())
+            .createdAt(review.getCreateAt())
+            .customerId(customerId)
+            .userId(customerId)
+            .customerName(customerName)
+            .userName(customerName)
+            .customerAvatar(customerAvatar)
+            .userAvatar(customerAvatar)
+            .verifiedPurchase(review.isVerifiedPurchase())
+            .build();
     }
 
     public PaymentResponse toPaymentResponse(Payment payment, Book book) {
         String cover = book.getCoverImage();
         return PaymentResponse.builder()
-                .id(payment.getId())
-                .paymentId(payment.getId())
-                .paymentCode(payment.getPaymentCode())
-                .orderCode(payment.getPaymentCode())
-                .customerId(payment.getCustomerId())
-                .bookId(payment.getBookId())
-                .bookTitle(book.getTitle())
-                .bookCover(cover == null || cover.isBlank() ? cover : signUrl(cover))
-                .amount(payment.getAmount())
-                .status(payment.getStatus())
-                .paymentStatus(payment.getStatus())
-                .paidAt(payment.getPaidAt())
-                .createdAt(payment.getCreatedAt())
-                .build();
+            .id(payment.getId())
+            .paymentId(payment.getId())
+            .paymentCode(payment.getPaymentCode())
+            .orderCode(payment.getPaymentCode())
+            .customerId(payment.getCustomerId())
+            .bookId(payment.getBookId())
+            .bookTitle(book.getTitle())
+            .bookCover(cover == null || cover.isBlank() ? cover : signUrl(cover))
+            .amount(payment.getAmount())
+            .status(payment.getStatus())
+            .paymentStatus(payment.getStatus())
+            .paidAt(payment.getPaidAt())
+            .createdAt(payment.getCreatedAt())
+            .build();
     }
 
     private BookAuthorResponse toBookAuthorResponse(BookAuthor bookAuthor) {
         return BookAuthorResponse.builder()
-                .id(bookAuthor.getId())
-                .author(bookAuthor.getAuthor() == null ? null : toAuthorResponse(bookAuthor.getAuthor()))
-                .build();
+            .id(bookAuthor.getId())
+            .author(
+                bookAuthor.getAuthor() == null ? null : toAuthorResponse(bookAuthor.getAuthor()))
+            .build();
     }
 
     private BookCategoryResponse toBookCategoryResponse(BookCategory bookCategory) {
         return BookCategoryResponse.builder()
-                .id(bookCategory.getId())
-                .category(bookCategory.getCategory() == null ? null : toCategoryResponse(bookCategory.getCategory()))
-                .build();
+            .id(bookCategory.getId())
+            .category(bookCategory.getCategory() == null ? null
+                : toCategoryResponse(bookCategory.getCategory()))
+            .build();
     }
 
     private static <T, R> List<R> mapList(List<T> items, Function<T, R> mapper) {
