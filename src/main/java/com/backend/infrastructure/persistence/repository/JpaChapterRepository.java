@@ -15,10 +15,9 @@ import java.util.Optional;
 
 @Repository
 public interface JpaChapterRepository extends JpaRepository<JpaChapterEntity, Long> {
-    /** Lấy chương của sách kèm tệp đính kèm, theo thứ tự chương tăng dần. */
+    /** Lấy chương của sách theo thứ tự chương tăng dần. */
     @Query("""
             SELECT c FROM JpaChapterEntity c
-            LEFT JOIN FETCH c.attachFile
             WHERE c.bookId = :bookId
             ORDER BY c.chapterOrder ASC
             """)
@@ -47,7 +46,7 @@ public interface JpaChapterRepository extends JpaRepository<JpaChapterEntity, Lo
             "c.rawText = :rawText, " +
             "c.contentJson = :contentJson, " +
             "c.status = :status, " +
-            "c.attachFileId = :attachFileId, c.readingSpeed = :readingSpeed, c.audioJobId = :audioJobId " +
+            "c.readingSpeed = :readingSpeed, c.audioJobId = :audioJobId " +
             "WHERE c.id = :id")
     void updateChapter(
             @Param("id") Long id,
@@ -58,7 +57,6 @@ public interface JpaChapterRepository extends JpaRepository<JpaChapterEntity, Lo
             @Param("rawText") String rawText,
             @Param("contentJson") String contentJson,
             @Param("status") ChapterStatus status,
-            @Param("attachFileId") Long attachFileId,
             @Param("readingSpeed") Double readingSpeed,
             @Param("audioJobId") String audioJobId
     );

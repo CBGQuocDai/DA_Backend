@@ -28,5 +28,4 @@ public class Chapter {
     private ChapterStatus status;
     /** Mã job TTS đang chạy; kết quả mang mã khác (job đã hủy hoặc đã bị thay) bị bỏ qua. */
     private String audioJobId;
-    private AttachFile attachFile;
 }

@@ -52,21 +52,6 @@ public class OcrServiceImpl implements OcrService {
     private static final Map<String, String> IMAGE_EXTENSIONS = Map.of(
             "image/png", "png", "image/jpeg", "jpg", "image/webp", "webp", "image/gif", "gif");
 
-    /** Một phần của sách theo thứ tự đọc; số trang bắt đầu lại từ 1 ở mỗi chunk OCR. */
-    private sealed interface Item {
-        int page();
-    }
-
-    private record TextItem(int page, String type, String text) implements Item {
-    }
-
-    private record ImageItem(int page, String path, String description) implements Item {
-    }
-
-    private record TableItem(int page, List<List<String>> rows, int headerRows, String description)
-            implements Item {
-    }
-
     @Value("${gcp.documentai.processor-id}")
     private String processorId;
 

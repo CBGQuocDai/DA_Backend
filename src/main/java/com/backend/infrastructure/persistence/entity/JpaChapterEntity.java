@@ -38,9 +38,6 @@ public class JpaChapterEntity {
     @Column(name = "book_id", nullable = false)
     private Long bookId;
 
-    @Column(name = "attach_file_id")
-    private Long attachFileId;
-
     @Column(name = "reading_speed")
     private Double readingSpeed;
 
@@ -50,8 +47,4 @@ public class JpaChapterEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "book_id", insertable = false, updatable = false)
     private JpaBookEntity book;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "attach_file_id", insertable = false, updatable = false)
-    private JpaAttachFileEntity attachFile;
 }

@@ -51,7 +51,6 @@ public class BookServiceImpl implements BookService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<BookResponse> getCustomerBooks(String bookName, Long categoryId, Long authorId, int page, int size) {
-        validateCustomerPagination(page, size);
         return responseMapper.toPageResponse(
                 bookRepository.findAllWithStats(bookName, categoryId, authorId, BookStatus.PUBLISHED, page, size),
                 responseMapper::toBookResponse);
@@ -68,7 +67,7 @@ public class BookServiceImpl implements BookService {
                 .book(responseMapper.toBookResponse(book))
                 .chapterCount(chapters.size())
                 .totalDuration(chapters.stream().mapToLong(chapter -> chapter.getDuration() == null ? 0 : chapter.getDuration()).sum())
-                .firstChapter(chapters.isEmpty() ? null : toCustomerChapter(chapters.get(0)))
+                .firstChapter(chapters.isEmpty() ? null : responseMapper.toCustomerChapter(chapters.getFirst()))
                 .build();
     }
 
@@ -78,23 +77,7 @@ public class BookServiceImpl implements BookService {
         bookRepository.findById(bookId)
                 .filter(candidate -> candidate.getStatus() == BookStatus.PUBLISHED)
                 .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
-        return chapterRepository.findByBookId(bookId).stream().map(this::toCustomerChapter).toList();
-    }
-
-    private void validateCustomerPagination(int page, int size) {
-        if (page < 0 || size < 1 || size > 100 || (long) page * size > Integer.MAX_VALUE) {
-            throw new BusinessException(BusinessError.VALIDATION_FAILED);
-        }
-    }
-
-    private CustomerChapterResponse toCustomerChapter(Chapter chapter) {
-        String audio = chapter.getAudioUrl();
-        return CustomerChapterResponse.builder()
-                .id(chapter.getId()).title(chapter.getTitle()).chapterOrder(chapter.getChapterOrder())
-                .duration(chapter.getDuration()).status(chapter.getStatus())
-                .audioUrl(audio == null || audio.isBlank() ? null : responseMapper.signUrl(audio))
-                .attachments(responseMapper.toAttachmentResponses(chapter.getContentJson()))
-                .build();
+        return chapterRepository.findByBookId(bookId).stream().map(responseMapper::toCustomerChapter).toList();
     }
 
     @Override

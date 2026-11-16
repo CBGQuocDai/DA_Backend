@@ -7,6 +7,7 @@ import com.backend.application.dto.response.book.BookCategoryResponse;
 import com.backend.application.dto.response.book.BookResponse;
 import com.backend.application.dto.response.category.CategoryResponse;
 import com.backend.application.dto.response.chapter.ChapterResponse;
+import com.backend.application.dto.response.chapter.CustomerChapterResponse;
 import com.backend.application.dto.response.file.FileResponse;
 import com.backend.application.dto.response.payment.PaymentResponse;
 import com.backend.application.dto.response.review.ReviewResponse;
@@ -64,6 +65,16 @@ public class ResponseMapper {
 
     public String signUrl(String path) {
         return storageService.createSignUrl(path, SIGNED_URL_TTL_MINUTES);
+    }
+
+    public CustomerChapterResponse toCustomerChapter(Chapter chapter) {
+        String audio = chapter.getAudioUrl();
+        return CustomerChapterResponse.builder()
+                .id(chapter.getId()).title(chapter.getTitle()).chapterOrder(chapter.getChapterOrder())
+                .duration(chapter.getDuration()).status(chapter.getStatus())
+                .audioUrl(audio == null || audio.isBlank() ? null : signUrl(audio))
+                .attachments(toAttachmentResponses(chapter.getContentJson()))
+                .build();
     }
 
     public BookResponse toBookResponse(Book book) {
