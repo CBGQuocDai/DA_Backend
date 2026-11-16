@@ -13,11 +13,13 @@ import org.springframework.stereotype.Repository;
 public interface JpaVoiceRepository extends JpaRepository<JpaVoiceEntity, Long> {
 
     @Modifying
-    @Query("UPDATE JpaVoiceEntity v SET v.name = :name, v.description = :description, v.exampleAudio = :exampleAudio WHERE v.id = :id")
+    @Query("UPDATE JpaVoiceEntity v SET v.name = :name, v.description = :description, v.exampleAudio = :exampleAudio, " +
+            "v.exampleTranscript = :exampleTranscript WHERE v.id = :id")
     int updateVoice(@Param("id") Long id,
                     @Param("name") String name,
                     @Param("description") String description,
-                    @Param("exampleAudio") String exampleAudio);
+                    @Param("exampleAudio") String exampleAudio,
+                    @Param("exampleTranscript") String exampleTranscript);
 
     @Query("SELECT v FROM JpaVoiceEntity v WHERE LOWER(v.name) LIKE :voiceName ESCAPE '\\'")
     Page<JpaVoiceEntity> findAllByNameLike(String voiceName, PageRequest pageRequest);

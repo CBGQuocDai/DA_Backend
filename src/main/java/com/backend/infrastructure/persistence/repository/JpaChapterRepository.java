@@ -47,7 +47,7 @@ public interface JpaChapterRepository extends JpaRepository<JpaChapterEntity, Lo
             "c.rawText = :rawText, " +
             "c.contentJson = :contentJson, " +
             "c.status = :status, " +
-            "c.attachFileId = :attachFileId, c.readingSpeed = :readingSpeed " +
+            "c.attachFileId = :attachFileId, c.readingSpeed = :readingSpeed, c.audioJobId = :audioJobId " +
             "WHERE c.id = :id")
     void updateChapter(
             @Param("id") Long id,
@@ -59,7 +59,8 @@ public interface JpaChapterRepository extends JpaRepository<JpaChapterEntity, Lo
             @Param("contentJson") String contentJson,
             @Param("status") ChapterStatus status,
             @Param("attachFileId") Long attachFileId,
-            @Param("readingSpeed") Double readingSpeed
+            @Param("readingSpeed") Double readingSpeed,
+            @Param("audioJobId") String audioJobId
     );
 
     /** Dịch thứ tự chương trong đoạn chỉ định bằng một câu lệnh cập nhật. */

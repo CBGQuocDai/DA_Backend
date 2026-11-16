@@ -39,7 +39,7 @@ public class VoiceRepositoryAdapter implements VoiceRepository {
     @Override
     public Voice update(Voice v) {
         int affected = jpaVoiceRepository.updateVoice(
-                v.getId(), v.getName(), v.getDescription(), v.getExampleAudio());
+                v.getId(), v.getName(), v.getDescription(), v.getExampleAudio(), v.getExampleTranscript());
         if (affected == 0) {
             throw new RuntimeException("Voice not found with id: " + v.getId());
         }

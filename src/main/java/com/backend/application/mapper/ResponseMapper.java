@@ -11,7 +11,11 @@ import com.backend.application.dto.response.file.FileResponse;
 import com.backend.application.dto.response.payment.PaymentResponse;
 import com.backend.application.dto.response.review.ReviewResponse;
 import com.backend.application.dto.response.voice.VoiceResponse;
+import com.backend.application.adapter.content.ChapterAttachment;
+import com.backend.application.adapter.content.ChapterContentParser;
+import com.backend.application.dto.response.chapter.ChapterAttachmentResponse;
 import com.backend.application.adapter.storage.StorageService;
+import com.backend.domain.exception.BusinessException;
 import com.backend.domain.model.Author;
 import com.backend.domain.model.Book;
 import com.backend.domain.model.BookAuthor;
@@ -27,6 +31,7 @@ import com.backend.domain.model.Voice;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -38,6 +43,7 @@ public class ResponseMapper {
     private static final long SIGNED_URL_TTL_MINUTES = 60L;
 
     private final StorageService storageService;
+    private final ChapterContentParser chapterContentParser;
 
     public <T, R> PageResponse<R> toPageResponse(PageResponse<T> page, Function<T, R> mapper) {
         return PageResponse.<R>builder()
@@ -86,6 +92,7 @@ public class ResponseMapper {
                 .name(voice.getName())
                 .description(voice.getDescription())
                 .exampleAudio(toFileResponse(voice.getExampleAudio()))
+                .exampleTranscript(voice.getExampleTranscript())
                 .build();
     }
 
@@ -97,10 +104,40 @@ public class ResponseMapper {
                 .duration(chapter.getDuration())
                 .audioUrl(chapter.getAudioUrl())
                 .rawText(chapter.getRawText())
-                .contentJson(chapter.getContentJson())
+                .contentJson(signImages(chapter.getContentJson()))
                 .readingSpeed(chapter.getReadingSpeed())
                 .status(chapter.getStatus())
                 .build();
+    }
+
+    private String signImages(String contentJson) {
+        if (contentJson == null || contentJson.isBlank()) {
+            return contentJson;
+        }
+        try {
+            return chapterContentParser.withImageUrls(contentJson, this::signUrl);
+        } catch (BusinessException e) {
+            // A broken stored document must not make the whole book unreadable; the editor falls back to rawText.
+            return contentJson;
+        }
+    }
+
+    /** Tệp đính kèm của chương cho người nghe: ảnh kèm URL đã ký, bảng kèm dữ liệu, đánh số riêng theo loại. */
+    public List<ChapterAttachmentResponse> toAttachmentResponses(String contentJson) {
+        List<ChapterAttachmentResponse> responses = new ArrayList<>();
+        int images = 0;
+        int tables = 0;
+        for (ChapterAttachment attachment : chapterContentParser.attachments(contentJson)) {
+            boolean isImage = attachment.type() == ChapterAttachment.Type.IMAGE;
+            responses.add(ChapterAttachmentResponse.builder()
+                    .type(attachment.type())
+                    .label(isImage ? "Hình " + ++images : "Bảng " + ++tables)
+                    .imageUrl(isImage ? signUrl(attachment.imagePath()) : null)
+                    .rows(isImage ? null : attachment.rows())
+                    .headerRows(isImage ? null : attachment.headerRows())
+                    .build());
+        }
+        return responses;
     }
 
     public AuthorResponse toAuthorResponse(Author author) {

@@ -4,8 +4,10 @@ import com.backend.domain.valueobject.UploadType;
 import com.backend.application.service.FileManagementService;
 import com.backend.application.dto.request.book.chapter.ChapterUploadAudioRequest;
 import com.backend.application.service.ChapterService;
+import com.backend.application.adapter.content.ChapterContent;
 import com.backend.application.adapter.content.ChapterContentParser;
 import com.backend.application.adapter.messaging.MessageQueue;
+import com.backend.application.adapter.realtime.AdminEventPublisher;
 import com.backend.application.adapter.repository.BookRepository;
 import com.backend.application.adapter.repository.ChapterRepository;
 import com.backend.application.dto.response.chapter.ChapterResponse;
@@ -24,9 +26,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +46,7 @@ public class ChapterServiceImpl implements ChapterService {
     private final MessageQueue messageQueue;
     private final ChapterContentParser chapterContentParser;
     private final FileManagementService fileManagementService;
+    private final AdminEventPublisher adminEventPublisher;
 
     @Override
     @Transactional(readOnly = true)
@@ -117,8 +125,10 @@ public class ChapterServiceImpl implements ChapterService {
             throw new BusinessException(BusinessError.CHAPTER_AUDIO_PROCESSING);
         }
 
+        String jobId = UUID.randomUUID().toString();
         chapter.setStatus(ChapterStatus.PROCESSING_AUDIO);
         chapter.setReadingSpeed(readingSpeed);
+        chapter.setAudioJobId(jobId);
         chapterRepository.update(chapter);
 
         log.info("Queueing audio for book {} with voiceId {} and chapter {} at speed {}",
@@ -126,7 +136,9 @@ public class ChapterServiceImpl implements ChapterService {
         String text = chapter.getTitle() +" - " + chapter.getRawText().replace(Chapter.PAGE_BREAK, " ");
         GenerateAudioRequest job = GenerateAudioRequest.builder()
                 .chapterId(chapter.getId())
+                .jobId(jobId)
                 .exampleVoiceUrl(book.getVoice() != null ? book.getVoice().getExampleAudio() : "")
+                .exampleVoiceText(book.getVoice() != null ? book.getVoice().getExampleTranscript() : null)
                 .text(text)
                 .speed(readingSpeed)
                 .build();
@@ -148,7 +160,7 @@ public class ChapterServiceImpl implements ChapterService {
         if (contentJson != null && !contentJson.isBlank()) {
             // Lấy văn bản từ tài liệu biên tập để hai trường nội dung nhất quán.
             chapter.setRawText(chapterContentParser.extractText(contentJson));
-            chapter.setContentJson(contentJson);
+            chapter.setContentJson(chapterContentParser.withImageUrls(contentJson, path -> null));
         } else if (Objects.nonNull(req.getRawText())) {
             // Văn bản mới không còn tương ứng với định dạng của tài liệu cũ.
             chapter.setRawText(req.getRawText());
@@ -161,6 +173,70 @@ public class ChapterServiceImpl implements ChapterService {
             moveChapter(bookId, chapter, req.getChapterOrder());
         }
         chapterRepository.update(chapter);
+    }
+
+    @Override
+    @Transactional
+    public ChapterResponse mergeChapters(Long bookId, List<Long> chapterIds) {
+        // Khóa sách để việc đổi thứ tự chương được xử lý lần lượt
+        bookRepository.findBookOverviewById(bookId)
+                .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
+        LinkedHashSet<Long> ids = new LinkedHashSet<>(chapterIds);
+        if (ids.size() < 2) {
+            throw new BusinessException(BusinessError.VALIDATION_FAILED);
+        }
+
+        // Theo thứ tự chương, không theo thứ tự id gửi lên; thứ tự có thể có chỗ hở nên so theo vị trí
+        List<Chapter> bookChapters = chapterRepository.findByBookId(bookId);
+        List<Integer> positions = new ArrayList<>();
+        for (int index = 0; index < bookChapters.size(); index++) {
+            if (ids.contains(bookChapters.get(index).getId())) {
+                positions.add(index);
+            }
+        }
+        if (positions.size() != ids.size()) {
+            throw new BusinessException(BusinessError.CHAPTER_NOT_FOUND);
+        }
+        if (positions.getLast() - positions.getFirst() != positions.size() - 1) {
+            throw new BusinessException(BusinessError.CHAPTER_MERGE_NOT_CONSECUTIVE);
+        }
+
+        // Đọc lại từng chương kèm khóa ghi để không chạy song song với việc tạo audio
+        List<Chapter> merging = positions.stream()
+                .map(index -> chapterRepository.findById(bookChapters.get(index).getId())
+                        .orElseThrow(() -> new BusinessException(BusinessError.CHAPTER_NOT_FOUND)))
+                .toList();
+        List<ChapterContent> parts = new ArrayList<>();
+        List<String> cancelledJobs = new ArrayList<>();
+        for (Chapter chapter : merging) {
+            parts.add(new ChapterContent(parts.isEmpty() ? null : chapter.getTitle(),
+                    chapter.getRawText(), chapter.getContentJson()));
+            if (chapter.getStatus() == ChapterStatus.PROCESSING_AUDIO && chapter.getAudioJobId() != null) {
+                cancelledJobs.add(chapter.getAudioJobId());
+            }
+        }
+        ChapterContent merged = chapterContentParser.merge(parts);
+
+        Chapter kept = merging.getFirst();
+        kept.setRawText(merged.rawText());
+        kept.setContentJson(merged.contentJson());
+        // Nội dung đã đổi nên audio cũ không còn khớp
+        kept.setAudioUrl(null);
+        kept.setDuration(null);
+        kept.setStatus(null);
+        kept.setAudioJobId(null);
+        chapterRepository.update(kept);
+
+        Chapter last = merging.getLast();
+        merging.subList(1, merging.size()).forEach(chapter -> chapterRepository.deleteById(chapter.getId()));
+        int maxOrder = chapterRepository.findMaxChapterOrder(bookId).orElse(last.getChapterOrder());
+        if (maxOrder > last.getChapterOrder()) {
+            chapterRepository.shiftOrders(bookId, last.getChapterOrder() + 1, maxOrder, -(merging.size() - 1));
+        }
+
+        afterCommit(() -> cancelledJobs.forEach(messageQueue::cancel));
+        log.info("Merged chapters {} of book {} into chapter {}", ids, bookId, kept.getId());
+        return responseMapper.toChapterResponse(kept);
     }
 
     /** Dịch các chương nằm giữa vị trí cũ và mới để giữ thứ tự liên tục. */
@@ -190,6 +266,13 @@ public class ChapterServiceImpl implements ChapterService {
             log.warn("TTS result for chapter {} in status {}, ignoring", chapter.getId(), chapter.getStatus());
             return;
         }
+        // Worker bản cũ không gửi jobId: vẫn nhận kết quả, chỉ mất khả năng phát hiện job đã bị hủy
+        if (result.getJobId() != null && !result.getJobId().equals(chapter.getAudioJobId())) {
+            // Job đã bị hủy (gộp chương) hoặc đã bị thay bằng một lần tạo audio mới
+            log.warn("TTS result of job {} for chapter {} is stale, ignoring", result.getJobId(), chapter.getId());
+            return;
+        }
+        chapter.setAudioJobId(null);
         if (result.isSuccess() && result.getAudioPath() != null && !result.getAudioPath().isBlank()) {
             chapter.setAudioUrl(result.getAudioPath());
             chapter.setDuration(result.getDuration());
@@ -199,5 +282,21 @@ public class ChapterServiceImpl implements ChapterService {
             chapter.setStatus(ChapterStatus.FAILED);
         }
         chapterRepository.update(chapter);
+        afterCommit(() -> adminEventPublisher.chapterStatusChanged(chapter.getBookId(), chapter.getId(),
+                chapter.getStatus(), chapter.getAudioUrl(), chapter.getDuration()));
+    }
+
+    // Chạy sau khi commit: trang admin không đọc lại phải trạng thái cũ, và giao dịch rollback thì không có gì bị gửi đi
+    private static void afterCommit(Runnable action) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            action.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                action.run();
+            }
+        });
     }
 }

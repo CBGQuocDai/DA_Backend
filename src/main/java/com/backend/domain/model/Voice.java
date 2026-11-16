@@ -15,5 +15,7 @@ public class Voice {
     private Long id;
     private String name;
     private String exampleAudio;
+    /** Lời thoại của file giọng mẫu (tùy chọn); có thì worker truyền làm ref_text cho OmniVoice. */
+    private String exampleTranscript;
     private String description;
 }

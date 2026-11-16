@@ -93,6 +93,7 @@ public class BookServiceImpl implements BookService {
                 .id(chapter.getId()).title(chapter.getTitle()).chapterOrder(chapter.getChapterOrder())
                 .duration(chapter.getDuration()).status(chapter.getStatus())
                 .audioUrl(audio == null || audio.isBlank() ? null : responseMapper.signUrl(audio))
+                .attachments(responseMapper.toAttachmentResponses(chapter.getContentJson()))
                 .build();
     }
 

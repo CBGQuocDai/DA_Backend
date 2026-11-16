@@ -110,6 +110,8 @@ public class VoiceServiceImpl implements VoiceService {
         voice.setName(req.getName());
         voice.setDescription(req.getDescription());
         voice.setExampleAudio(exampleAudio);
+        String transcript = req.getExampleTranscript();
+        voice.setExampleTranscript(transcript == null || transcript.isBlank() ? null : transcript.trim());
     }
 
     @Override

@@ -5,6 +5,7 @@ import com.backend.domain.exception.BusinessException;
 import com.backend.application.dto.request.book.chapter.ChapterUploadAudioRequest;
 import com.backend.application.service.ChapterService;
 import com.backend.application.dto.request.book.chapter.ChapterCreateRequest;
+import com.backend.application.dto.request.book.chapter.ChapterMergeRequest;
 import com.backend.application.dto.request.book.chapter.ChapterGenerateAudioRequest;
 import com.backend.application.dto.request.book.chapter.ChapterUpdateRequest;
 import com.backend.presentation.dto.ApiResponse;
@@ -73,6 +74,16 @@ public class ChapterController {
         @Validated @RequestBody ChapterUpdateRequest req) {
         chapterService.update(bookId, chapterId, req);
         return ResponseEntity.ok(ApiResponse.builder().build());
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/merge")
+    public ResponseEntity<ApiResponse<ChapterResponse>> mergeChapters(
+        @PathVariable Long bookId,
+        @Validated @RequestBody ChapterMergeRequest req) {
+        return ResponseEntity.ok(ApiResponse.<ChapterResponse>builder()
+            .data(chapterService.mergeChapters(bookId, req.getChapterIds()))
+            .build());
     }
 
     @PreAuthorize("hasRole('ADMIN')")

@@ -1,5 +1,6 @@
 package com.backend.presentation.controller;
 
+import com.backend.application.adapter.realtime.AdminEventStream;
 import com.backend.application.dto.request.user.LoginRequest;
 import com.backend.application.dto.response.statistics.PurchaseTrendResponse;
 import com.backend.application.dto.response.statistics.StatisticsResponse;
@@ -9,10 +10,13 @@ import com.backend.application.service.StatisticsService;
 import com.backend.domain.valueobject.BestsellerPeriod;
 import com.backend.presentation.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.CacheControl;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/admin")
@@ -21,6 +25,7 @@ public class AdminController {
 
     private final AdminService adminService;
     private final StatisticsService statisticsService;
+    private final AdminEventStream adminEventStream;
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(@Validated @RequestBody LoginRequest loginRequest) {
@@ -47,5 +52,16 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.<PurchaseTrendResponse>builder()
                 .data(statisticsService.getPurchaseTrend(period))
                 .build());
+    }
+
+//    endpoint SSE: đẩy trạng thái OCR của sách và trạng thái gen audio của chương tới trang admin
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping(value = "/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public ResponseEntity<SseEmitter> events() {
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noCache())
+                // Tắt buffering của nginx để event tới trình duyệt ngay
+                .header("X-Accel-Buffering", "no")
+                .body(adminEventStream.subscribe());
     }
 }
