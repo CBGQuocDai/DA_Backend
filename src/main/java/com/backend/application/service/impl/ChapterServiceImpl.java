@@ -1,8 +1,13 @@
 package com.backend.application.service.impl;
 
+import com.backend.domain.valueobject.UploadType;
+import com.backend.application.service.FileManagementService;
+import com.backend.application.dto.request.book.chapter.ChapterUploadAudioRequest;
 import com.backend.application.service.ChapterService;
+import com.backend.application.adapter.content.ChapterContent;
 import com.backend.application.adapter.content.ChapterContentParser;
 import com.backend.application.adapter.messaging.MessageQueue;
+import com.backend.application.adapter.realtime.AdminEventPublisher;
 import com.backend.application.adapter.repository.BookRepository;
 import com.backend.application.adapter.repository.ChapterRepository;
 import com.backend.application.dto.response.chapter.ChapterResponse;
@@ -21,9 +26,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +45,8 @@ public class ChapterServiceImpl implements ChapterService {
     private final ResponseMapper responseMapper;
     private final MessageQueue messageQueue;
     private final ChapterContentParser chapterContentParser;
+    private final FileManagementService fileManagementService;
+    private final AdminEventPublisher adminEventPublisher;
 
     @Override
     @Transactional(readOnly = true)
@@ -49,26 +61,49 @@ public class ChapterServiceImpl implements ChapterService {
     @Override
     @Transactional
     public ChapterResponse createChapter(Long bookId, ChapterCreateRequest req) {
-        // The book's row lock serializes order changes, so two requests can't take the same number
-        Book book = lockBook(bookId);
-        int last = chapterRepository.findMaxOrder(bookId).orElse(0);
+        // Khóa sách để các yêu cầu đổi thứ tự chương được xử lý lần lượt.
+        bookRepository.findBookOverviewById(bookId)
+                .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
+        int last = chapterRepository.findMaxChapterOrder(bookId).orElse(0);
         int order = Math.min(req.getChapterOrder(), last + 1);
-        if (chapterRepository.existsByOrder(bookId, order)) {
+        if (order <= last) {
             chapterRepository.shiftOrders(bookId, order, last, 1);
         }
         Chapter chapter = Chapter.builder()
+                .bookId(bookId)
                 .title(req.getTitle().trim())
                 .chapterOrder(order)
                 .rawText("")
                 .readingSpeed(1D)
                 .build();
-        return responseMapper.toChapterResponse(chapterRepository.saveAll(List.of(chapter), book).get(0));
+        return responseMapper.toChapterResponse(chapterRepository.save(chapter));
     }
 
     @Override
     @Transactional
     public void deleteChapter(Long chapterId) {
-        chapterRepository.delete(chapterId);
+        chapterRepository.deleteById(chapterId);
+    }
+
+    @Override
+    @Transactional
+    public void uploadAudio(Long bookId, Long chapterId,
+            ChapterUploadAudioRequest request) {
+        Chapter chapter = chapterRepository.findById(chapterId).orElseThrow(
+                () -> new BusinessException(BusinessError.CHAPTER_NOT_FOUND));
+        if (!Objects.equals(chapter.getBookId(), bookId)) {
+            throw new BusinessException(BusinessError.CHAPTER_NOT_FOUND);
+        }
+        if (chapter.getStatus() == ChapterStatus.PROCESSING_AUDIO) {
+            throw new BusinessException(BusinessError.CHAPTER_AUDIO_PROCESSING);
+        }
+        var type = UploadType.AUDIO;
+        fileManagementService.verifyUpload(request.getAudioPath(), type);
+        fileManagementService.moveToPermanent(request.getAudioPath(), type);
+        chapter.setAudioUrl(type.permanentPath(request.getAudioPath()));
+        chapter.setDuration(request.getDuration());
+        chapter.setStatus(ChapterStatus.AUDIO_READY);
+        chapterRepository.update(chapter);
     }
 
     @Override
@@ -77,7 +112,8 @@ public class ChapterServiceImpl implements ChapterService {
         Book book = bookRepository.findById(req.getBookId()).orElseThrow(
                 () -> new BusinessException(BusinessError.BOOK_NOT_FOUND)
         );
-        Chapter chapter = chapterRepository.findById(req.getChapterId()).orElseThrow(
+        Chapter chapter = chapterRepository.findById(req.getChapterId())
+                .filter(candidate -> Objects.equals(candidate.getBookId(), req.getBookId())).orElseThrow(
                 () -> new BusinessException(BusinessError.CHAPTER_NOT_FOUND)
         );
         if (chapter.getRawText() == null || chapter.getRawText().isBlank()) {
@@ -85,16 +121,24 @@ public class ChapterServiceImpl implements ChapterService {
         }
 
         double readingSpeed = Objects.requireNonNullElse(req.getSpeed(), 1.0);
-        if (!chapterRepository.markProcessingAudio(chapter.getId(), readingSpeed)) {
+        if (chapter.getStatus() == ChapterStatus.PROCESSING_AUDIO) {
             throw new BusinessException(BusinessError.CHAPTER_AUDIO_PROCESSING);
         }
+
+        String jobId = UUID.randomUUID().toString();
+        chapter.setStatus(ChapterStatus.PROCESSING_AUDIO);
+        chapter.setReadingSpeed(readingSpeed);
+        chapter.setAudioJobId(jobId);
+        chapterRepository.update(chapter);
 
         log.info("Queueing audio for book {} with voiceId {} and chapter {} at speed {}",
                 book.getId(), book.getVoice() != null ? book.getVoice().getId() : null, chapter.getId(), readingSpeed);
         String text = chapter.getTitle() +" - " + chapter.getRawText().replace(Chapter.PAGE_BREAK, " ");
         GenerateAudioRequest job = GenerateAudioRequest.builder()
                 .chapterId(chapter.getId())
+                .jobId(jobId)
                 .exampleVoiceUrl(book.getVoice() != null ? book.getVoice().getExampleAudio() : "")
+                .exampleVoiceText(book.getVoice() != null ? book.getVoice().getExampleTranscript() : null)
                 .text(text)
                 .speed(readingSpeed)
                 .build();
@@ -105,18 +149,20 @@ public class ChapterServiceImpl implements ChapterService {
     @Transactional
     public void update(Long bookId, Long chapterId, ChapterUpdateRequest req) {
         if (Objects.nonNull(req.getChapterOrder())) {
-            lockBook(bookId);
+            bookRepository.findBookOverviewById(bookId)
+                    .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
         }
-        Chapter chapter = chapterRepository.findByIdAndBookId(chapterId, bookId).orElseThrow(
+        Chapter chapter = chapterRepository.findById(chapterId)
+                .filter(candidate -> Objects.equals(candidate.getBookId(), bookId)).orElseThrow(
                 () -> new BusinessException(BusinessError.CHAPTER_NOT_FOUND)
         );
         String contentJson = req.getContentJson();
         if (contentJson != null && !contentJson.isBlank()) {
-            // The document is the source of rawText, so the two columns can't disagree
+            // Lấy văn bản từ tài liệu biên tập để hai trường nội dung nhất quán.
             chapter.setRawText(chapterContentParser.extractText(contentJson));
-            chapter.setContentJson(contentJson);
+            chapter.setContentJson(chapterContentParser.withImageUrls(contentJson, path -> null));
         } else if (Objects.nonNull(req.getRawText())) {
-            // New text without a document: the old formatting no longer describes it
+            // Văn bản mới không còn tương ứng với định dạng của tài liệu cũ.
             chapter.setRawText(req.getRawText());
             chapter.setContentJson(null);
         }
@@ -129,16 +175,74 @@ public class ChapterServiceImpl implements ChapterService {
         chapterRepository.update(chapter);
     }
 
-    private Book lockBook(Long bookId) {
-        return bookRepository.findBasicByIdForUpdate(bookId).orElseThrow(
-                () -> new BusinessException(BusinessError.BOOK_NOT_FOUND)
-        );
+    @Override
+    @Transactional
+    public ChapterResponse mergeChapters(Long bookId, List<Long> chapterIds) {
+        // Khóa sách để việc đổi thứ tự chương được xử lý lần lượt
+        bookRepository.findBookOverviewById(bookId)
+                .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
+        LinkedHashSet<Long> ids = new LinkedHashSet<>(chapterIds);
+        if (ids.size() < 2) {
+            throw new BusinessException(BusinessError.VALIDATION_FAILED);
+        }
+
+        // Theo thứ tự chương, không theo thứ tự id gửi lên; thứ tự có thể có chỗ hở nên so theo vị trí
+        List<Chapter> bookChapters = chapterRepository.findByBookId(bookId);
+        List<Integer> positions = new ArrayList<>();
+        for (int index = 0; index < bookChapters.size(); index++) {
+            if (ids.contains(bookChapters.get(index).getId())) {
+                positions.add(index);
+            }
+        }
+        if (positions.size() != ids.size()) {
+            throw new BusinessException(BusinessError.CHAPTER_NOT_FOUND);
+        }
+        if (positions.getLast() - positions.getFirst() != positions.size() - 1) {
+            throw new BusinessException(BusinessError.CHAPTER_MERGE_NOT_CONSECUTIVE);
+        }
+
+        // Đọc lại từng chương kèm khóa ghi để không chạy song song với việc tạo audio
+        List<Chapter> merging = positions.stream()
+                .map(index -> chapterRepository.findById(bookChapters.get(index).getId())
+                        .orElseThrow(() -> new BusinessException(BusinessError.CHAPTER_NOT_FOUND)))
+                .toList();
+        List<ChapterContent> parts = new ArrayList<>();
+        List<String> cancelledJobs = new ArrayList<>();
+        for (Chapter chapter : merging) {
+            parts.add(new ChapterContent(parts.isEmpty() ? null : chapter.getTitle(),
+                    chapter.getRawText(), chapter.getContentJson()));
+            if (chapter.getStatus() == ChapterStatus.PROCESSING_AUDIO && chapter.getAudioJobId() != null) {
+                cancelledJobs.add(chapter.getAudioJobId());
+            }
+        }
+        ChapterContent merged = chapterContentParser.merge(parts);
+
+        Chapter kept = merging.getFirst();
+        kept.setRawText(merged.rawText());
+        kept.setContentJson(merged.contentJson());
+        // Nội dung đã đổi nên audio cũ không còn khớp
+        kept.setAudioUrl(null);
+        kept.setDuration(null);
+        kept.setStatus(null);
+        kept.setAudioJobId(null);
+        chapterRepository.update(kept);
+
+        Chapter last = merging.getLast();
+        merging.subList(1, merging.size()).forEach(chapter -> chapterRepository.deleteById(chapter.getId()));
+        int maxOrder = chapterRepository.findMaxChapterOrder(bookId).orElse(last.getChapterOrder());
+        if (maxOrder > last.getChapterOrder()) {
+            chapterRepository.shiftOrders(bookId, last.getChapterOrder() + 1, maxOrder, -(merging.size() - 1));
+        }
+
+        afterCommit(() -> cancelledJobs.forEach(messageQueue::cancel));
+        log.info("Merged chapters {} of book {} into chapter {}", ids, bookId, kept.getId());
+        return responseMapper.toChapterResponse(kept);
     }
 
-    /** Closes the chapter's old position and opens the new one by shifting only the chapters in between. */
+    /** Dịch các chương nằm giữa vị trí cũ và mới để giữ thứ tự liên tục. */
     private void moveChapter(Long bookId, Chapter chapter, int requestedOrder) {
         int current = chapter.getChapterOrder();
-        int target = Math.min(requestedOrder, chapterRepository.findMaxOrder(bookId).orElse(current));
+        int target = Math.min(requestedOrder, chapterRepository.findMaxChapterOrder(bookId).orElse(current));
         if (target < current) {
             chapterRepository.shiftOrders(bookId, target, current - 1, 1);
         } else if (target > current) {
@@ -153,7 +257,7 @@ public class ChapterServiceImpl implements ChapterService {
         if (result.getChapterId() == null) {
             throw new IllegalArgumentException("TTS result is missing chapterId");
         }
-        Chapter chapter = chapterRepository.findByIdForUpdate(result.getChapterId()).orElse(null);
+        Chapter chapter = chapterRepository.findById(result.getChapterId()).orElse(null);
         if (chapter == null) {
             log.warn("TTS result for unknown chapter {}, ignoring", result.getChapterId());
             return;
@@ -162,13 +266,37 @@ public class ChapterServiceImpl implements ChapterService {
             log.warn("TTS result for chapter {} in status {}, ignoring", chapter.getId(), chapter.getStatus());
             return;
         }
+        // Worker bản cũ không gửi jobId: vẫn nhận kết quả, chỉ mất khả năng phát hiện job đã bị hủy
+        if (result.getJobId() != null && !result.getJobId().equals(chapter.getAudioJobId())) {
+            // Job đã bị hủy (gộp chương) hoặc đã bị thay bằng một lần tạo audio mới
+            log.warn("TTS result of job {} for chapter {} is stale, ignoring", result.getJobId(), chapter.getId());
+            return;
+        }
+        chapter.setAudioJobId(null);
         if (result.isSuccess() && result.getAudioPath() != null && !result.getAudioPath().isBlank()) {
-            chapterRepository.updateAudio(chapter.getId(), result.getAudioPath(), result.getDuration(),
-                    ChapterStatus.AUDIO_READY);
+            chapter.setAudioUrl(result.getAudioPath());
+            chapter.setDuration(result.getDuration());
+            chapter.setStatus(ChapterStatus.AUDIO_READY);
         } else {
             log.error("TTS failed for chapter {}: {}", chapter.getId(), result.getError());
-            chapterRepository.updateAudio(chapter.getId(), chapter.getAudioUrl(), chapter.getDuration(),
-                    ChapterStatus.FAILED);
+            chapter.setStatus(ChapterStatus.FAILED);
         }
+        chapterRepository.update(chapter);
+        afterCommit(() -> adminEventPublisher.chapterStatusChanged(chapter.getBookId(), chapter.getId(),
+                chapter.getStatus(), chapter.getAudioUrl(), chapter.getDuration()));
+    }
+
+    // Chạy sau khi commit: trang admin không đọc lại phải trạng thái cũ, và giao dịch rollback thì không có gì bị gửi đi
+    private static void afterCommit(Runnable action) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            action.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                action.run();
+            }
+        });
     }
 }

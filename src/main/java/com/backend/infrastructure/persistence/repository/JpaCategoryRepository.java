@@ -15,7 +15,7 @@ import java.util.List;
 @Repository
 public interface JpaCategoryRepository extends JpaRepository<JpaCategoryEntity, Long> {
 
-    /** {@code pattern} is already lower-cased, escaped and wrapped in '%'. */
+    /** {@code pattern} đã chuyển sang chữ thường, thoát ký tự đặc biệt và bọc trong '%'. */
     @Query("""
             SELECT c FROM JpaCategoryEntity c
             WHERE LOWER(c.name) LIKE :pattern ESCAPE '\\'
@@ -29,8 +29,8 @@ public interface JpaCategoryRepository extends JpaRepository<JpaCategoryEntity, 
     boolean existsByNameIgnoreCaseAndIdNot(String name, Long id);
 
     /**
-     * Categories whose books were bought in [from, to), with their purchases in [since, from) beside them;
-     * a book in several categories counts in each.
+     * Thống kê thể loại có sách được mua trong [from, to), kèm lượt mua trong kỳ trước [since, from);
+     * sách thuộc nhiều thể loại được tính vào từng thể loại.
      */
     @Query("""
             SELECT c.id AS id, c.name AS name,

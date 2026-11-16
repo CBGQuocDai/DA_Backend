@@ -20,5 +20,8 @@ public class JpaVoiceEntity {
     @Column(name = "example_audio")
     private String exampleAudio;
 
+    @Column(name = "example_transcript", length = 1000)
+    private String exampleTranscript;
+
     private String description;
 }

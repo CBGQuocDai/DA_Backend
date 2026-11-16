@@ -3,7 +3,6 @@ package com.backend.infrastructure.persistence.adapter;
 import com.backend.application.adapter.repository.AdminRepository;
 import com.backend.infrastructure.persistence.mapper.AdminMapper;
 import com.backend.domain.model.Admin;
-import com.backend.infrastructure.persistence.entity.JpaAdminEntity;
 import com.backend.infrastructure.persistence.repository.JpaAdminRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -29,14 +28,4 @@ public class AdminRepositoryAdapter implements AdminRepository {
                 .map(adminMapper::toDomain);
     }
 
-    @Override
-    public Admin save(Admin admin) {
-        JpaAdminEntity saved = jpaAdminRepository.save(adminMapper.toEntity(admin));
-        return adminMapper.toDomain(saved);
-    }
-
-    @Override
-    public boolean existsByEmail(String email) {
-        return jpaAdminRepository.existsByEmail(email);
-    }
 }

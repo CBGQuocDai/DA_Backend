@@ -2,6 +2,7 @@ package com.backend.infrastructure.security;
 
 import com.backend.application.adapter.security.TokenProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -70,15 +71,18 @@ public class SecurityConfig {
                             "Access denied: " + accessDeniedException.getMessage()));
                 }))
             .authorizeHttpRequests(auth -> auth
+                // Async dispatch của SSE (khi kết nối đóng) không đi qua JwtAuthenticationFilter;
+                // request gốc đã được xác thực nên không kiểm tra lại
+                .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/review/*/me").hasRole("CUSTOMER")
+                .requestMatchers(HttpMethod.GET, "/reviews/*/me").hasRole("CUSTOMER")
                 // /health/** gồm cả /health/liveness, /health/readiness mà Kubernetes probe gọi
                 .requestMatchers(HttpMethod.GET,
                     "/health", "/health/**",
-                    "/books/catalog", "/books/*/overview", "/books/*/chapters/page",
+                    "/books/catalog", "/books/recommendations", "/books/*/overview", "/books/*/chapters/list",
                     "/categories", "/categories/**",
                     "/authors", "/authors/**",
-                    "/review/**"
+                    "/reviews/**"
                 ).permitAll()
                 // .requestMatchers(HttpMethod.GET,
                 //     "/health", "/health/**"

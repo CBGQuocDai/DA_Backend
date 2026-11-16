@@ -28,15 +28,13 @@ public interface BookService {
 
     void unpublishBook(Long bookId);
 
-    PageResponse<BookResponse> getBooksByCategory(Long categoryId, int page, int size);
-
-    // chức năng của client
-    PageResponse<BookResponse> getCustomerBooks(String bookName, Long categoryId, Long authorId,
-        int page, int size);
+// chức năng customer
 
     CustomerBookOverviewResponse getCustomerBookOverview(Long bookId);
 
-    PageResponse<CustomerChapterResponse> getCustomerChapters(Long bookId, int page, int size);
+    List<CustomerChapterResponse> getCustomerChapters(Long bookId);
+
+    PageResponse<BookResponse> getCustomerBooks(String bookName, Long categoryId, Long authorId, int page, int size);
 
     /** Admin dashboard: the most purchased books in the period, each with the period before it. */
     List<BookResponse> getBestsellers(BestsellerPeriod period);

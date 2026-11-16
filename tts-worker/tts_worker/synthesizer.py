@@ -23,9 +23,10 @@ class OmniVoiceSynthesizer:
         dtype = torch.float16 if device != "cpu" else torch.float32
         self._model = OmniVoice.from_pretrained(model_name, device_map=device, dtype=dtype)
 
-    def synthesize(self, text: str, speed: float, ref_audio: str | None, out_path: str) -> Synthesized:
+    def synthesize(self, text: str, speed: float, ref_audio: str | None, out_path: str,
+                   ref_text: str | None = None) -> Synthesized:
         wav = self._model.generate(
-            text=text, language=self._language, ref_audio=ref_audio, speed=speed
+            text=text, language=self._language, ref_audio=ref_audio, ref_text=ref_text, speed=speed
         )[0]
         sr = self._model.sampling_rate
         sf.write(out_path, wav, sr)

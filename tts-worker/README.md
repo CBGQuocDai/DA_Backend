@@ -2,6 +2,7 @@
 
 Consume `tts.jobs` → sinh audio → upload GCS → publish `tts.results`.
 Định dạng message: `docs/superpowers/specs/2026-10-29-tts-async-queue-design.md`.
+Hủy job: backend phát `{"jobId"}` lên fanout exchange `tts.cancel` (xem `docs/superpowers/specs/2026-11-15-merge-chapters-design.md`); worker bỏ qua job đó nếu chưa chạy và không upload nếu bị hủy giữa chừng.
 
 ## Chạy local
 ```bash

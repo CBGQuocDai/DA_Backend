@@ -5,11 +5,12 @@ import com.backend.infrastructure.persistence.entity.JpaChapterEntity;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring", uses = {BookMapper.class, AttachFileMapper.class})
+@Mapper(componentModel = "spring", uses = BookMapper.class)
 public interface ChapterMapper {
 
     Chapter toDomain(JpaChapterEntity entity);
 
-    @Mapping(target = "attachFileId", source = "attachFile.id")
+    // Quan hệ book chỉ dùng để đọc; khóa ngoại được ánh xạ từ bookId của domain.
+    @Mapping(target = "book", ignore = true)
     JpaChapterEntity toEntity(Chapter domain);
 }

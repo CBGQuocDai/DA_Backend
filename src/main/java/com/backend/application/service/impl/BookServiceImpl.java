@@ -51,7 +51,6 @@ public class BookServiceImpl implements BookService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<BookResponse> getCustomerBooks(String bookName, Long categoryId, Long authorId, int page, int size) {
-        validateCustomerPagination(page, size);
         return responseMapper.toPageResponse(
                 bookRepository.findAllWithStats(bookName, categoryId, authorId, BookStatus.PUBLISHED, page, size),
                 responseMapper::toBookResponse);
@@ -60,45 +59,25 @@ public class BookServiceImpl implements BookService {
     @Override
     @Transactional(readOnly = true)
     public CustomerBookOverviewResponse getCustomerBookOverview(Long bookId) {
-        Book book = requirePublished(bookRepository.findDetailWithoutChapters(bookId).orElse(null));
-        var firstPage = chapterRepository.findCustomerPageByBookId(bookId, 0, 1);
+        Book book = bookRepository.findById(bookId)
+                .filter(candidate -> candidate.getStatus() == BookStatus.PUBLISHED)
+                .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
+        var chapters = book.getChapters();
         return CustomerBookOverviewResponse.builder()
                 .book(responseMapper.toBookResponse(book))
-                .chapterCount(firstPage.getTotal())
-                .totalDuration(chapterRepository.sumDurationByBookId(bookId))
-                .firstChapter(firstPage.getContent().isEmpty() ? null : toCustomerChapter(firstPage.getContent().get(0)))
+                .chapterCount(chapters.size())
+                .totalDuration(chapters.stream().mapToLong(chapter -> chapter.getDuration() == null ? 0 : chapter.getDuration()).sum())
+                .firstChapter(chapters.isEmpty() ? null : responseMapper.toCustomerChapter(chapters.getFirst()))
                 .build();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<CustomerChapterResponse> getCustomerChapters(Long bookId, int page, int size) {
-        validateCustomerPagination(page, size);
-        requirePublished(bookRepository.findBasicById(bookId).orElse(null));
-        return responseMapper.toPageResponse(
-                chapterRepository.findCustomerPageByBookId(bookId, page, size), this::toCustomerChapter);
-    }
-
-    private void validateCustomerPagination(int page, int size) {
-        if (page < 0 || size < 1 || size > 100 || (long) page * size > Integer.MAX_VALUE) {
-            throw new BusinessException(BusinessError.VALIDATION_FAILED);
-        }
-    }
-
-    private Book requirePublished(Book book) {
-        if (book == null || book.getStatus() != BookStatus.PUBLISHED) {
-            throw new BusinessException(BusinessError.BOOK_NOT_FOUND);
-        }
-        return book;
-    }
-
-    private CustomerChapterResponse toCustomerChapter(Chapter chapter) {
-        String audio = chapter.getAudioUrl();
-        return CustomerChapterResponse.builder()
-                .id(chapter.getId()).title(chapter.getTitle()).chapterOrder(chapter.getChapterOrder())
-                .duration(chapter.getDuration()).status(chapter.getStatus())
-                .audioUrl(audio == null || audio.isBlank() ? null : responseMapper.signUrl(audio))
-                .build();
+    public List<CustomerChapterResponse> getCustomerChapters(Long bookId) {
+        bookRepository.findById(bookId)
+                .filter(candidate -> candidate.getStatus() == BookStatus.PUBLISHED)
+                .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
+        return chapterRepository.findByBookId(bookId).stream().map(responseMapper::toCustomerChapter).toList();
     }
 
     @Override
@@ -107,12 +86,6 @@ public class BookServiceImpl implements BookService {
         return responseMapper.toPageResponse(
                 bookRepository.findAllWithStats(bookName, categoryId, authorId, status, page, size),
                 responseMapper::toBookResponse);
-    }
-
-    @Override
-    public PageResponse<BookResponse> getBooksByCategory(Long categoryId, int page, int size) {
-        return responseMapper.toPageResponse(
-                bookRepository.findByCategoryId(categoryId, page, size), responseMapper::toBookResponse);
     }
 
     @Override

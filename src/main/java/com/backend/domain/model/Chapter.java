@@ -17,6 +17,7 @@ public class Chapter {
     public static final String PAGE_BREAK = "-------------page_break------------------";
 
     private Long id;
+    private Long bookId;
     private String title;
     private Integer chapterOrder;
     private Integer duration; // seconds
@@ -25,5 +26,6 @@ public class Chapter {
     private String contentJson; // editor document with formatting; when set, rawText is derived from it
     private Double readingSpeed;
     private ChapterStatus status;
-    private AttachFile attachFile;
+    /** Mã job TTS đang chạy; kết quả mang mã khác (job đã hủy hoặc đã bị thay) bị bỏ qua. */
+    private String audioJobId;
 }

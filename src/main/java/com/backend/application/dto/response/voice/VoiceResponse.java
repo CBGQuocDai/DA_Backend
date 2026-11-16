@@ -13,4 +13,5 @@ public class VoiceResponse {
     private String name;
     private String description;
     private FileResponse exampleAudio;
+    private String exampleTranscript;
 }

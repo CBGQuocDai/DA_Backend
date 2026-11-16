@@ -1,6 +1,6 @@
 package com.backend.presentation.controller;
 
-import com.backend.application.dto.request.user.ChangePasswordRequest;
+import com.backend.application.adapter.realtime.AdminEventStream;
 import com.backend.application.dto.request.user.LoginRequest;
 import com.backend.application.dto.response.statistics.PurchaseTrendResponse;
 import com.backend.application.dto.response.statistics.StatisticsResponse;
@@ -10,10 +10,13 @@ import com.backend.application.service.StatisticsService;
 import com.backend.domain.valueobject.BestsellerPeriod;
 import com.backend.presentation.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.CacheControl;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/admin")
@@ -22,38 +25,43 @@ public class AdminController {
 
     private final AdminService adminService;
     private final StatisticsService statisticsService;
+    private final AdminEventStream adminEventStream;
 
     @PostMapping("/login")
-    public ApiResponse<LoginResponse> login(@Validated @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<ApiResponse<LoginResponse>> login(@Validated @RequestBody LoginRequest loginRequest) {
         LoginResponse data = adminService.login(loginRequest);
-        return ApiResponse.<LoginResponse>builder()
+        return ResponseEntity.ok(ApiResponse.<LoginResponse>builder()
                 .data(data)
-                .build();
+                .build());
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/change-password")
-    public ApiResponse<Void> changePassword(@AuthenticationPrincipal Long adminId,
-                                            @Validated @RequestBody ChangePasswordRequest request) {
-        adminService.changePassword(adminId, request);
-        return ApiResponse.<Void>builder().message("Đổi mật khẩu thành công").build();
-    }
-
+//    endpoint thống kê doanh thu
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/statistics")
-    public ApiResponse<StatisticsResponse> getStatistics(@RequestParam(defaultValue = "12") int months) {
-        return ApiResponse.<StatisticsResponse>builder()
+    public ResponseEntity<ApiResponse<StatisticsResponse>> getStatistics(@RequestParam(defaultValue = "12") int months) {
+        return ResponseEntity.ok(ApiResponse.<StatisticsResponse>builder()
                 .data(statisticsService.getStatistics(months))
-                .build();
+                .build());
     }
 
-    /** All purchases in the period against the one before; bestseller books and categories have their own endpoints. */
+//    endpoint thống kê sách bán chạy
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/statistics/purchases")
-    public ApiResponse<PurchaseTrendResponse> getPurchaseTrend(
+    public ResponseEntity<ApiResponse<PurchaseTrendResponse>> getPurchaseTrend(
             @RequestParam(defaultValue = "MONTH") BestsellerPeriod period) {
-        return ApiResponse.<PurchaseTrendResponse>builder()
+        return ResponseEntity.ok(ApiResponse.<PurchaseTrendResponse>builder()
                 .data(statisticsService.getPurchaseTrend(period))
-                .build();
+                .build());
+    }
+
+//    endpoint SSE: đẩy trạng thái OCR của sách và trạng thái gen audio của chương tới trang admin
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping(value = "/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public ResponseEntity<SseEmitter> events() {
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noCache())
+                // Tắt buffering của nginx để event tới trình duyệt ngay
+                .header("X-Accel-Buffering", "no")
+                .body(adminEventStream.subscribe());
     }
 }

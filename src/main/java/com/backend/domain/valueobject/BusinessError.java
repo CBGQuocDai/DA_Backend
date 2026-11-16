@@ -60,6 +60,7 @@ public enum BusinessError {
     CHAPTER_AUDIO_PROCESSING(4014, "Chương đang được tạo audio, vui lòng đợi", HttpStatus.CONFLICT),
     CHAPTER_TEXT_EMPTY(4015, "Chương chưa có nội dung để tạo audio", HttpStatus.BAD_REQUEST),
     CHAPTER_CONTENT_INVALID(4016, "Nội dung chương không hợp lệ", HttpStatus.BAD_REQUEST),
+    CHAPTER_MERGE_NOT_CONSECUTIVE(4017, "Chỉ gộp được các chương liền nhau", HttpStatus.BAD_REQUEST),
 
 //  Author / category error
     AUTHOR_NOT_FOUND(4021, "Không tìm thấy tác giả", HttpStatus.NOT_FOUND),
