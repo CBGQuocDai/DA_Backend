@@ -1,3 +1,4 @@
+import json
 import logging
 import threading
 import time
@@ -5,7 +6,7 @@ import time
 import pika
 
 from .config import Config
-from .service import TtsService
+from .service import CANCELLED, TtsService
 
 log = logging.getLogger(__name__)
 
@@ -14,6 +15,7 @@ JOB_QUEUE = "tts.jobs"
 RESULT_QUEUE = "tts.results"
 DEAD_LETTER_EXCHANGE = "tts.dlx"
 RESULT_DLQ = "tts.results.dlq"
+CANCEL_EXCHANGE = "tts.cancel"
 
 
 class RabbitMqConsumer:
@@ -45,6 +47,9 @@ class RabbitMqConsumer:
             if result is None:
                 ch.basic_nack(tag, requeue=False)
                 return
+            if result is CANCELLED:
+                ch.basic_ack(tag)  # backend đã bỏ job này, không cần báo lại
+                return
             ch.basic_publish(
                 EXCHANGE, RESULT_QUEUE, result.to_json(),
                 pika.BasicProperties(content_type="application/json",
@@ -58,6 +63,19 @@ class RabbitMqConsumer:
                 conn.add_callback_threadsafe(lambda: finish(method.delivery_tag, result))
             threading.Thread(target=run, daemon=True).start()
 
+        def on_cancel(_ch, _method, _props, body):
+            try:
+                job_id = json.loads(body)["jobId"]
+            except (ValueError, KeyError, TypeError):
+                log.warning("Lệnh hủy không hợp lệ: %r", body[:200])
+                return
+            self._service.cancelled.add(job_id)
+            log.info("Nhận lệnh hủy job %s", job_id)
+
+        # Queue riêng của worker này, tự xóa khi mất kết nối; chỉ cần lệnh hủy đến sau lúc kết nối
+        cancel_queue = ch.queue_declare("", exclusive=True, auto_delete=True).method.queue
+        ch.queue_bind(cancel_queue, CANCEL_EXCHANGE)
+        ch.basic_consume(cancel_queue, on_cancel, auto_ack=True)
         ch.basic_consume(JOB_QUEUE, on_message)
         log.info("Đang chờ job trên %s", JOB_QUEUE)
         try:
@@ -71,6 +89,7 @@ class RabbitMqConsumer:
         """Khai báo đúng tham số như backend (RabbitMqConfig) để không bị PRECONDITION_FAILED."""
         ch.exchange_declare(EXCHANGE, exchange_type="direct", durable=True)
         ch.exchange_declare(DEAD_LETTER_EXCHANGE, exchange_type="direct", durable=True)
+        ch.exchange_declare(CANCEL_EXCHANGE, exchange_type="fanout", durable=True)
 
         ch.queue_declare(JOB_QUEUE, durable=True)
         ch.queue_bind(JOB_QUEUE, EXCHANGE, JOB_QUEUE)

@@ -1,39 +1,43 @@
 package com.backend.infrastructure.ocr;
 
-import com.backend.application.adapter.repository.BookRepository;
-import com.backend.application.adapter.repository.ChapterRepository;
-import com.backend.application.adapter.storage.StorageService;
-import com.backend.domain.model.Book;
-import com.backend.domain.model.Chapter;
-import com.backend.domain.valueobject.BookStatus;
+import com.backend.application.adapter.ocr.OcrBlock;
+import com.backend.application.adapter.ocr.OcrBlock.TextKind;
+import com.backend.application.adapter.ocr.OcrService;
 import com.google.cloud.documentai.v1.*;
 import com.google.cloud.documentai.v1.Document.DocumentLayout.DocumentLayoutBlock;
-import com.backend.application.adapter.ocr.OcrService;
+import com.google.cloud.documentai.v1.Document.DocumentLayout.DocumentLayoutBlock.LayoutImageBlock;
+import com.google.cloud.documentai.v1.Document.DocumentLayout.DocumentLayoutBlock.LayoutTableBlock;
+import com.google.cloud.documentai.v1.Document.DocumentLayout.DocumentLayoutBlock.LayoutTableRow;
 import com.google.protobuf.ByteString;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+/** Nhận dạng PDF bằng Document AI (layout parser), chia file thành từng đoạn để không vượt giới hạn số trang. */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class OcrServiceImpl implements OcrService {
 
     private static final int MAX_PAGES_PER_CHUNK = 30;
     private static final String HEADING_PREFIX = "heading-";
-    private static final String PAGE_BREAK = "\n" + Chapter.PAGE_BREAK + "\n";
-    private static final String DEFAULT_TITLE = "Mở đầu";
-    private static final int MAX_TITLE_LENGTH = 255;
+    // Ảnh được trả về trong response và, cũng như bảng, kèm mô tả do LLM viết
+    private static final ProcessOptions PROCESS_OPTIONS = ProcessOptions.newBuilder()
+            .setLayoutConfig(ProcessOptions.LayoutConfig.newBuilder()
+                    .setReturnImages(true)
+                    .setEnableImageAnnotation(true)
+                    .setEnableTableAnnotation(true))
+            .build();
 
     @Value("${gcp.documentai.processor-id}")
     private String processorId;
@@ -45,12 +49,6 @@ public class OcrServiceImpl implements OcrService {
     private String location;
 
     private DocumentProcessorServiceClient client;
-
-    private final BookRepository bookRepository;
-
-    private final ChapterRepository chapterRepository;
-
-    private final StorageService storageService;
 
     @PostConstruct
     public void init() {
@@ -72,27 +70,8 @@ public class OcrServiceImpl implements OcrService {
     }
 
     @Override
-    @Async
-    public void processDocumentAsync(Book book) {
-        try {
-            List<Chapter> chapters = extractChapters(storageService.load(book.getContentFile()));
-            if (chapters.isEmpty()) {
-                throw new IllegalStateException("No chapters extracted from document");
-            }
-
-            chapters.forEach(chapter -> chapter.setBookId(book.getId()));
-            chapterRepository.saveAll(chapters);
-            log.info("Saved {} chapters for book {}", chapters.size(), book.getId());
-            updateStatus(book, BookStatus.UNPUBLISHED);
-        } catch (Exception e) {
-            log.error("Error processing document for book: {}", book.getId(), e);
-            updateStatus(book, BookStatus.FAILED);
-        }
-    }
-
-    private List<Chapter> extractChapters(byte[] pdf) throws IOException {
-        List<List<DocumentLayoutBlock>> chunks = new ArrayList<>();
-
+    public List<OcrBlock> recognize(byte[] pdf) {
+        List<OcrBlock> blocks = new ArrayList<>();
         try (PDDocument fullDocument = Loader.loadPDF(pdf)) {
             int totalPages = fullDocument.getNumberOfPages();
             log.info("Processing PDF with {} pages, chunk size: {}", totalPages, MAX_PAGES_PER_CHUNK);
@@ -101,15 +80,16 @@ public class OcrServiceImpl implements OcrService {
                 int chunkEnd = Math.min(chunkStart + MAX_PAGES_PER_CHUNK, totalPages);
                 log.info("Processing chunk: pages {}-{}", chunkStart + 1, chunkEnd);
 
-                chunks.add(flattenBlocks(processChunk(fullDocument, chunkStart, chunkEnd)));
+                Document document = processChunk(fullDocument, chunkStart, chunkEnd);
+                // Số trang Document AI trả về tính trong từng đoạn; cộng thêm để thành số trang trên cả file
+                int pageOffset = chunkStart;
+                document.getDocumentLayout().getBlocksList()
+                        .forEach(block -> collectBlocks(block, document, pageOffset, blocks));
             }
+        } catch (IOException e) {
+            throw new IllegalStateException("Could not read PDF for OCR", e);
         }
-        return buildChapters(chunks);
-    }
-
-    private void updateStatus(Book book, BookStatus status) {
-        book.setStatus(status);
-        bookRepository.update(book);
+        return blocks;
     }
 
     private Document processChunk(PDDocument source, int startPage, int endPage) throws IOException {
@@ -120,6 +100,7 @@ public class OcrServiceImpl implements OcrService {
         ProcessRequest request = ProcessRequest.newBuilder()
                 .setName(getProcessorName())
                 .setRawDocument(rawDocument)
+                .setProcessOptions(PROCESS_OPTIONS)
                 .build();
         return client.processDocument(request).getDocument();
     }
@@ -136,103 +117,98 @@ public class OcrServiceImpl implements OcrService {
         }
     }
 
-    private static List<DocumentLayoutBlock> flattenBlocks(Document document) {
-        List<DocumentLayoutBlock> blocks = new ArrayList<>();
-        document.getDocumentLayout().getBlocksList().forEach(block -> collectTextBlocks(block, blocks));
-        return blocks;
-    }
-
-    private static void collectTextBlocks(DocumentLayoutBlock block, List<DocumentLayoutBlock> out) {
+    private static void collectBlocks(DocumentLayoutBlock block, Document document, int pageOffset,
+                                      List<OcrBlock> out) {
+        int page = pageOffset + block.getPageSpan().getPageStart();
         if (block.hasTextBlock()) {
-            out.add(block);
-            block.getTextBlock().getBlocksList().forEach(child -> collectTextBlocks(child, out));
+            String type = block.getTextBlock().getType().toLowerCase();
+            out.add(new OcrBlock.Text(page, kindOf(type), block.getTextBlock().getText().trim()));
+            block.getTextBlock().getBlocksList()
+                    .forEach(child -> collectBlocks(child, document, pageOffset, out));
         } else if (block.hasListBlock()) {
-            block.getListBlock().getListEntriesList()
-                    .forEach(entry -> entry.getBlocksList().forEach(child -> collectTextBlocks(child, out)));
+            block.getListBlock().getListEntriesList().forEach(entry -> entry.getBlocksList()
+                    .forEach(child -> collectBlocks(child, document, pageOffset, out)));
+        } else if (block.hasImageBlock()) {
+            LayoutImageBlock image = block.getImageBlock();
+            OcrBlock.Image result = toImage(page, image, document);
+            if (result != null) {
+                out.add(result);
+            }
+        } else if (block.hasTableBlock()) {
+            LayoutTableBlock table = block.getTableBlock();
+            List<List<String>> rows = Stream.concat(table.getHeaderRowsList().stream(), table.getBodyRowsList().stream())
+                    .map(OcrServiceImpl::cellTexts)
+                    .toList();
+            if (rows.stream().flatMap(List::stream).anyMatch(cell -> !cell.isEmpty())) {
+                out.add(new OcrBlock.Table(page, rows, table.getHeaderRowsCount(),
+                        table.getAnnotations().getDescription().trim()));
+            }
         }
     }
 
-    private static List<Chapter> buildChapters(List<List<DocumentLayoutBlock>> chunks) {
-        List<Chapter> chapters = new ArrayList<>();
-        List<String> titleParts = new ArrayList<>();
-        StringBuilder body = new StringBuilder();
-
-        for (List<DocumentLayoutBlock> chunk : chunks) {
-            // Page numbers restart at 1 in every OCR chunk.
-            int currentPage = 0;
-            boolean pageHasBody = false;
-            boolean pageHasHeading = false;
-            boolean pageBroken = false;
-
-            for (DocumentLayoutBlock block : chunk) {
-                int page = block.getPageSpan().getPageStart();
-                if (page > currentPage) {
-                    if (currentPage > 0 && !pageBroken && !body.isEmpty()) {
-                        body.append(PAGE_BREAK);
-                    }
-                    pageBroken = false;
-                    currentPage = page;
-                    pageHasBody = false;
-                    pageHasHeading = false;
-                }
-
-                String type = block.getTextBlock().getType().toLowerCase();
-                String text = block.getTextBlock().getText().trim();
-
-                if ("header".equals(type)) {
-                    continue;
-                }
-                if ("footer".equals(type)) {
-                    if (!pageBroken) {
-                        body.append(PAGE_BREAK);
-                        pageBroken = true;
-                    }
-                    continue;
-                }
-                if (text.isEmpty()) {
-                    continue;
-                }
-
-                if (type.startsWith(HEADING_PREFIX) && !pageHasBody) {
-                    if (!pageHasHeading) {
-                        addChapter(chapters, titleParts, body, false);
-                        pageHasHeading = true;
-                    }
-                    titleParts.add(text);
-                } else {
-                    pageHasBody = true;
-                    body.append(text).append('\n');
-                }
-            }
-            if (currentPage > 0 && !pageBroken && !body.isEmpty()) {
-                body.append(PAGE_BREAK);
-            }
+    private static TextKind kindOf(String type) {
+        if (type.startsWith(HEADING_PREFIX)) {
+            return TextKind.HEADING;
         }
-        addChapter(chapters, titleParts, body, true);
-        return chapters;
+        return switch (type) {
+            case "header" -> TextKind.HEADER;
+            case "footer" -> TextKind.FOOTER;
+            default -> TextKind.BODY;
+        };
     }
 
-    private static void addChapter(List<Chapter> chapters, List<String> titleParts, StringBuilder body,
-                                   boolean last) {
-        String rawText = body.toString().isBlank() ? "" : body.toString().trim();
-        if (rawText.isEmpty() && (!last || titleParts.isEmpty())) {
-            body.setLength(0);
-            return;
+    /** Nội dung ảnh của block, null nếu block không có ảnh dùng được. */
+    private static OcrBlock.Image toImage(int page, LayoutImageBlock image, Document document) {
+        byte[] content = null;
+        String mimeType = image.getMimeType();
+        if (image.hasBlobAssetId()) {
+            Document.BlobAsset asset = document.getBlobAssetsList().stream()
+                    .filter(candidate -> candidate.getAssetId().equals(image.getBlobAssetId()))
+                    .findFirst().orElse(null);
+            if (asset != null) {
+                content = asset.getContent().toByteArray();
+                if (mimeType.isEmpty()) {
+                    mimeType = asset.getMimeType();
+                }
+            }
+        } else if (image.hasDataUri()) {
+            // data:<mime type>;base64,<content>
+            String dataUri = image.getDataUri();
+            int comma = dataUri.indexOf(',');
+            if (comma > 0 && dataUri.substring(0, comma).endsWith(";base64")) {
+                content = Base64.getDecoder().decode(dataUri.substring(comma + 1));
+                if (mimeType.isEmpty()) {
+                    mimeType = dataUri.substring("data:".length(), comma - ";base64".length());
+                }
+            }
         }
-
-        String title = titleParts.isEmpty() ? DEFAULT_TITLE : String.join(" - ", titleParts);
-        if (title.length() > MAX_TITLE_LENGTH) {
-            title = title.substring(0, MAX_TITLE_LENGTH);
+        if (content == null || content.length == 0) {
+            log.warn("Skipping OCR image without content (mime type '{}')", mimeType);
+            return null;
         }
+        return new OcrBlock.Image(page, content, mimeType, image.getAnnotations().getDescription().trim());
+    }
 
-        chapters.add(Chapter.builder()
-                .title(title)
-                .readingSpeed(1D)
-                .chapterOrder(chapters.size())
-                .rawText(rawText.isEmpty() ? title : rawText)
-                .build());
+    private static List<String> cellTexts(LayoutTableRow row) {
+        return row.getCellsList().stream()
+                .map(cell -> cell.getBlocksList().stream()
+                        .flatMap(OcrServiceImpl::texts)
+                        .collect(Collectors.joining(" ")))
+                .toList();
+    }
 
-        titleParts.clear();
-        body.setLength(0);
+    /** Mọi đoạn văn bản không rỗng trong block, theo thứ tự đọc. */
+    private static Stream<String> texts(DocumentLayoutBlock block) {
+        if (block.hasTextBlock()) {
+            return Stream.concat(Stream.of(block.getTextBlock().getText().trim()),
+                            block.getTextBlock().getBlocksList().stream().flatMap(OcrServiceImpl::texts))
+                    .filter(text -> !text.isEmpty());
+        }
+        if (block.hasListBlock()) {
+            return block.getListBlock().getListEntriesList().stream()
+                    .flatMap(entry -> entry.getBlocksList().stream())
+                    .flatMap(OcrServiceImpl::texts);
+        }
+        return Stream.empty();
     }
 }

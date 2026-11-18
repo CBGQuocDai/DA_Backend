@@ -20,6 +20,17 @@ public interface ChapterService {
     void update(Long bookId, Long chapterId, ChapterUpdateRequest req);
     void deleteChapter(Long chapterId);
 
+    /**
+     * Gộp các chương liền nhau vào chương có thứ tự nhỏ nhất: giữ tiêu đề của nó, nối nội dung các chương sau
+     * (mỗi chương mở đầu bằng tiêu đề của nó), xóa audio và hủy job TTS đang chạy của các chương đó.
+     */
+    ChapterResponse mergeChapters(Long bookId, List<Long> chapterIds);
+
+    /**
+     * File PDF ảnh và bảng của chương. Admin xem mọi chương; người dùng khác xem được các chương miễn phí
+     * ({@code userId} có thể null khi chưa đăng nhập), còn các chương sau cần đã mua sách.
+     */
+    byte[] getAttachmentsPdf(Long userId, boolean isAdmin, Long bookId, Long chapterId);
 
     //    hàm xử lý event khi tts báo gen audio xong
     void handleAudioResult(GenerateAudioResult result);

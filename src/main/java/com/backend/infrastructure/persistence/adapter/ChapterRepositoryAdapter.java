@@ -39,6 +39,12 @@ public class ChapterRepositoryAdapter implements ChapterRepository {
 
     @Override
     @Transactional(readOnly = true)
+    public Optional<String> findContentById(Long id) {
+        return jpaChapterRepository.findContentById(id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Optional<Integer> findMaxChapterOrder(Long bookId) {
         return jpaChapterRepository.findMaxChapterOrder(bookId);
     }
@@ -66,9 +72,8 @@ public class ChapterRepositoryAdapter implements ChapterRepository {
     @Transactional
     public Chapter update(Chapter chapter) {
         jpaChapterRepository.updateChapter(chapter.getId(), chapter.getTitle(), chapter.getChapterOrder(),
-                chapter.getDuration(), chapter.getAudioUrl(), chapter.getRawText(), chapter.getContentJson(),
-                chapter.getStatus(), chapter.getAttachFile() == null ? null : chapter.getAttachFile().getId(),
-                chapter.getReadingSpeed());
+                chapter.getDuration(), chapter.getAudioUrl(), chapter.getContent(),
+                chapter.getStatus(), chapter.getReadingSpeed(), chapter.getAudioJobId());
         return chapter;
     }
 

@@ -7,6 +7,7 @@ import com.backend.application.dto.response.progress.BookProgressResponse.Chapte
 import com.backend.application.dto.response.progress.BookProgressResponse.Resume;
 import com.backend.application.service.ListenProgressService;
 import com.backend.domain.exception.BusinessException;
+import com.backend.domain.model.Book;
 import com.backend.domain.model.ListenProgress;
 import com.backend.domain.valueobject.*;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +24,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ListenProgressServiceImpl implements ListenProgressService {
 
-    private static final int PREVIEW_CHAPTERS = 3;
     private final ListenProgressRepository progressRepository;
     private final CustomerRepository customerRepository;
     private final BookRepository bookRepository;
@@ -71,7 +71,7 @@ public class ListenProgressServiceImpl implements ListenProgressService {
             throw new BusinessException(BusinessError.CHAPTER_NOT_FOUND);
         }
         boolean owned = customerBookRepository.existsByCustomerIdAndBookId(customerId, bookId);
-        if (!owned && index >= PREVIEW_CHAPTERS) {
+        if (!owned && index >= Book.FREE_PREVIEW_CHAPTERS) {
             throw new BusinessException(BusinessError.FORBIDDEN);
         }
         var chapter = chapters.get(index);
@@ -112,7 +112,7 @@ public class ListenProgressServiceImpl implements ListenProgressService {
         for (int i = 0; i < chapters.size(); i++) {
             var chapter = chapters.get(i);
             var progress = saved.get(chapter.id());
-            if (progress == null || !chapter.isPlayable() || (!owned && i >= PREVIEW_CHAPTERS)) {
+            if (progress == null || !chapter.isPlayable() || (!owned && i >= Book.FREE_PREVIEW_CHAPTERS)) {
                 continue;
             }
             positions.add(new ChapterProgress(chapter.id(), i,
@@ -139,8 +139,7 @@ public class ListenProgressServiceImpl implements ListenProgressService {
         boolean atEnd =
             latest.isComplete() && latest.lastPlayAt() >= chapters.get(index).duration() - 1;
         int next = index + 1;
-        if (atEnd && next < chapters.size() && (owned || next < PREVIEW_CHAPTERS)
-            && chapters.get(next).isPlayable()) {
+        if (atEnd && next < chapters.size() && owned && chapters.get(next).isPlayable()) {
             index = next;
         }
         var target = chapters.get(index);

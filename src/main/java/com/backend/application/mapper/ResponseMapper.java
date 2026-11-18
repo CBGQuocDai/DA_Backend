@@ -7,11 +7,14 @@ import com.backend.application.dto.response.book.BookCategoryResponse;
 import com.backend.application.dto.response.book.BookResponse;
 import com.backend.application.dto.response.category.CategoryResponse;
 import com.backend.application.dto.response.chapter.ChapterResponse;
+import com.backend.application.dto.response.chapter.CustomerChapterResponse;
 import com.backend.application.dto.response.file.FileResponse;
 import com.backend.application.dto.response.payment.PaymentResponse;
 import com.backend.application.dto.response.review.ReviewResponse;
 import com.backend.application.dto.response.voice.VoiceResponse;
+import com.backend.application.adapter.content.ChapterContentService;
 import com.backend.application.adapter.storage.StorageService;
+import com.backend.domain.exception.BusinessException;
 import com.backend.domain.model.Author;
 import com.backend.domain.model.Book;
 import com.backend.domain.model.BookAuthor;
@@ -24,6 +27,7 @@ import com.backend.domain.model.Customer;
 import com.backend.domain.model.Payment;
 import com.backend.domain.model.Review;
 import com.backend.domain.model.Voice;
+import com.backend.domain.valueobject.PlaybackChapter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -38,6 +42,7 @@ public class ResponseMapper {
     private static final long SIGNED_URL_TTL_MINUTES = 60L;
 
     private final StorageService storageService;
+    private final ChapterContentService chapterContentService;
 
     public <T, R> PageResponse<R> toPageResponse(PageResponse<T> page, Function<T, R> mapper) {
         return PageResponse.<R>builder()
@@ -58,6 +63,15 @@ public class ResponseMapper {
 
     public String signUrl(String path) {
         return storageService.createSignUrl(path, SIGNED_URL_TTL_MINUTES);
+    }
+
+    public CustomerChapterResponse toCustomerChapter(PlaybackChapter chapter) {
+        String audio = chapter.audioUrl();
+        return CustomerChapterResponse.builder()
+                .id(chapter.id()).title(chapter.title()).chapterOrder(chapter.chapterOrder())
+                .duration(chapter.duration()).status(chapter.status())
+                .audioUrl(audio == null || audio.isBlank() ? null : signUrl(audio))
+                .build();
     }
 
     public BookResponse toBookResponse(Book book) {
@@ -86,6 +100,7 @@ public class ResponseMapper {
                 .name(voice.getName())
                 .description(voice.getDescription())
                 .exampleAudio(toFileResponse(voice.getExampleAudio()))
+                .exampleTranscript(voice.getExampleTranscript())
                 .build();
     }
 
@@ -96,11 +111,19 @@ public class ResponseMapper {
                 .chapterOrder(chapter.getChapterOrder())
                 .duration(chapter.getDuration())
                 .audioUrl(chapter.getAudioUrl())
-                .rawText(chapter.getRawText())
-                .contentJson(chapter.getContentJson())
+                .content(signImages(chapter.getContent()))
                 .readingSpeed(chapter.getReadingSpeed())
                 .status(chapter.getStatus())
                 .build();
+    }
+
+    private String signImages(String content) {
+        try {
+            return chapterContentService.withImageUrls(content, this::signUrl);
+        } catch (BusinessException e) {
+            // Một tài liệu hỏng không được làm cả cuốn sách không đọc được; editor tự báo lỗi khi mở chương đó.
+            return content;
+        }
     }
 
     public AuthorResponse toAuthorResponse(Author author) {

@@ -10,8 +10,8 @@ import lombok.*;
 @AllArgsConstructor
 public class ChapterUpdateRequest {
     private String title;
-    private String rawText;
-    private String contentJson;
+    /** Tài liệu biên tập của chương; null thì giữ nguyên nội dung. */
+    private String content;
     @Min(value = 0, message = "Thứ tự chương không được âm")
     private Integer chapterOrder;
 }

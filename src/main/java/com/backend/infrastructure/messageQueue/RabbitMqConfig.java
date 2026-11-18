@@ -3,6 +3,7 @@ package com.backend.infrastructure.messageQueue;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.DirectExchange;
+import org.springframework.amqp.core.FanoutExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
@@ -18,6 +19,8 @@ public class RabbitMqConfig {
     public static final String RESULT_QUEUE = "tts.results";
     public static final String DEAD_LETTER_EXCHANGE = "tts.dlx";
     public static final String RESULT_DLQ = "tts.results.dlq";
+    /** Lệnh hủy job; mỗi worker tự tạo một queue riêng gắn vào exchange này. */
+    public static final String CANCEL_EXCHANGE = "tts.cancel";
 
     @Bean
     public DirectExchange ttsExchange() {
@@ -32,6 +35,11 @@ public class RabbitMqConfig {
     @Bean
     public Binding jobBinding(Queue jobQueue, DirectExchange ttsExchange) {
         return BindingBuilder.bind(jobQueue).to(ttsExchange).with(JOB_QUEUE);
+    }
+
+    @Bean
+    public FanoutExchange cancelExchange() {
+        return new FanoutExchange(CANCEL_EXCHANGE, true, false);
     }
 
     @Bean

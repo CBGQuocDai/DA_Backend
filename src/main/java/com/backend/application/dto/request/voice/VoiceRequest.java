@@ -21,4 +21,8 @@ public class VoiceRequest {
     /** Temporary path returned by the upload sign URL endpoint (type AUDIO). */
     @NotBlank(message = "File giọng mẫu không được để trống")
     private String exampleAudio;
+
+    /** Lời thoại của file giọng mẫu, tùy chọn; phải khớp đúng nội dung được đọc trong file. */
+    @Size(max = 1000, message = "Lời thoại giọng mẫu không được dài quá 1000 kí tự")
+    private String exampleTranscript;
 }

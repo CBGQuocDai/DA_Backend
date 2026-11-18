@@ -12,6 +12,9 @@ import java.util.List;
 @Setter
 @SuperBuilder
 public class Book {
+    /** Số chương đầu ai cũng nghe được (kèm tệp đính kèm) mà không cần mua sách. */
+    public static final int FREE_PREVIEW_CHAPTERS = 1;
+
     private Long id;
     private String title;
     private BigDecimal price;

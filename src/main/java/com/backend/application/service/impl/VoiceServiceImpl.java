@@ -14,12 +14,14 @@ import com.backend.domain.exception.BusinessException;
 import com.backend.domain.model.Voice;
 import com.backend.domain.valueobject.BusinessError;
 import com.backend.domain.valueobject.UploadType;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -110,6 +112,8 @@ public class VoiceServiceImpl implements VoiceService {
         voice.setName(req.getName());
         voice.setDescription(req.getDescription());
         voice.setExampleAudio(exampleAudio);
+        String transcript = req.getExampleTranscript();
+        voice.setExampleTranscript(StringUtils.isBlank(transcript) ? "" : transcript.trim());
     }
 
     @Override

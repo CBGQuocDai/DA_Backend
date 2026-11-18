@@ -14,8 +14,8 @@ public class ChapterResponse {
     private Integer chapterOrder;
     private Integer duration;
     private String audioUrl;
-    private String rawText;
-    private String contentJson;
+    /** Tài liệu biên tập, ảnh đã gắn URL ký để hiển thị. */
+    private String content;
     private Double readingSpeed;
     private ChapterStatus status;
 }
