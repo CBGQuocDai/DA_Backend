@@ -112,20 +112,27 @@ public class BookController {
             .build());
     }
 
-    /**
-     * Default suggestions are the latest published books.
-     */
-    @GetMapping("/recommendations")
-    public ResponseEntity<ApiResponse<List<BookResponse>>> getRecommendations() {
-        return ResponseEntity.ok(ApiResponse.<List<BookResponse>>builder()
-            .data(bookService.getCustomerBooks(null, null, null, 0, 10).getContent()).build());
-    }
-
     @GetMapping("/{bookId}/overview")
     public ResponseEntity<ApiResponse<CustomerBookOverviewResponse>> getCustomerBookOverview(
         @PathVariable Long bookId) {
         return ResponseEntity.ok(ApiResponse.<CustomerBookOverviewResponse>builder()
             .data(bookService.getCustomerBookOverview(bookId)).build());
+    }
+
+    // API gợi ý sách mới nhất cho trang chủ (dành cho khách vãng lai)
+    @GetMapping("/recommendations")
+    public ResponseEntity<ApiResponse<List<BookResponse>>> getRecommendations(
+        @RequestParam(defaultValue = "10") int limit) {
+        return ResponseEntity.ok(ApiResponse.<List<BookResponse>>builder()
+            .data(bookService.getRecommendations(limit)).build());
+    }
+
+    // API gợi ý sách tương tự cùng thể loại hoặc cùng tác giả cho trang chi tiết sách
+    @GetMapping("/{bookId}/recommendations")
+    public ResponseEntity<ApiResponse<List<BookResponse>>> getSimilarBooks(
+        @PathVariable Long bookId, @RequestParam(defaultValue = "8") int limit) {
+        return ResponseEntity.ok(ApiResponse.<List<BookResponse>>builder()
+            .data(bookService.getSimilarBooks(bookId, limit)).build());
     }
 
     @GetMapping("/{bookId}/chapters/list")

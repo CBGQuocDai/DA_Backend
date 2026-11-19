@@ -5,6 +5,7 @@ import com.backend.application.adapter.ocr.OcrBlock;
 import com.backend.application.adapter.ocr.OcrService;
 import com.backend.application.adapter.realtime.AdminEventPublisher;
 import com.backend.application.adapter.repository.BookRepository;
+import com.backend.application.adapter.repository.CustomerRepository;
 import com.backend.application.adapter.repository.ChapterRepository;
 import com.backend.application.adapter.storage.StorageService;
 import com.backend.application.dto.request.book.BookRequest;
@@ -21,6 +22,7 @@ import com.backend.domain.model.Author;
 import com.backend.domain.model.Book;
 import com.backend.domain.model.BookAuthor;
 import com.backend.domain.model.BookCategory;
+import com.backend.domain.model.BookStat;
 import com.backend.domain.model.Category;
 import com.backend.domain.model.Chapter;
 import com.backend.domain.model.Voice;
@@ -31,17 +33,18 @@ import com.backend.domain.valueobject.UploadType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import java.util.UUID;
 
 import static com.backend.application.service.impl.TransactionHooks.afterCommit;
@@ -55,8 +58,10 @@ public class BookServiceImpl implements BookService {
     private static final int BESTSELLER_LIMIT = 10;
     private static final Map<String, String> OCR_IMAGE_EXTENSIONS = Map.of(
             "image/png", "png", "image/jpeg", "jpg", "image/webp", "webp", "image/gif", "gif");
+    private static final int MAX_RECOMMENDATION_LIMIT = 30;
 
     private final BookRepository bookRepository;
+    private final CustomerRepository customerRepository;
     private final ChapterRepository chapterRepository;
     private final StorageService storageService;
     private final OcrService ocrService;
@@ -66,6 +71,50 @@ public class BookServiceImpl implements BookService {
     private final TaskExecutor ocrTaskExecutor;
     private final FileManagementService fileManagementService;
     private final ResponseMapper responseMapper;
+
+    // Gợi ý sách mới nhất đã xuất bản cho khách
+    @Override
+    @Transactional(readOnly = true)
+    public List<BookResponse> getRecommendations(int limit) {
+        validateRecommendationLimit(limit);
+        return bookRepository.findNewestRecommendations(limit).stream()
+                .map(responseMapper::toBookCardResponse).toList();
+    }
+
+    // Gợi ý sách theo thể loại khách quan tâm; tự động bù sách mới nếu chưa đủ số lượng
+    @Override
+    @Transactional(readOnly = true)
+    public List<BookResponse> getCustomerRecommendations(Long customerId, int limit) {
+        validateRecommendationLimit(limit);
+        if (customerId == null) throw new BusinessException(BusinessError.UNAUTHORIZED);
+        if (customerRepository.findById(customerId).isEmpty()) throw new BusinessException(BusinessError.USER_NOT_FOUND);
+
+        var books = new ArrayList<>(bookRepository.findCategoryRecommendations(customerId, limit));
+        if (books.size() < limit) {
+            var selectedIds = books.stream().map(BookStat::getId).collect(Collectors.toSet());
+            books.addAll(bookRepository.findNewestRecommendationsForCustomer(customerId, selectedIds, limit - books.size()));
+        }
+        return books.stream().map(responseMapper::toBookCardResponse).toList();
+    }
+
+    // Gợi ý sách tương tự (cùng thể loại hoặc cùng tác giả) với sách đang xem
+    @Override
+    @Transactional(readOnly = true)
+    public List<BookResponse> getSimilarBooks(Long bookId, int limit) {
+        validateRecommendationLimit(limit);
+        if (bookId == null || bookId <= 0) throw new BusinessException(BusinessError.VALIDATION_FAILED);
+        bookRepository.findStatusById(bookId).filter(status -> status == BookStatus.PUBLISHED)
+                .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
+        return bookRepository.findSimilarRecommendations(bookId, limit).stream()
+                .map(responseMapper::toBookCardResponse).toList();
+    }
+
+    // Kiểm tra tính hợp lệ của giới hạn số lượng sách gợi ý
+    private void validateRecommendationLimit(int limit) {
+        if (limit < 1 || limit > MAX_RECOMMENDATION_LIMIT) {
+            throw new BusinessException(BusinessError.VALIDATION_FAILED);
+        }
+    }
 
     @Override
     @Transactional(readOnly = true)

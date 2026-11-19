@@ -34,6 +34,9 @@ public final class BookStatMapper {
                 .contentFile(proj.getContentFile())
                 .status(proj.getStatus())
                 .averageRating(proj.getAverageRating())
+                .ratingCount(proj.getRatingCount())
+                .authors(List.of())
+                .categories(List.of())
                 .build();
 
         if (Objects.nonNull(proj.getVoiceId())) {

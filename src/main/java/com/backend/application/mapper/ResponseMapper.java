@@ -46,12 +46,12 @@ public class ResponseMapper {
 
     public <T, R> PageResponse<R> toPageResponse(PageResponse<T> page, Function<T, R> mapper) {
         return PageResponse.<R>builder()
-                .content(mapList(page.getContent(), mapper))
-                .total(page.getTotal())
-                .totalPage(page.getTotalPage())
-                .page(page.getPage())
-                .pageSize(page.getPageSize())
-                .build();
+            .content(mapList(page.getContent(), mapper))
+            .total(page.getTotal())
+            .totalPage(page.getTotalPage())
+            .page(page.getPage())
+            .pageSize(page.getPageSize())
+            .build();
     }
 
     public FileResponse toFileResponse(String path) {
@@ -76,22 +76,45 @@ public class ResponseMapper {
 
     public BookResponse toBookResponse(Book book) {
         BookResponse.BookResponseBuilder response = BookResponse.builder()
-                .id(book.getId())
-                .title(book.getTitle())
-                .price(book.getPrice())
-                .description(book.getDescription())
-                .coverImage(toFileResponse(book.getCoverImage()))
-                .contentFile(toFileResponse(book.getContentFile()))
-                .voice(book.getVoice() == null ? null : toVoiceResponse(book.getVoice()))
-                .status(book.getStatus())
-                .categories(mapList(book.getCategories(), this::toBookCategoryResponse))
-                .authors(mapList(book.getAuthors(), this::toBookAuthorResponse))
-                .chapters(mapList(book.getChapters(), this::toChapterResponse));
+            .id(book.getId())
+            .title(book.getTitle())
+            .price(book.getPrice())
+            .description(book.getDescription())
+            .coverImage(toFileResponse(book.getCoverImage()))
+            .contentFile(toFileResponse(book.getContentFile()))
+            .voice(book.getVoice() == null ? null : toVoiceResponse(book.getVoice()))
+            .status(book.getStatus())
+            .categories(mapList(book.getCategories(), this::toBookCategoryResponse))
+            .authors(mapList(book.getAuthors(), this::toBookAuthorResponse))
+            .chapters(mapList(book.getChapters(), this::toChapterResponse));
         if (book instanceof BookStat stat) {
             response.averageRating(stat.getAverageRating()).ratingCount(stat.getRatingCount())
-                    .purchases(stat.getPurchases()).previousPurchases(stat.getPreviousPurchases());
+                .purchases(stat.getPurchases()).previousPurchases(stat.getPreviousPurchases());
         }
         return response.build();
+    }
+
+    /**
+     * chỉ hiển thị thông tin công khai
+     */
+    public BookResponse toBookCardResponse(BookStat book) {
+        return BookResponse.builder()
+            .id(book.getId())
+            .title(book.getTitle())
+            .price(book.getPrice())
+            .status(book.getStatus())
+            .coverImage(toFileResponse(book.getCoverImage()))
+            .averageRating(book.getAverageRating())
+            .ratingCount(book.getRatingCount())
+            .authors(mapList(book.getAuthors(), link -> BookAuthorResponse.builder()
+                .id(link.getId())
+                .author(AuthorResponse.builder().id(link.getAuthor().getId())
+                    .fullName(link.getAuthor().getFullName()).build())
+                .build()))
+            .categories(mapList(book.getCategories(), link -> BookCategoryResponse.builder()
+                .id(link.getId()).category(CategoryResponse.builder().id(link.getCategory().getId())
+                    .name(link.getCategory().getName()).build()).build()))
+            .build();
     }
 
     public VoiceResponse toVoiceResponse(Voice voice) {

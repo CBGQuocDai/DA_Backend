@@ -7,8 +7,8 @@ import com.backend.domain.valueobject.BestsellerPeriod;
 import com.backend.domain.valueobject.BookStatus;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public interface BookRepository {
     // Đọc trạng thái xuất bản của sách nhanh theo ID mà không cần nạp toàn bộ entity nặng
@@ -40,4 +40,16 @@ public interface BookRepository {
 
     /** Lấy thống kê lượt mua trong kỳ và kỳ trước, sắp xếp lượt mua giảm dần. */
     List<BookStat> findBestsellers(BestsellerPeriod.Window window, int limit);
+
+    /** Gợi ý sách mới nhất  */
+    List<BookStat> findNewestRecommendations(int limit);
+
+    /** Gợi ý sách theo thể loại khách quan tâm (loại trừ sách đã mua và đã thích). */
+    List<BookStat> findCategoryRecommendations(Long customerId, int limit);
+
+    /** tìm sách mới nhất loại trừ sách đã mua, đã thích và sách đã chọn trước đó. */
+    List<BookStat> findNewestRecommendationsForCustomer(Long customerId, Set<Long> selectedBookIds, int limit);
+
+    /** Gợi ý sách tương tự (cùng thể loại hoặc cùng tác giả), loại trừ chính cuốn sách đang xem. */
+    List<BookStat> findSimilarRecommendations(Long bookId, int limit);
 }
