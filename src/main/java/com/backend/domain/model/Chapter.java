@@ -13,17 +13,14 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Chapter {
-    /** Line separating PDF pages in rawText. */
-    public static final String PAGE_BREAK = "-------------page_break------------------";
-
     private Long id;
     private Long bookId;
     private String title;
     private Integer chapterOrder;
     private Integer duration; // seconds
     private String audioUrl;
-    private String rawText;
-    private String contentJson; // editor document with formatting; when set, rawText is derived from it
+    /** Tài liệu biên tập (JSON) của chương; văn bản cho TTS và tệp đính kèm đều lấy từ đây. Null khi chưa có nội dung. */
+    private String content;
     private Double readingSpeed;
     private ChapterStatus status;
     /** Mã job TTS đang chạy; kết quả mang mã khác (job đã hủy hoặc đã bị thay) bị bỏ qua. */

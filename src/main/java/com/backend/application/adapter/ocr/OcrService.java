@@ -1,12 +1,17 @@
 package com.backend.application.adapter.ocr;
 
-import com.backend.domain.model.Book;
+import java.util.List;
 
 /**
- * OCR Service adapter for external OCR service integration.
- * This is a port interface that defines the contract for OCR operations.
+ * Port tới dịch vụ OCR: chỉ nhận dạng nội dung PDF. Việc chia chương, lưu ảnh, lưu chương
+ * và đổi trạng thái sách thuộc tầng application.
  */
 public interface OcrService {
-    /** Reads the book PDF from storage ({@link Book#getContentFile()}) and extracts its chapters. */
-    void processDocumentAsync(Book book);
+
+    /**
+     * Các block văn bản, ảnh và bảng của file PDF theo thứ tự đọc.
+     *
+     * @throws IllegalStateException nếu không nhận dạng được file
+     */
+    List<OcrBlock> recognize(byte[] pdf);
 }

@@ -2,6 +2,7 @@ package com.backend.infrastructure.persistence.adapter;
 
 import com.backend.application.adapter.repository.ChapterRepository;
 import com.backend.domain.model.Chapter;
+import com.backend.domain.valueobject.PlaybackChapter;
 import com.backend.infrastructure.persistence.mapper.ChapterMapper;
 import com.backend.infrastructure.persistence.repository.JpaChapterRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,12 @@ public class ChapterRepositoryAdapter implements ChapterRepository {
     private final JpaChapterRepository jpaChapterRepository;
     private final ChapterMapper chapterMapper;
 
+    // Lấy danh sách chương rút gọn phục vụ phát audio theo ID sách
+    @Override
+    public List<PlaybackChapter> findPlaybackChaptersByBookId(Long bookId) {
+        return jpaChapterRepository.findPlaybackChaptersByBookId(bookId);
+    }
+
     @Override
     @Transactional(readOnly = true)
     public List<Chapter> findByBookId(Long bookId) {
@@ -28,6 +35,12 @@ public class ChapterRepositoryAdapter implements ChapterRepository {
     @Transactional
     public Optional<Chapter> findById(Long id) {
         return jpaChapterRepository.findById(id).map(chapterMapper::toDomain);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<String> findContentById(Long id) {
+        return jpaChapterRepository.findContentById(id);
     }
 
     @Override
@@ -59,7 +72,7 @@ public class ChapterRepositoryAdapter implements ChapterRepository {
     @Transactional
     public Chapter update(Chapter chapter) {
         jpaChapterRepository.updateChapter(chapter.getId(), chapter.getTitle(), chapter.getChapterOrder(),
-                chapter.getDuration(), chapter.getAudioUrl(), chapter.getRawText(), chapter.getContentJson(),
+                chapter.getDuration(), chapter.getAudioUrl(), chapter.getContent(),
                 chapter.getStatus(), chapter.getReadingSpeed(), chapter.getAudioJobId());
         return chapter;
     }

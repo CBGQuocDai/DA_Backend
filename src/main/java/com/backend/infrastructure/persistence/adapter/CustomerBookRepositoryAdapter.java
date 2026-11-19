@@ -19,6 +19,12 @@ public class CustomerBookRepositoryAdapter implements CustomerBookRepository {
     private final JpaCustomerBookRepository jpaCustomerBookRepository;
     private final CustomerBookMapper customerBookMapper;
 
+    // Cập nhật trạng thái hoàn thành nghe toàn bộ sách của khách hàng
+    @Override
+    public void updateReadComplete(Long customerId, Long bookId, boolean complete) {
+        jpaCustomerBookRepository.updateReadComplete(customerId, bookId, complete);
+    }
+
     @Override
     public boolean existsByCustomerIdAndBookId(Long customerId, Long bookId) {
         return jpaCustomerBookRepository.existsByCustomerIdAndBookId(customerId, bookId);

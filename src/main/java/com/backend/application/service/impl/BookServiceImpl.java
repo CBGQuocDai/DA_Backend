@@ -1,7 +1,11 @@
 package com.backend.application.service.impl;
 
+import com.backend.application.adapter.content.ChapterContentService;
+import com.backend.application.adapter.ocr.OcrBlock;
 import com.backend.application.adapter.ocr.OcrService;
+import com.backend.application.adapter.realtime.AdminEventPublisher;
 import com.backend.application.adapter.repository.BookRepository;
+import com.backend.application.adapter.repository.CustomerRepository;
 import com.backend.application.adapter.repository.ChapterRepository;
 import com.backend.application.adapter.storage.StorageService;
 import com.backend.application.dto.request.book.BookRequest;
@@ -9,6 +13,7 @@ import com.backend.application.dto.response.PageResponse;
 import com.backend.application.dto.response.book.BookResponse;
 import com.backend.application.dto.response.book.CustomerBookOverviewResponse;
 import com.backend.application.dto.response.chapter.CustomerChapterResponse;
+import com.backend.application.mapper.OcrChapterMapper;
 import com.backend.application.mapper.ResponseMapper;
 import com.backend.application.service.BookService;
 import com.backend.application.service.FileManagementService;
@@ -17,6 +22,7 @@ import com.backend.domain.model.Author;
 import com.backend.domain.model.Book;
 import com.backend.domain.model.BookAuthor;
 import com.backend.domain.model.BookCategory;
+import com.backend.domain.model.BookStat;
 import com.backend.domain.model.Category;
 import com.backend.domain.model.Chapter;
 import com.backend.domain.model.Voice;
@@ -26,12 +32,22 @@ import com.backend.domain.valueobject.BusinessError;
 import com.backend.domain.valueobject.UploadType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.UUID;
+
+import static com.backend.application.service.impl.TransactionHooks.afterCommit;
 
 @Service
 @RequiredArgsConstructor
@@ -40,13 +56,65 @@ public class BookServiceImpl implements BookService {
 
     /** Books listed in the dashboard's bestseller section. */
     private static final int BESTSELLER_LIMIT = 10;
+    private static final Map<String, String> OCR_IMAGE_EXTENSIONS = Map.of(
+            "image/png", "png", "image/jpeg", "jpg", "image/webp", "webp", "image/gif", "gif");
+    private static final int MAX_RECOMMENDATION_LIMIT = 30;
 
     private final BookRepository bookRepository;
+    private final CustomerRepository customerRepository;
     private final ChapterRepository chapterRepository;
     private final StorageService storageService;
     private final OcrService ocrService;
+    private final OcrChapterMapper ocrChapterMapper;
+    private final AdminEventPublisher adminEventPublisher;
+    private final TransactionTemplate transactionTemplate;
+    private final TaskExecutor ocrTaskExecutor;
     private final FileManagementService fileManagementService;
     private final ResponseMapper responseMapper;
+
+    // Gợi ý sách mới nhất đã xuất bản cho khách
+    @Override
+    @Transactional(readOnly = true)
+    public List<BookResponse> getRecommendations(int limit) {
+        validateRecommendationLimit(limit);
+        return bookRepository.findNewestRecommendations(limit).stream()
+                .map(responseMapper::toBookCardResponse).toList();
+    }
+
+    // Gợi ý sách theo thể loại khách quan tâm; tự động bù sách mới nếu chưa đủ số lượng
+    @Override
+    @Transactional(readOnly = true)
+    public List<BookResponse> getCustomerRecommendations(Long customerId, int limit) {
+        validateRecommendationLimit(limit);
+        if (customerId == null) throw new BusinessException(BusinessError.UNAUTHORIZED);
+        if (customerRepository.findById(customerId).isEmpty()) throw new BusinessException(BusinessError.USER_NOT_FOUND);
+
+        var books = new ArrayList<>(bookRepository.findCategoryRecommendations(customerId, limit));
+        if (books.size() < limit) {
+            var selectedIds = books.stream().map(BookStat::getId).collect(Collectors.toSet());
+            books.addAll(bookRepository.findNewestRecommendationsForCustomer(customerId, selectedIds, limit - books.size()));
+        }
+        return books.stream().map(responseMapper::toBookCardResponse).toList();
+    }
+
+    // Gợi ý sách tương tự (cùng thể loại hoặc cùng tác giả) với sách đang xem
+    @Override
+    @Transactional(readOnly = true)
+    public List<BookResponse> getSimilarBooks(Long bookId, int limit) {
+        validateRecommendationLimit(limit);
+        if (bookId == null || bookId <= 0) throw new BusinessException(BusinessError.VALIDATION_FAILED);
+        bookRepository.findStatusById(bookId).filter(status -> status == BookStatus.PUBLISHED)
+                .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
+        return bookRepository.findSimilarRecommendations(bookId, limit).stream()
+                .map(responseMapper::toBookCardResponse).toList();
+    }
+
+    // Kiểm tra tính hợp lệ của giới hạn số lượng sách gợi ý
+    private void validateRecommendationLimit(int limit) {
+        if (limit < 1 || limit > MAX_RECOMMENDATION_LIMIT) {
+            throw new BusinessException(BusinessError.VALIDATION_FAILED);
+        }
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -59,14 +127,14 @@ public class BookServiceImpl implements BookService {
     @Override
     @Transactional(readOnly = true)
     public CustomerBookOverviewResponse getCustomerBookOverview(Long bookId) {
-        Book book = bookRepository.findById(bookId)
+        Book book = bookRepository.findBookWithMetadataById(bookId)
                 .filter(candidate -> candidate.getStatus() == BookStatus.PUBLISHED)
                 .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
-        var chapters = book.getChapters();
+        var chapters = chapterRepository.findPlaybackChaptersByBookId(bookId);
         return CustomerBookOverviewResponse.builder()
                 .book(responseMapper.toBookResponse(book))
                 .chapterCount(chapters.size())
-                .totalDuration(chapters.stream().mapToLong(chapter -> chapter.getDuration() == null ? 0 : chapter.getDuration()).sum())
+                .totalDuration(chapters.stream().mapToLong(chapter -> chapter.duration() == null ? 0 : chapter.duration()).sum())
                 .firstChapter(chapters.isEmpty() ? null : responseMapper.toCustomerChapter(chapters.getFirst()))
                 .build();
     }
@@ -74,10 +142,11 @@ public class BookServiceImpl implements BookService {
     @Override
     @Transactional(readOnly = true)
     public List<CustomerChapterResponse> getCustomerChapters(Long bookId) {
-        bookRepository.findById(bookId)
-                .filter(candidate -> candidate.getStatus() == BookStatus.PUBLISHED)
+        bookRepository.findStatusById(bookId)
+                .filter(status -> status == BookStatus.PUBLISHED)
                 .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
-        return chapterRepository.findByBookId(bookId).stream().map(responseMapper::toCustomerChapter).toList();
+        // Trình nghe chỉ cần metadata, không tải văn bản và tài liệu biên tập của cả sách.
+        return chapterRepository.findPlaybackChaptersByBookId(bookId).stream().map(responseMapper::toCustomerChapter).toList();
     }
 
     @Override
@@ -109,13 +178,65 @@ public class BookServiceImpl implements BookService {
         Book book = new Book();
         applyRequest(book, req);
         book.setStatus(BookStatus.PROCESSING);
-        book = bookRepository.insert(book);
+        Book saved = bookRepository.insert(book);
         fileManagementService.moveToPermanent(req.getContentFile(), UploadType.PDF);
         fileManagementService.moveToPermanent(req.getCoverImage(), UploadType.IMAGE);
+        // OCR mất nhiều thời gian: chạy ở thread riêng, và chỉ khi sách đã commit để thread đó thấy được sách
+        afterCommit(() -> ocrTaskExecutor.execute(() -> processContent(saved)));
+        return responseMapper.toBookResponse(saved);
+    }
 
-        // Trigger async OCR via OcrService (runs in separate thread, reads the PDF from GCS)
-        ocrService.processDocumentAsync(book);
-        return responseMapper.toBookResponse(book);
+    /** OCR -> lưu ảnh -> chia chương -> lưu chương và chuyển sách sang UNPUBLISHED -> báo cho trang admin. */
+    private void processContent(Book book) {
+        // Ảnh đã upload, để xoá đi nếu không lưu được chương; so khớp theo đúng block chứ không theo nội dung
+        Map<OcrBlock.Image, String> imagePaths = new IdentityHashMap<>();
+        try {
+            List<OcrBlock> blocks = ocrService.recognize(storageService.load(book.getContentFile()));
+            storeImages(book.getId(), blocks, imagePaths);
+            List<Chapter> chapters = ocrChapterMapper.toChapters(blocks, imagePaths);
+            if (chapters.isEmpty()) {
+                throw new IllegalStateException("No chapters extracted from document");
+            }
+            chapters.forEach(chapter -> chapter.setBookId(book.getId()));
+            transactionTemplate.executeWithoutResult(status -> {
+                chapterRepository.saveAll(chapters);
+                book.setStatus(BookStatus.UNPUBLISHED);
+                bookRepository.update(book);
+            });
+            log.info("Saved {} chapters for book {}", chapters.size(), book.getId());
+        } catch (Exception e) {
+            log.error("Error processing document for book: {}", book.getId(), e);
+            imagePaths.values().forEach(this::deleteOcrImage);
+            book.setStatus(BookStatus.FAILED);
+            bookRepository.update(book);
+        }
+        adminEventPublisher.bookStatusChanged(book.getId(), book.getStatus());
+    }
+
+    /** Lưu các ảnh OCR lên storage, ghi đường dẫn vào {@code paths}; ảnh có định dạng không hỗ trợ bị bỏ qua. */
+    private void storeImages(Long bookId, List<OcrBlock> blocks, Map<OcrBlock.Image, String> paths) {
+        String folder = ChapterContentService.IMAGE_PATH_PREFIX + "books/" + bookId + "/";
+        for (OcrBlock block : blocks) {
+            if (!(block instanceof OcrBlock.Image image)) {
+                continue;
+            }
+            String extension = OCR_IMAGE_EXTENSIONS.get(image.mimeType());
+            if (extension == null) {
+                log.warn("Skipping OCR image with unsupported mime type '{}'", image.mimeType());
+                continue;
+            }
+            String path = folder + UUID.randomUUID() + "." + extension;
+            storageService.store(image.content(), path, image.mimeType());
+            paths.put(image, path);
+        }
+    }
+
+    private void deleteOcrImage(String path) {
+        try {
+            storageService.delete(path);
+        } catch (Exception e) {
+            log.warn("Could not remove OCR image {}", path, e);
+        }
     }
 
     @Override
@@ -131,7 +252,7 @@ public class BookServiceImpl implements BookService {
         applyRequest(book, req);
         // TODO: khi contentFile đổi, chạy lại OCR (chưa chốt phương án xử lý chapter cũ):
         //  - xóa các chapter cũ của sách (chapterRepository.deleteByBookId) hoặc giữ lại
-        //  - set book.setStatus(BookStatus.PROCESSING) rồi gọi ocrService.processDocumentAsync(book)
+        //  - set book.setStatus(BookStatus.PROCESSING) rồi chạy processContent(book) trên ocrTaskExecutor sau khi commit
 
         bookRepository.update(book);
         moveIfNew(req.getContentFile(), oldContent, UploadType.PDF);
@@ -174,7 +295,7 @@ public class BookServiceImpl implements BookService {
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new BusinessException(BusinessError.BOOK_NOT_FOUND));
         book.getChapters().forEach(c -> {
-            if(Objects.isNull(c.getAudioUrl()) || (c.getRawText().isEmpty() && c.getContentJson().isEmpty())) {
+            if (Objects.isNull(c.getAudioUrl()) || StringUtils.isBlank(c.getContent())) {
                 throw new BusinessException(BusinessError.BOOK_ERROR_PUBLISH);
             }
         });
@@ -196,8 +317,12 @@ public class BookServiceImpl implements BookService {
         book.setPrice(req.getPrice());
         book.setDescription(req.getDescription());
         book.setVoice(Voice.builder().id(req.getVoiceId()).build());
-        book.setCategories(toBookCategories(req.getCategoryIds()));
-        book.setAuthors(toBookAuthors(req.getAuthorIds()));
+        book.setCategories(req.getCategoryIds().stream()
+                .map(id -> BookCategory.builder().category(Category.builder().id(id).build()).build())
+                .toList());
+        book.setAuthors(req.getAuthorIds().stream()
+                .map(id -> BookAuthor.builder().author(Author.builder().id(id).build()).build())
+                .toList());
         book.setContentFile(resolveFile(req.getContentFile(), book.getContentFile(), UploadType.PDF));
         book.setCoverImage(resolveFile(req.getCoverImage(), book.getCoverImage(), UploadType.IMAGE));
     }
@@ -220,18 +345,6 @@ public class BookServiceImpl implements BookService {
         if (isNewFile(requested, current)) {
             fileManagementService.moveToPermanent(requested, type);
         }
-    }
-
-    private List<BookCategory> toBookCategories(List<Long> categoryIds) {
-        return categoryIds.stream()
-                .map(id -> BookCategory.builder().category(Category.builder().id(id).build()).build())
-                .toList();
-    }
-
-    private List<BookAuthor> toBookAuthors(List<Long> authorIds) {
-        return authorIds.stream()
-                .map(id -> BookAuthor.builder().author(Author.builder().id(id).build()).build())
-                .toList();
     }
 
     /** Every file has its own path, so a replaced file must be removed explicitly. */

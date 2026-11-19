@@ -12,9 +12,7 @@ import com.backend.application.dto.response.file.FileResponse;
 import com.backend.application.dto.response.payment.PaymentResponse;
 import com.backend.application.dto.response.review.ReviewResponse;
 import com.backend.application.dto.response.voice.VoiceResponse;
-import com.backend.application.adapter.content.ChapterAttachment;
-import com.backend.application.adapter.content.ChapterContentParser;
-import com.backend.application.dto.response.chapter.ChapterAttachmentResponse;
+import com.backend.application.adapter.content.ChapterContentService;
 import com.backend.application.adapter.storage.StorageService;
 import com.backend.domain.exception.BusinessException;
 import com.backend.domain.model.Author;
@@ -29,10 +27,10 @@ import com.backend.domain.model.Customer;
 import com.backend.domain.model.Payment;
 import com.backend.domain.model.Review;
 import com.backend.domain.model.Voice;
+import com.backend.domain.valueobject.PlaybackChapter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -44,16 +42,16 @@ public class ResponseMapper {
     private static final long SIGNED_URL_TTL_MINUTES = 60L;
 
     private final StorageService storageService;
-    private final ChapterContentParser chapterContentParser;
+    private final ChapterContentService chapterContentService;
 
     public <T, R> PageResponse<R> toPageResponse(PageResponse<T> page, Function<T, R> mapper) {
         return PageResponse.<R>builder()
-                .content(mapList(page.getContent(), mapper))
-                .total(page.getTotal())
-                .totalPage(page.getTotalPage())
-                .page(page.getPage())
-                .pageSize(page.getPageSize())
-                .build();
+            .content(mapList(page.getContent(), mapper))
+            .total(page.getTotal())
+            .totalPage(page.getTotalPage())
+            .page(page.getPage())
+            .pageSize(page.getPageSize())
+            .build();
     }
 
     public FileResponse toFileResponse(String path) {
@@ -67,34 +65,56 @@ public class ResponseMapper {
         return storageService.createSignUrl(path, SIGNED_URL_TTL_MINUTES);
     }
 
-    public CustomerChapterResponse toCustomerChapter(Chapter chapter) {
-        String audio = chapter.getAudioUrl();
+    public CustomerChapterResponse toCustomerChapter(PlaybackChapter chapter) {
+        String audio = chapter.audioUrl();
         return CustomerChapterResponse.builder()
-                .id(chapter.getId()).title(chapter.getTitle()).chapterOrder(chapter.getChapterOrder())
-                .duration(chapter.getDuration()).status(chapter.getStatus())
+                .id(chapter.id()).title(chapter.title()).chapterOrder(chapter.chapterOrder())
+                .duration(chapter.duration()).status(chapter.status())
                 .audioUrl(audio == null || audio.isBlank() ? null : signUrl(audio))
-                .attachments(toAttachmentResponses(chapter.getContentJson()))
                 .build();
     }
 
     public BookResponse toBookResponse(Book book) {
         BookResponse.BookResponseBuilder response = BookResponse.builder()
-                .id(book.getId())
-                .title(book.getTitle())
-                .price(book.getPrice())
-                .description(book.getDescription())
-                .coverImage(toFileResponse(book.getCoverImage()))
-                .contentFile(toFileResponse(book.getContentFile()))
-                .voice(book.getVoice() == null ? null : toVoiceResponse(book.getVoice()))
-                .status(book.getStatus())
-                .categories(mapList(book.getCategories(), this::toBookCategoryResponse))
-                .authors(mapList(book.getAuthors(), this::toBookAuthorResponse))
-                .chapters(mapList(book.getChapters(), this::toChapterResponse));
+            .id(book.getId())
+            .title(book.getTitle())
+            .price(book.getPrice())
+            .description(book.getDescription())
+            .coverImage(toFileResponse(book.getCoverImage()))
+            .contentFile(toFileResponse(book.getContentFile()))
+            .voice(book.getVoice() == null ? null : toVoiceResponse(book.getVoice()))
+            .status(book.getStatus())
+            .categories(mapList(book.getCategories(), this::toBookCategoryResponse))
+            .authors(mapList(book.getAuthors(), this::toBookAuthorResponse))
+            .chapters(mapList(book.getChapters(), this::toChapterResponse));
         if (book instanceof BookStat stat) {
             response.averageRating(stat.getAverageRating()).ratingCount(stat.getRatingCount())
-                    .purchases(stat.getPurchases()).previousPurchases(stat.getPreviousPurchases());
+                .purchases(stat.getPurchases()).previousPurchases(stat.getPreviousPurchases());
         }
         return response.build();
+    }
+
+    /**
+     * chỉ hiển thị thông tin công khai
+     */
+    public BookResponse toBookCardResponse(BookStat book) {
+        return BookResponse.builder()
+            .id(book.getId())
+            .title(book.getTitle())
+            .price(book.getPrice())
+            .status(book.getStatus())
+            .coverImage(toFileResponse(book.getCoverImage()))
+            .averageRating(book.getAverageRating())
+            .ratingCount(book.getRatingCount())
+            .authors(mapList(book.getAuthors(), link -> BookAuthorResponse.builder()
+                .id(link.getId())
+                .author(AuthorResponse.builder().id(link.getAuthor().getId())
+                    .fullName(link.getAuthor().getFullName()).build())
+                .build()))
+            .categories(mapList(book.getCategories(), link -> BookCategoryResponse.builder()
+                .id(link.getId()).category(CategoryResponse.builder().id(link.getCategory().getId())
+                    .name(link.getCategory().getName()).build()).build()))
+            .build();
     }
 
     public VoiceResponse toVoiceResponse(Voice voice) {
@@ -114,41 +134,19 @@ public class ResponseMapper {
                 .chapterOrder(chapter.getChapterOrder())
                 .duration(chapter.getDuration())
                 .audioUrl(chapter.getAudioUrl())
-                .rawText(chapter.getRawText())
-                .contentJson(signImages(chapter.getContentJson()))
+                .content(signImages(chapter.getContent()))
                 .readingSpeed(chapter.getReadingSpeed())
                 .status(chapter.getStatus())
                 .build();
     }
 
-    private String signImages(String contentJson) {
-        if (contentJson == null || contentJson.isBlank()) {
-            return contentJson;
-        }
+    private String signImages(String content) {
         try {
-            return chapterContentParser.withImageUrls(contentJson, this::signUrl);
+            return chapterContentService.withImageUrls(content, this::signUrl);
         } catch (BusinessException e) {
-            // A broken stored document must not make the whole book unreadable; the editor falls back to rawText.
-            return contentJson;
+            // Một tài liệu hỏng không được làm cả cuốn sách không đọc được; editor tự báo lỗi khi mở chương đó.
+            return content;
         }
-    }
-
-    /** Tệp đính kèm của chương cho người nghe: ảnh kèm URL đã ký, bảng kèm dữ liệu, đánh số riêng theo loại. */
-    public List<ChapterAttachmentResponse> toAttachmentResponses(String contentJson) {
-        List<ChapterAttachmentResponse> responses = new ArrayList<>();
-        int images = 0;
-        int tables = 0;
-        for (ChapterAttachment attachment : chapterContentParser.attachments(contentJson)) {
-            boolean isImage = attachment.type() == ChapterAttachment.Type.IMAGE;
-            responses.add(ChapterAttachmentResponse.builder()
-                    .type(attachment.type())
-                    .label(isImage ? "Hình " + ++images : "Bảng " + ++tables)
-                    .imageUrl(isImage ? signUrl(attachment.imagePath()) : null)
-                    .rows(isImage ? null : attachment.rows())
-                    .headerRows(isImage ? null : attachment.headerRows())
-                    .build());
-        }
-        return responses;
     }
 
     public AuthorResponse toAuthorResponse(Author author) {

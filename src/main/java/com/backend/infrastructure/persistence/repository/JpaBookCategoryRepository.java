@@ -17,6 +17,16 @@ public interface JpaBookCategoryRepository extends JpaRepository<JpaBookCategory
             WHERE bc.bookId = :bookId
             """)
     List<JpaBookCategoryEntity> findWithCategoryByBookId(@Param("bookId") Long bookId);
+
+    // Lấy danh sách thể loại theo danh sách ID sách (kèm FETCH JOIN để tránh N+1)
+    @Query("""
+            SELECT bc FROM JpaBookCategoryEntity bc
+            JOIN FETCH bc.category
+            WHERE bc.bookId IN :bookIds
+            ORDER BY bc.id
+            """)
+    List<JpaBookCategoryEntity> findWithCategoryByBookIdIn(@Param("bookIds") Collection<Long> bookIds);
+
     List<JpaBookCategoryEntity> findByBookIdIn(Collection<Long> bookIds);
     void deleteByBookId(Long bookId);
     boolean existsByCategoryId(Long categoryId);

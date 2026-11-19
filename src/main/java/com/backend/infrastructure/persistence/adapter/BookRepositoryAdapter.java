@@ -34,9 +34,8 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 @RequiredArgsConstructor
 @Repository
@@ -55,6 +54,31 @@ public class BookRepositoryAdapter implements BookRepository {
     private final BookAuthorMapper bookAuthorMapper;
     private final BookCategoryMapper bookCategoryMapper;
     private final ChapterMapper chapterMapper;
+
+    // Lấy trạng thái xuất bản của sách theo ID
+    @Override
+    public Optional<BookStatus> findStatusById(Long id) {
+        return jpaBookRepository.findStatusById(id);
+    }
+
+    // Lấy thông tin sách kèm giọng đọc, tác giả và thể loại (không tải danh sách chương nặng)
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Book> findBookWithMetadataById(Long id) {
+        if (id == null) {
+            return Optional.empty();
+        }
+        return jpaBookRepository.findByIdWithVoice(id).map(entity -> {
+            Book book = bookMapper.toDomain(entity);
+            book.setAuthors(jpaBookAuthorRepository.findWithAuthorByBookId(id).stream()
+                    .map(bookAuthorMapper::toDomain)
+                    .toList());
+            book.setCategories(jpaBookCategoryRepository.findWithCategoryByBookId(id).stream()
+                    .map(bookCategoryMapper::toDomain)
+                    .toList());
+            return book;
+        });
+    }
 
     @Override
     @Transactional
@@ -205,8 +229,8 @@ public class BookRepositoryAdapter implements BookRepository {
             return;
         }
         // Bảng phụ thuộc trước, book chính cuối cùng
-        jpaChapterRepository.deleteByBookId(id);
         jpaListenProgressRepository.deleteByBookId(id);
+        jpaChapterRepository.deleteByBookId(id);
         jpaBookFavoriteRepository.deleteByBookId(id);
         jpaReviewRepository.deleteByBookId(id);
         jpaCustomerBookRepository.deleteByBookId(id);
@@ -233,5 +257,50 @@ public class BookRepositoryAdapter implements BookRepository {
                 .stream()
                 .map(row -> BookStatMapper.toBookStat(row, window.hasPrevious()))
                 .toList();
+    }
+
+    // Lấy danh sách sách mới nhất đã xuất bản
+    @Override
+    @Transactional(readOnly = true)
+    public List<BookStat> findNewestRecommendations(int limit) {
+        return toRecommendationBooks(jpaBookRepository.findNewestRecommendations(
+                PageRequest.of(0, limit)));
+    }
+
+    // Lấy sách gợi ý theo thể loại khách quan tâm
+    @Override
+    @Transactional(readOnly = true)
+    public List<BookStat> findCategoryRecommendations(Long customerId, int limit) {
+        return toRecommendationBooks(jpaBookRepository.findCategoryRecommendations(
+                customerId, PageRequest.of(0, limit)));
+    }
+
+    // Lấy sách mới nhất (loại trừ sách đã chọn)
+    @Override
+    @Transactional(readOnly = true)
+    public List<BookStat> findNewestRecommendationsForCustomer(Long customerId, Set<Long> selectedBookIds, int limit) {
+        var page = PageRequest.of(0, limit);
+        var rows = selectedBookIds.isEmpty()
+                ? jpaBookRepository.findNewestRecommendationsForCustomer(customerId, page)
+                : jpaBookRepository.findNewestRecommendationsForCustomerExcluding(
+                        customerId, selectedBookIds, page);
+        return toRecommendationBooks(rows);
+    }
+
+    // Lấy sách tương tự cùng thể loại hoặc cùng tác giả
+    @Override
+    @Transactional(readOnly = true)
+    public List<BookStat> findSimilarRecommendations(Long bookId, int limit) {
+        return toRecommendationBooks(jpaBookRepository.findSimilarRecommendations(
+                bookId, PageRequest.of(0, limit)));
+    }
+
+    // Chuyển đổi dữ liệu projection sang BookStat và nạp kèm tác giả, thể loại theo lô (tránh N+1)
+    private List<BookStat> toRecommendationBooks(List<BookListProjection> rows) {
+        if (rows.isEmpty()) return List.of();
+        var ids = rows.stream().map(BookListProjection::getId).toList();
+        var authors = jpaBookAuthorRepository.findWithAuthorByBookIdIn(ids);
+        var categories = jpaBookCategoryRepository.findWithCategoryByBookIdIn(ids);
+        return rows.stream().map(row -> BookStatMapper.toBookStat(row, authors, categories)).toList();
     }
 }

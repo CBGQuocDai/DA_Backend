@@ -11,7 +11,12 @@ import com.backend.application.dto.request.book.chapter.ChapterUpdateRequest;
 import com.backend.presentation.dto.ApiResponse;
 import com.backend.application.dto.response.chapter.ChapterResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -84,6 +89,26 @@ public class ChapterController {
         return ResponseEntity.ok(ApiResponse.<ChapterResponse>builder()
             .data(chapterService.mergeChapters(bookId, req.getChapterIds()))
             .build());
+    }
+
+    /**
+     * File PDF ảnh và bảng của chương, chỉ gọi khi người dùng bấm xem tệp đính kèm. Không khai báo
+     * {@code produces} để lỗi nghiệp vụ vẫn trả về JSON như các endpoint khác.
+     */
+    @GetMapping("/{chapterId}/attachments")
+    public ResponseEntity<byte[]> getAttachmentsPdf(
+        @AuthenticationPrincipal Long userId,
+        Authentication authentication,
+        @PathVariable Long bookId,
+        @PathVariable Long chapterId) {
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+            .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
+        byte[] pdf = chapterService.getAttachmentsPdf(userId, isAdmin, bookId, chapterId);
+        return ResponseEntity.ok()
+            .contentType(MediaType.APPLICATION_PDF)
+            .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.inline()
+                .filename("tep-dinh-kem.pdf").build().toString())
+            .body(pdf);
     }
 
     @PreAuthorize("hasRole('ADMIN')")

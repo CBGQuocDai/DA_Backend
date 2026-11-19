@@ -1,15 +1,19 @@
 package com.backend.application.service.impl;
 
-import com.backend.domain.valueobject.UploadType;
+import com.backend.domain.valueobject.*;
 import com.backend.application.service.FileManagementService;
 import com.backend.application.dto.request.book.chapter.ChapterUploadAudioRequest;
 import com.backend.application.service.ChapterService;
-import com.backend.application.adapter.content.ChapterContent;
-import com.backend.application.adapter.content.ChapterContentParser;
+import com.backend.application.adapter.content.ChapterAttachment;
+import com.backend.application.adapter.content.ChapterContentService;
+import com.backend.application.adapter.pdf.PdfDocument;
+import com.backend.application.adapter.pdf.PdfService;
+import com.backend.application.adapter.storage.StorageService;
 import com.backend.application.adapter.messaging.MessageQueue;
 import com.backend.application.adapter.realtime.AdminEventPublisher;
 import com.backend.application.adapter.repository.BookRepository;
 import com.backend.application.adapter.repository.ChapterRepository;
+import com.backend.application.adapter.repository.CustomerBookRepository;
 import com.backend.application.dto.response.chapter.ChapterResponse;
 import com.backend.application.mapper.ResponseMapper;
 import com.backend.application.dto.request.book.chapter.ChapterCreateRequest;
@@ -20,20 +24,20 @@ import com.backend.application.dto.request.book.chapter.GenerateAudioResult;
 import com.backend.domain.exception.BusinessException;
 import com.backend.domain.model.Book;
 import com.backend.domain.model.Chapter;
-import com.backend.domain.valueobject.BusinessError;
-import com.backend.domain.valueobject.ChapterStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.IntStream;
+
+import static com.backend.application.service.impl.TransactionHooks.afterCommit;
 
 @Service
 @RequiredArgsConstructor
@@ -44,9 +48,12 @@ public class ChapterServiceImpl implements ChapterService {
     private final BookRepository bookRepository;
     private final ResponseMapper responseMapper;
     private final MessageQueue messageQueue;
-    private final ChapterContentParser chapterContentParser;
+    private final ChapterContentService chapterContentService;
+    private final CustomerBookRepository customerBookRepository;
     private final FileManagementService fileManagementService;
     private final AdminEventPublisher adminEventPublisher;
+    private final PdfService pdfService;
+    private final StorageService storageService;
 
     @Override
     @Transactional(readOnly = true)
@@ -73,7 +80,6 @@ public class ChapterServiceImpl implements ChapterService {
                 .bookId(bookId)
                 .title(req.getTitle().trim())
                 .chapterOrder(order)
-                .rawText("")
                 .readingSpeed(1D)
                 .build();
         return responseMapper.toChapterResponse(chapterRepository.save(chapter));
@@ -116,7 +122,8 @@ public class ChapterServiceImpl implements ChapterService {
                 .filter(candidate -> Objects.equals(candidate.getBookId(), req.getBookId())).orElseThrow(
                 () -> new BusinessException(BusinessError.CHAPTER_NOT_FOUND)
         );
-        if (chapter.getRawText() == null || chapter.getRawText().isBlank()) {
+        String content = chapterContentService.text(chapter.getContent());
+        if (content.isBlank()) {
             throw new BusinessException(BusinessError.CHAPTER_TEXT_EMPTY);
         }
 
@@ -133,7 +140,7 @@ public class ChapterServiceImpl implements ChapterService {
 
         log.info("Queueing audio for book {} with voiceId {} and chapter {} at speed {}",
                 book.getId(), book.getVoice() != null ? book.getVoice().getId() : null, chapter.getId(), readingSpeed);
-        String text = chapter.getTitle() +" - " + chapter.getRawText().replace(Chapter.PAGE_BREAK, " ");
+        String text = chapter.getTitle() + " - " + content;
         GenerateAudioRequest job = GenerateAudioRequest.builder()
                 .chapterId(chapter.getId())
                 .jobId(jobId)
@@ -156,15 +163,8 @@ public class ChapterServiceImpl implements ChapterService {
                 .filter(candidate -> Objects.equals(candidate.getBookId(), bookId)).orElseThrow(
                 () -> new BusinessException(BusinessError.CHAPTER_NOT_FOUND)
         );
-        String contentJson = req.getContentJson();
-        if (contentJson != null && !contentJson.isBlank()) {
-            // Lấy văn bản từ tài liệu biên tập để hai trường nội dung nhất quán.
-            chapter.setRawText(chapterContentParser.extractText(contentJson));
-            chapter.setContentJson(chapterContentParser.withImageUrls(contentJson, path -> null));
-        } else if (Objects.nonNull(req.getRawText())) {
-            // Văn bản mới không còn tương ứng với định dạng của tài liệu cũ.
-            chapter.setRawText(req.getRawText());
-            chapter.setContentJson(null);
+        if (Objects.nonNull(req.getContent())) {
+            chapter.setContent(chapterContentService.sanitize(req.getContent()));
         }
         if(Objects.nonNull(req.getTitle())) {
             chapter.setTitle(req.getTitle());
@@ -206,20 +206,13 @@ public class ChapterServiceImpl implements ChapterService {
                 .map(index -> chapterRepository.findById(bookChapters.get(index).getId())
                         .orElseThrow(() -> new BusinessException(BusinessError.CHAPTER_NOT_FOUND)))
                 .toList();
-        List<ChapterContent> parts = new ArrayList<>();
-        List<String> cancelledJobs = new ArrayList<>();
-        for (Chapter chapter : merging) {
-            parts.add(new ChapterContent(parts.isEmpty() ? null : chapter.getTitle(),
-                    chapter.getRawText(), chapter.getContentJson()));
-            if (chapter.getStatus() == ChapterStatus.PROCESSING_AUDIO && chapter.getAudioJobId() != null) {
-                cancelledJobs.add(chapter.getAudioJobId());
-            }
-        }
-        ChapterContent merged = chapterContentParser.merge(parts);
-
+        List<String> cancelledJobs = merging.stream()
+                .filter(chapter -> chapter.getStatus() == ChapterStatus.PROCESSING_AUDIO
+                        && chapter.getAudioJobId() != null)
+                .map(Chapter::getAudioJobId)
+                .toList();
         Chapter kept = merging.getFirst();
-        kept.setRawText(merged.rawText());
-        kept.setContentJson(merged.contentJson());
+        kept.setContent(chapterContentService.merge(merging));
         // Nội dung đã đổi nên audio cũ không còn khớp
         kept.setAudioUrl(null);
         kept.setDuration(null);
@@ -237,6 +230,62 @@ public class ChapterServiceImpl implements ChapterService {
         afterCommit(() -> cancelledJobs.forEach(messageQueue::cancel));
         log.info("Merged chapters {} of book {} into chapter {}", ids, bookId, kept.getId());
         return responseMapper.toChapterResponse(kept);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] getAttachmentsPdf(Long userId, boolean isAdmin, Long bookId, Long chapterId) {
+        List<PlaybackChapter> chapters = chapterRepository.findPlaybackChaptersByBookId(bookId);
+        int index = IntStream.range(0, chapters.size())
+                .filter(i -> chapters.get(i).id().equals(chapterId))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(BusinessError.CHAPTER_NOT_FOUND));
+        // Admin xem mọi chương; người dùng xem được chương miễn phí, hoặc mọi chương khi đã mua sách
+        if (!isAdmin && index >= Book.FREE_PREVIEW_CHAPTERS) {
+            boolean published = bookRepository.findStatusById(bookId).filter(BookStatus.PUBLISHED::equals).isPresent();
+            boolean owned = userId != null && customerBookRepository.existsByCustomerIdAndBookId(userId, bookId);
+            if (!published || !owned) {
+                throw new BusinessException(BusinessError.FORBIDDEN);
+            }
+        }
+        String content = chapterRepository.findContentById(chapterId).orElse(null);
+        List<ChapterAttachment> attachments = chapterContentService.attachments(content);
+        if (attachments.isEmpty()) {
+            throw new BusinessException(BusinessError.CHAPTER_ATTACHMENT_NOT_FOUND);
+        }
+        return attachmentsPdf(chapters.get(index).title(), attachments);
+    }
+
+    /** Mỗi tệp đính kèm mang chú thích admin nhập trong editor, chưa có thì đánh số "Hình n", "Bảng n". */
+    private byte[] attachmentsPdf(String chapterTitle, List<ChapterAttachment> attachments) {
+        try (PdfDocument pdf = pdfService.create()) {
+            pdf.title(chapterTitle);
+            pdf.paragraph("Tệp đính kèm");
+            int images = 0;
+            int tables = 0;
+            for (ChapterAttachment attachment : attachments) {
+                String number = attachment instanceof ChapterAttachment.Image ? "Hình " + ++images : "Bảng " + ++tables;
+                pdf.heading(attachment.caption().isBlank() ? number : attachment.caption());
+                switch (attachment) {
+                    case ChapterAttachment.Image image -> writeImage(pdf, image.path());
+                    case ChapterAttachment.Table table -> pdf.table(table.rows(), table.headerRows());
+                }
+            }
+            return pdf.toByteArray();
+        } catch (UncheckedIOException e) {
+            log.error("Could not render attachments PDF for chapter '{}'", chapterTitle, e);
+            throw new BusinessException(BusinessError.ERROR_NOT_DEFINE);
+        }
+    }
+
+    /** Ảnh lỗi (mất trên storage, định dạng không đọc được như WebP) chỉ để lại một dòng thông báo. */
+    private void writeImage(PdfDocument pdf, String path) {
+        try {
+            pdf.image(storageService.load(path), path);
+        } catch (Exception e) {
+            log.warn("Could not add image {} to attachments PDF", path, e);
+            pdf.paragraph("Không hiển thị được ảnh.");
+        }
     }
 
     /** Dịch các chương nằm giữa vị trí cũ và mới để giữ thứ tự liên tục. */
@@ -282,21 +331,8 @@ public class ChapterServiceImpl implements ChapterService {
             chapter.setStatus(ChapterStatus.FAILED);
         }
         chapterRepository.update(chapter);
+        // Sau khi commit: trang admin không đọc lại phải trạng thái cũ, và giao dịch rollback thì không có gì bị gửi đi
         afterCommit(() -> adminEventPublisher.chapterStatusChanged(chapter.getBookId(), chapter.getId(),
                 chapter.getStatus(), chapter.getAudioUrl(), chapter.getDuration()));
-    }
-
-    // Chạy sau khi commit: trang admin không đọc lại phải trạng thái cũ, và giao dịch rollback thì không có gì bị gửi đi
-    private static void afterCommit(Runnable action) {
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            action.run();
-            return;
-        }
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                action.run();
-            }
-        });
     }
 }

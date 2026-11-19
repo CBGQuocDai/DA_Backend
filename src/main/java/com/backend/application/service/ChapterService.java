@@ -26,6 +26,11 @@ public interface ChapterService {
      */
     ChapterResponse mergeChapters(Long bookId, List<Long> chapterIds);
 
+    /**
+     * File PDF ảnh và bảng của chương. Admin xem mọi chương; người dùng khác xem được các chương miễn phí
+     * ({@code userId} có thể null khi chưa đăng nhập), còn các chương sau cần đã mua sách.
+     */
+    byte[] getAttachmentsPdf(Long userId, boolean isAdmin, Long bookId, Long chapterId);
 
     //    hàm xử lý event khi tts báo gen audio xong
     void handleAudioResult(GenerateAudioResult result);

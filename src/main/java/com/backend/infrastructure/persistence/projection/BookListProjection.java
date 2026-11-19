@@ -16,4 +16,5 @@ public interface BookListProjection {
     String getVoiceDescription();
     BookStatus getStatus();
     Double getAverageRating();
+    Long getRatingCount();
 }

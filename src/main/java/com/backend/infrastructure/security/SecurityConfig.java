@@ -80,6 +80,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET,
                     "/health", "/health/**",
                     "/books/catalog", "/books/recommendations", "/books/*/overview", "/books/*/chapters/list",
+                    // Chương miễn phí xem được khi chưa đăng nhập; ChapterService kiểm tra quyền theo từng chương
+                    "/books/*/chapters/*/attachments",
+                    "/books/catalog", "/books/recommendations", "/books/*/recommendations", "/books/*/overview", "/books/*/chapters/list",
                     "/categories", "/categories/**",
                     "/authors", "/authors/**",
                     "/reviews/**"
