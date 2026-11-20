@@ -8,6 +8,7 @@ import com.backend.application.dto.response.book.BookResponse;
 import com.backend.application.dto.response.category.CategoryResponse;
 import com.backend.application.dto.response.chapter.ChapterResponse;
 import com.backend.application.dto.response.chapter.CustomerChapterResponse;
+import com.backend.application.dto.response.customer.CustomerProfileResponse;
 import com.backend.application.dto.response.file.FileResponse;
 import com.backend.application.dto.response.payment.PaymentResponse;
 import com.backend.application.dto.response.review.ReviewResponse;
@@ -24,6 +25,8 @@ import com.backend.domain.model.Category;
 import com.backend.domain.model.CategoryStat;
 import com.backend.domain.model.Chapter;
 import com.backend.domain.model.Customer;
+import com.backend.domain.exception.BusinessException;
+import com.backend.domain.valueobject.BusinessError;
 import com.backend.domain.model.Payment;
 import com.backend.domain.model.Review;
 import com.backend.domain.model.Voice;
@@ -74,6 +77,31 @@ public class ResponseMapper {
                 .build();
     }
 
+    public String resolveCustomerAvatarUrl(String avatarPath) {
+        if (avatarPath == null || avatarPath.isBlank()) {
+            return null;
+        }
+        if (avatarPath.startsWith("http://") || avatarPath.startsWith("https://")) {
+            return avatarPath;
+        }
+        if (avatarPath.startsWith("customer-avatars/") || avatarPath.startsWith("images/")) {
+            String signed = signUrl(avatarPath);
+            if (signed == null || signed.equals(avatarPath)) {
+                throw new BusinessException(BusinessError.ERROR_NOT_DEFINE);
+            }
+            return signed;
+        }
+        return null;
+    }
+
+    public CustomerProfileResponse toCustomerProfileResponse(Customer customer) {
+        return CustomerProfileResponse.builder()
+            .id(customer.getId())
+            .email(customer.getEmail())
+            .fullName(customer.getFullName())
+            .avatarUrl(resolveCustomerAvatarUrl(customer.getAvatarUrl()))
+            .build();
+    }
     public BookResponse toBookResponse(Book book) {
         BookResponse.BookResponseBuilder response = BookResponse.builder()
             .id(book.getId())

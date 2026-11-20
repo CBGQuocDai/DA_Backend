@@ -6,6 +6,7 @@ import com.backend.application.service.CustomerService;
 import com.backend.application.dto.request.user.LoginRequest;
 import com.backend.application.dto.request.user.RegisterRequest;
 import com.backend.application.dto.request.user.ChangePasswordRequest;
+import com.backend.application.dto.request.user.customer.CustomerUpdateAvatarRequest;
 import com.backend.application.dto.request.user.customer.CustomerUpdateProfileRequest;
 import com.backend.presentation.dto.ApiResponse;
 import com.backend.application.dto.response.book.BookResponse;
@@ -13,6 +14,7 @@ import com.backend.application.dto.response.customer.CustomerProfileResponse;
 import com.backend.application.dto.response.user.LoginResponse;
 import com.backend.application.dto.response.user.RegisterResponse;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.CacheControl;
@@ -76,6 +78,16 @@ public class CustomerController {
         return ResponseEntity.ok(ApiResponse.<Void>builder().message("Đổi mật khẩu thành công")
             .build());
     }
+
+    @PutMapping("/profile/avatar")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<ApiResponse<CustomerProfileResponse>> uploadAvatar(
+            @AuthenticationPrincipal Long userId,
+            @Valid @RequestBody CustomerUpdateAvatarRequest request) {
+        CustomerProfileResponse response = customerService.uploadAvatar(userId, request.getAvatarPath());
+        return ResponseEntity.ok(ApiResponse.<CustomerProfileResponse>builder().data(response).build());
+    }
+
 
     @GetMapping("/books")
     public ResponseEntity<ApiResponse<List<BookResponse>>> getPurchasedBooks(@AuthenticationPrincipal Long customerId) {

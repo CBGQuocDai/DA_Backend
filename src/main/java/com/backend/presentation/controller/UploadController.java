@@ -2,6 +2,9 @@ package com.backend.presentation.controller;
 
 import com.backend.application.service.FileManagementService;
 import com.backend.application.dto.request.upload.UploadUrlRequest;
+import com.backend.domain.exception.BusinessException;
+import com.backend.domain.valueobject.BusinessError;
+import com.backend.domain.valueobject.UploadType;
 import com.backend.presentation.dto.ApiResponse;
 import com.backend.application.dto.response.upload.UploadUrlResponse;
 import jakarta.validation.Valid;
@@ -26,6 +29,18 @@ public class UploadController {
     @PostMapping("/sign-url")
     public ResponseEntity<ApiResponse<UploadUrlResponse>> createUploadUrl(
             @Valid @RequestBody UploadUrlRequest request) {
+        return ResponseEntity.ok(ApiResponse.<UploadUrlResponse>builder()
+                        .data(fileManagementService.createUploadUrl(request))
+                        .build());
+    }
+
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @PostMapping("/customer/sign-url")
+    public ResponseEntity<ApiResponse<UploadUrlResponse>> createCustomerUploadUrl(
+        @Valid @RequestBody UploadUrlRequest request) {
+        if (request.getType() != UploadType.IMAGE) {
+            throw new BusinessException(BusinessError.FORBIDDEN);
+        }
         return ResponseEntity.ok(ApiResponse.<UploadUrlResponse>builder()
                 .data(fileManagementService.createUploadUrl(request))
                 .build());

@@ -12,6 +12,8 @@ public interface CustomerService extends UserService {
 
     CustomerProfileResponse updateProfile(Long userId, CustomerUpdateProfileRequest request);
 
+    CustomerProfileResponse uploadAvatar(Long userId, String avatarPath);
+
     RegisterResponse register(
             RegisterRequest request);
 }

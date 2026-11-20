@@ -1,5 +1,6 @@
 package com.backend.application.service.impl;
 
+import com.backend.application.adapter.storage.StorageService;
 import com.backend.application.service.CustomerService;
 import com.backend.application.dto.request.user.RegisterRequest;
 import com.backend.application.dto.response.user.RegisterResponse;
@@ -11,22 +12,33 @@ import com.backend.application.dto.request.user.LoginRequest;
 import com.backend.application.dto.request.user.customer.CustomerUpdateProfileRequest;
 import com.backend.application.dto.response.customer.CustomerProfileResponse;
 import com.backend.application.dto.response.user.LoginResponse;
+import com.backend.application.mapper.ResponseMapper;
+import com.backend.application.service.FileManagementService;
 import com.backend.domain.exception.BusinessException;
 import com.backend.domain.model.Customer;
 import com.backend.domain.valueobject.BusinessError;
+import com.backend.domain.valueobject.UploadType;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Slf4j
 public class CustomerServiceImpl extends AbstractUserServiceImpl implements CustomerService {
 
     private final CustomerRepository customerRepository;
+    private final ResponseMapper responseMapper;
+    private final FileManagementService fileManagementService;
+    private final StorageService storageService;
 
     public CustomerServiceImpl(CustomerRepository customerRepository, UserRepository userRepository,
-        PasswordEncoder passwordEncoder, TokenProvider tokenProvider) {
+                               PasswordEncoder passwordEncoder, TokenProvider tokenProvider,
+                               ResponseMapper responseMapper, FileManagementService fileManagementService, StorageService storageService) {
         super(userRepository, passwordEncoder, tokenProvider);
         this.customerRepository = customerRepository;
-
+        this.responseMapper = responseMapper;
+        this.fileManagementService = fileManagementService;
+        this.storageService = storageService;
     }
 
     @Override
@@ -72,13 +84,8 @@ public class CustomerServiceImpl extends AbstractUserServiceImpl implements Cust
             throw new BusinessException(BusinessError.UNAUTHORIZED);
         }
         Customer customer = customerRepository.findById(id)
-            .orElseThrow(() -> new BusinessException(BusinessError.USER_NOT_FOUND));
-        return CustomerProfileResponse.builder()
-            .id(customer.getId())
-            .email(customer.getEmail())
-            .fullName(customer.getFullName())
-            .avatarUrl(customer.getAvatarUrl())
-            .build();
+                .orElseThrow(() -> new BusinessException(BusinessError.USER_NOT_FOUND));
+        return responseMapper.toCustomerProfileResponse(customer);
     }
 
     @Override
@@ -93,15 +100,42 @@ public class CustomerServiceImpl extends AbstractUserServiceImpl implements Cust
         if (request.getFullName() != null) {
             customer.setFullName(request.getFullName());
         }
-        if (request.getAvatarUrl() != null) {
-            customer.setAvatarUrl(request.getAvatarUrl());
-        }
         customerRepository.save(customer);
 
-        return CustomerProfileResponse.builder()
-            .id(customer.getId())
-            .email(customer.getEmail())
-            .fullName(customer.getFullName()).avatarUrl(customer.getAvatarUrl()).build();
+        return responseMapper.toCustomerProfileResponse(customer);
     }
 
+    @Override
+    @Transactional
+    public CustomerProfileResponse uploadAvatar(Long userId, String avatarPath) {
+        if (userId == null) {
+            throw new BusinessException(BusinessError.UNAUTHORIZED);
+        }
+        if (avatarPath == null || avatarPath.isBlank()) {
+            throw new BusinessException(BusinessError.IMAGE_FORMAT_INCORRECT);
+        }
+        Customer customer = customerRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new BusinessException(BusinessError.USER_NOT_FOUND));
+
+        String oldAvatar = customer.getAvatarUrl();
+        String permanentPath = UploadType.IMAGE.permanentPath(avatarPath);
+        boolean isNewAvatar = !permanentPath.equals(oldAvatar);
+        if (isNewAvatar) {
+            fileManagementService.verifyUpload(avatarPath, UploadType.IMAGE);
+
+            customer.setAvatarUrl(permanentPath);
+            customerRepository.save(customer);
+
+            fileManagementService.moveToPermanent(avatarPath, UploadType.IMAGE);
+
+            if (oldAvatar != null && !oldAvatar.startsWith("http") && !oldAvatar.equals(permanentPath)) {
+                try {
+                    storageService.delete(oldAvatar);
+                } catch (Exception e) {
+                    log.warn("Failed to delete old avatar {}", oldAvatar, e);
+                }
+            }
+        }
+        return responseMapper.toCustomerProfileResponse(customer);
+    }
 }
