@@ -8,24 +8,14 @@ import com.backend.domain.model.BookCategory;
 import com.backend.domain.model.BookStat;
 import com.backend.domain.valueobject.BestsellerPeriod;
 import com.backend.domain.valueobject.BookStatus;
-import com.backend.infrastructure.persistence.entity.JpaBookAuthorEntity;
-import com.backend.infrastructure.persistence.entity.JpaBookCategoryEntity;
-import com.backend.infrastructure.persistence.entity.JpaBookEntity;
+import com.backend.infrastructure.persistence.entity.*;
 import com.backend.infrastructure.persistence.mapper.BookAuthorMapper;
 import com.backend.infrastructure.persistence.mapper.BookCategoryMapper;
 import com.backend.infrastructure.persistence.mapper.BookMapper;
 import com.backend.infrastructure.persistence.mapper.BookStatMapper;
 import com.backend.infrastructure.persistence.mapper.ChapterMapper;
 import com.backend.infrastructure.persistence.projection.BookListProjection;
-import com.backend.infrastructure.persistence.repository.JpaBookAuthorRepository;
-import com.backend.infrastructure.persistence.repository.JpaBookCategoryRepository;
-import com.backend.infrastructure.persistence.repository.JpaBookFavoriteRepository;
-import com.backend.infrastructure.persistence.repository.JpaBookRepository;
-import com.backend.infrastructure.persistence.repository.JpaBookUpdateRepository;
-import com.backend.infrastructure.persistence.repository.JpaChapterRepository;
-import com.backend.infrastructure.persistence.repository.JpaCustomerBookRepository;
-import com.backend.infrastructure.persistence.repository.JpaListenProgressRepository;
-import com.backend.infrastructure.persistence.repository.JpaReviewRepository;
+import com.backend.infrastructure.persistence.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -42,7 +32,6 @@ import java.util.Set;
 public class BookRepositoryAdapter implements BookRepository {
 
     private final JpaBookRepository jpaBookRepository;
-    private final JpaBookUpdateRepository jpaBookUpdateRepository;
     private final JpaBookAuthorRepository jpaBookAuthorRepository;
     private final JpaBookCategoryRepository jpaBookCategoryRepository;
     private final JpaBookFavoriteRepository jpaBookFavoriteRepository;
@@ -54,6 +43,7 @@ public class BookRepositoryAdapter implements BookRepository {
     private final BookAuthorMapper bookAuthorMapper;
     private final BookCategoryMapper bookCategoryMapper;
     private final ChapterMapper chapterMapper;
+    private final BookStatMapper bookStatMapper;
 
     // Lấy trạng thái xuất bản của sách theo ID
     @Override
@@ -122,7 +112,7 @@ public class BookRepositoryAdapter implements BookRepository {
     @Override
     @Transactional
     public void update(Book book) {
-        jpaBookUpdateRepository.updateBook(
+        jpaBookRepository.updateBook(
                 book.getId(),
                 book.getTitle(),
                 book.getPrice(),
@@ -195,23 +185,8 @@ public class BookRepositoryAdapter implements BookRepository {
                 // Sách chưa có thời điểm tạo; dùng ID giảm dần để lấy sách mới thêm trước.
                 keyword, categoryId, authorId, status, PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id")));
 
-        List<Long> bookIds = projectionPage.getContent().stream()
-                .map(BookListProjection::getId)
-                .toList();
-
-        List<JpaBookAuthorEntity> allAuthors = bookIds.isEmpty()
-                ? List.of()
-                : jpaBookAuthorRepository.findByBookIdIn(bookIds);
-        List<JpaBookCategoryEntity> allCategories = bookIds.isEmpty()
-                ? List.of()
-                : jpaBookCategoryRepository.findByBookIdIn(bookIds);
-
-        List<BookStat> bookStats = projectionPage.getContent().stream()
-                .map(proj -> BookStatMapper.toBookStat(proj, allAuthors, allCategories))
-                .toList();
-
         return PageResponse.<BookStat>builder()
-                .content(bookStats)
+                .content(bookStatMapper.toBookStats(projectionPage.getContent()))
                 .total((int) projectionPage.getTotalElements())
                 .totalPage(projectionPage.getTotalPages())
                 .page(page)
@@ -255,7 +230,7 @@ public class BookRepositoryAdapter implements BookRepository {
     public List<BookStat> findBestsellers(BestsellerPeriod.Window window, int limit) {
         return jpaBookRepository.findBestsellers(window.since(), window.from(), window.to(), PageRequest.of(0, limit))
                 .stream()
-                .map(row -> BookStatMapper.toBookStat(row, window.hasPrevious()))
+                .map(row -> bookStatMapper.toBookStat(row, window.hasPrevious()))
                 .toList();
     }
 
@@ -263,7 +238,7 @@ public class BookRepositoryAdapter implements BookRepository {
     @Override
     @Transactional(readOnly = true)
     public List<BookStat> findNewestRecommendations(int limit) {
-        return toRecommendationBooks(jpaBookRepository.findNewestRecommendations(
+        return bookStatMapper.toBookStats(jpaBookRepository.findNewestRecommendations(
                 PageRequest.of(0, limit)));
     }
 
@@ -271,7 +246,7 @@ public class BookRepositoryAdapter implements BookRepository {
     @Override
     @Transactional(readOnly = true)
     public List<BookStat> findCategoryRecommendations(Long customerId, int limit) {
-        return toRecommendationBooks(jpaBookRepository.findCategoryRecommendations(
+        return bookStatMapper.toBookStats(jpaBookRepository.findCategoryRecommendations(
                 customerId, PageRequest.of(0, limit)));
     }
 
@@ -284,23 +259,14 @@ public class BookRepositoryAdapter implements BookRepository {
                 ? jpaBookRepository.findNewestRecommendationsForCustomer(customerId, page)
                 : jpaBookRepository.findNewestRecommendationsForCustomerExcluding(
                         customerId, selectedBookIds, page);
-        return toRecommendationBooks(rows);
+        return bookStatMapper.toBookStats(rows);
     }
 
     // Lấy sách tương tự cùng thể loại hoặc cùng tác giả
     @Override
     @Transactional(readOnly = true)
     public List<BookStat> findSimilarRecommendations(Long bookId, int limit) {
-        return toRecommendationBooks(jpaBookRepository.findSimilarRecommendations(
+        return bookStatMapper.toBookStats(jpaBookRepository.findSimilarRecommendations(
                 bookId, PageRequest.of(0, limit)));
-    }
-
-    // Chuyển đổi dữ liệu projection sang BookStat và nạp kèm tác giả, thể loại theo lô (tránh N+1)
-    private List<BookStat> toRecommendationBooks(List<BookListProjection> rows) {
-        if (rows.isEmpty()) return List.of();
-        var ids = rows.stream().map(BookListProjection::getId).toList();
-        var authors = jpaBookAuthorRepository.findWithAuthorByBookIdIn(ids);
-        var categories = jpaBookCategoryRepository.findWithCategoryByBookIdIn(ids);
-        return rows.stream().map(row -> BookStatMapper.toBookStat(row, authors, categories)).toList();
     }
 }
