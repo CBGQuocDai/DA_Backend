@@ -69,7 +69,7 @@ public interface JpaChapterRepository extends JpaRepository<JpaChapterEntity, Lo
         "c.audioUrl = :audioUrl, " +
         "c.content = :content, " +
         "c.status = :status, " +
-        "c.readingSpeed = :readingSpeed, c.audioJobId = :audioJobId " +
+        "c.readingSpeed = :readingSpeed " +
         "WHERE c.id = :id")
     void updateChapter(
             @Param("id") Long id,
@@ -79,8 +79,7 @@ public interface JpaChapterRepository extends JpaRepository<JpaChapterEntity, Lo
             @Param("audioUrl") String audioUrl,
             @Param("content") String content,
             @Param("status") ChapterStatus status,
-            @Param("readingSpeed") Double readingSpeed,
-            @Param("audioJobId") String audioJobId
+            @Param("readingSpeed") Double readingSpeed
     );
 
     /** Dịch thứ tự chương trong đoạn chỉ định bằng một câu lệnh cập nhật. */

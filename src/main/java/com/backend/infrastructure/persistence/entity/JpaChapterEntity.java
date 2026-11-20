@@ -38,9 +38,6 @@ public class JpaChapterEntity {
     @Column(name = "reading_speed")
     private Double readingSpeed;
 
-    @Column(name = "audio_job_id", length = 36)
-    private String audioJobId;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "book_id", insertable = false, updatable = false)
     private JpaBookEntity book;

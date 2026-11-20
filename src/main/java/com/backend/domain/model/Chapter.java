@@ -23,6 +23,4 @@ public class Chapter {
     private String content;
     private Double readingSpeed;
     private ChapterStatus status;
-    /** Mã job TTS đang chạy; kết quả mang mã khác (job đã hủy hoặc đã bị thay) bị bỏ qua. */
-    private String audioJobId;
 }
