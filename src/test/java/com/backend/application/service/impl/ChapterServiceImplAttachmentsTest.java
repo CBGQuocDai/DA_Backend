@@ -1,5 +1,6 @@
 package com.backend.application.service.impl;
 
+import com.backend.application.adapter.messaging.JobRegistry;
 import com.backend.application.adapter.messaging.MessageQueue;
 import com.backend.application.adapter.realtime.AdminEventPublisher;
 import com.backend.application.adapter.repository.BookRepository;
@@ -45,7 +46,8 @@ class ChapterServiceImplAttachmentsTest {
     private final ChapterServiceImpl service = new ChapterServiceImpl(
             chapterRepository, mock(BookRepository.class), mock(ResponseMapper.class), mock(MessageQueue.class),
             new JacksonChapterContentService(), mock(CustomerBookRepository.class),
-            mock(FileManagementService.class), mock(AdminEventPublisher.class), new PdfBoxService(), storage);
+            mock(FileManagementService.class), mock(AdminEventPublisher.class), new PdfBoxService(), storage,
+            mock(JobRegistry.class));
 
     @Test
     void numbersAttachmentsAndPrefersEditorCaptions() throws IOException {

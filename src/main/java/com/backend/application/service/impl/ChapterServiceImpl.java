@@ -1,5 +1,6 @@
 package com.backend.application.service.impl;
 
+import com.backend.application.adapter.messaging.JobRegistry;
 import com.backend.domain.valueobject.*;
 import com.backend.application.service.FileManagementService;
 import com.backend.application.dto.request.book.chapter.ChapterUploadAudioRequest;
@@ -54,6 +55,7 @@ public class ChapterServiceImpl implements ChapterService {
     private final AdminEventPublisher adminEventPublisher;
     private final PdfService pdfService;
     private final StorageService storageService;
+    private final JobRegistry jobRegistry;
 
     @Override
     @Transactional(readOnly = true)
@@ -135,8 +137,9 @@ public class ChapterServiceImpl implements ChapterService {
         String jobId = UUID.randomUUID().toString();
         chapter.setStatus(ChapterStatus.PROCESSING_AUDIO);
         chapter.setReadingSpeed(readingSpeed);
-        chapter.setAudioJobId(jobId);
         chapterRepository.update(chapter);
+        // Ghi trước khi gửi job để kết quả về sớm vẫn thấy mã; giao dịch rollback thì mã thừa vô hại vì chương không ở PROCESSING_AUDIO
+        jobRegistry.put(chapter.getId(), jobId);
 
         log.info("Queueing audio for book {} with voiceId {} and chapter {} at speed {}",
                 book.getId(), book.getVoice() != null ? book.getVoice().getId() : null, chapter.getId(), readingSpeed);
@@ -207,9 +210,8 @@ public class ChapterServiceImpl implements ChapterService {
                         .orElseThrow(() -> new BusinessException(BusinessError.CHAPTER_NOT_FOUND)))
                 .toList();
         List<String> cancelledJobs = merging.stream()
-                .filter(chapter -> chapter.getStatus() == ChapterStatus.PROCESSING_AUDIO
-                        && chapter.getAudioJobId() != null)
-                .map(Chapter::getAudioJobId)
+                .filter(chapter -> chapter.getStatus() == ChapterStatus.PROCESSING_AUDIO)
+                .flatMap(chapter -> jobRegistry.find(chapter.getId()).stream())
                 .toList();
         Chapter kept = merging.getFirst();
         kept.setContent(chapterContentService.merge(merging));
@@ -217,7 +219,6 @@ public class ChapterServiceImpl implements ChapterService {
         kept.setAudioUrl(null);
         kept.setDuration(null);
         kept.setStatus(null);
-        kept.setAudioJobId(null);
         chapterRepository.update(kept);
 
         Chapter last = merging.getLast();
@@ -227,7 +228,10 @@ public class ChapterServiceImpl implements ChapterService {
             chapterRepository.shiftOrders(bookId, last.getChapterOrder() + 1, maxOrder, -(merging.size() - 1));
         }
 
-        afterCommit(() -> cancelledJobs.forEach(messageQueue::cancel));
+        afterCommit(() -> {
+            merging.forEach(chapter -> jobRegistry.remove(chapter.getId()));
+            cancelledJobs.forEach(messageQueue::cancel);
+        });
         log.info("Merged chapters {} of book {} into chapter {}", ids, bookId, kept.getId());
         return responseMapper.toChapterResponse(kept);
     }
@@ -315,13 +319,13 @@ public class ChapterServiceImpl implements ChapterService {
             log.warn("TTS result for chapter {} in status {}, ignoring", chapter.getId(), chapter.getStatus());
             return;
         }
-        // Worker bản cũ không gửi jobId: vẫn nhận kết quả, chỉ mất khả năng phát hiện job đã bị hủy
-        if (result.getJobId() != null && !result.getJobId().equals(chapter.getAudioJobId())) {
+        // Worker bản cũ không gửi jobId, hoặc mã trên Redis đã hết hạn: vẫn nhận kết quả, chỉ mất khả năng phát hiện job đã bị hủy
+        String currentJobId = jobRegistry.find(chapter.getId()).orElse(null);
+        if (result.getJobId() != null && currentJobId != null && !result.getJobId().equals(currentJobId)) {
             // Job đã bị hủy (gộp chương) hoặc đã bị thay bằng một lần tạo audio mới
             log.warn("TTS result of job {} for chapter {} is stale, ignoring", result.getJobId(), chapter.getId());
             return;
         }
-        chapter.setAudioJobId(null);
         if (result.isSuccess() && result.getAudioPath() != null && !result.getAudioPath().isBlank()) {
             chapter.setAudioUrl(result.getAudioPath());
             chapter.setDuration(result.getDuration());
@@ -332,7 +336,10 @@ public class ChapterServiceImpl implements ChapterService {
         }
         chapterRepository.update(chapter);
         // Sau khi commit: trang admin không đọc lại phải trạng thái cũ, và giao dịch rollback thì không có gì bị gửi đi
-        afterCommit(() -> adminEventPublisher.chapterStatusChanged(chapter.getBookId(), chapter.getId(),
-                chapter.getStatus(), chapter.getAudioUrl(), chapter.getDuration()));
+        afterCommit(() -> {
+            jobRegistry.remove(chapter.getId());
+            adminEventPublisher.chapterStatusChanged(chapter.getBookId(), chapter.getId(),
+                    chapter.getStatus(), chapter.getAudioUrl(), chapter.getDuration());
+        });
     }
 }

@@ -1,29 +1,62 @@
 package com.backend.infrastructure.persistence.mapper;
 
-import com.backend.domain.model.Author;
 import com.backend.domain.model.BookAuthor;
 import com.backend.domain.model.BookCategory;
 import com.backend.domain.model.BookStat;
-import com.backend.domain.model.Category;
 import com.backend.domain.model.Voice;
 import com.backend.infrastructure.persistence.entity.JpaBookAuthorEntity;
 import com.backend.infrastructure.persistence.entity.JpaBookCategoryEntity;
 import com.backend.infrastructure.persistence.projection.BookListProjection;
 import com.backend.infrastructure.persistence.projection.BookSalesProjection;
+import com.backend.infrastructure.persistence.repository.JpaBookAuthorRepository;
+import com.backend.infrastructure.persistence.repository.JpaBookCategoryRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public final class BookStatMapper {
+@Component
+@RequiredArgsConstructor
+public class BookStatMapper {
 
-    private BookStatMapper() {}
+    private final JpaBookAuthorRepository jpaBookAuthorRepository;
+    private final JpaBookCategoryRepository jpaBookCategoryRepository;
+    private final BookAuthorMapper bookAuthorMapper;
+    private final BookCategoryMapper bookCategoryMapper;
 
-    public static BookStat toBookStat(
+    /**
+     * Projection -> BookStat kèm tác giả/thể loại: nạp theo lô cho cả trang (mỗi loại 1 truy vấn, JOIN FETCH),
+     * convert entity -> domain và gom theo bookId một lần, mỗi sách chỉ tra map O(1).
+     */
+    public List<BookStat> toBookStats(List<BookListProjection> rows) {
+        if (rows.isEmpty()) {
+            return List.of();
+        }
+        List<Long> bookIds = rows.stream().map(BookListProjection::getId).toList();
+
+        Map<Long, List<BookAuthor>> authorsByBook = jpaBookAuthorRepository.findByBookIdIn(bookIds).stream()
+                .collect(Collectors.groupingBy(JpaBookAuthorEntity::getBookId,
+                        Collectors.mapping(bookAuthorMapper::toDomain, Collectors.toList())));
+
+        Map<Long, List<BookCategory>> categoriesByBook = jpaBookCategoryRepository.findByBookIdIn(bookIds).stream()
+                .collect(Collectors.groupingBy(JpaBookCategoryEntity::getBookId,
+                        Collectors.mapping(bookCategoryMapper::toDomainWithoutBook, Collectors.toList())));
+
+        return rows.stream()
+                .map(row -> toBookStat(row,
+                        authorsByBook.getOrDefault(row.getId(), List.of()),
+                        categoriesByBook.getOrDefault(row.getId(), List.of())))
+                .toList();
+    }
+
+    /** {@code authors}/{@code categories} là của riêng cuốn sách này. */
+    public BookStat toBookStat(
             BookListProjection proj,
-            List<JpaBookAuthorEntity> authorEntities,
-            List<JpaBookCategoryEntity> categoryEntities) {
+            List<BookAuthor> authors,
+            List<BookCategory> categories) {
 
         BookStat bookStat = BookStat.builder()
                 .id(proj.getId())
@@ -35,66 +68,23 @@ public final class BookStatMapper {
                 .status(proj.getStatus())
                 .averageRating(proj.getAverageRating())
                 .ratingCount(proj.getRatingCount())
-                .authors(List.of())
-                .categories(List.of())
+                .authors(authors)
+                .categories(categories)
                 .build();
 
         if (Objects.nonNull(proj.getVoiceId())) {
-            Voice voice = Voice.builder()
+            bookStat.setVoice(Voice.builder()
                     .id(proj.getVoiceId())
                     .name(proj.getVoiceName())
                     .exampleAudio(proj.getVoiceExampleAudio())
                     .description(proj.getVoiceDescription())
-                    .build();
-            bookStat.setVoice(voice);
+                    .build());
         }
-
-        if (Objects.nonNull(authorEntities) && !authorEntities.isEmpty()) {
-            Map<Long, List<JpaBookAuthorEntity>> byBook = authorEntities.stream()
-                    .collect(Collectors.groupingBy(JpaBookAuthorEntity::getBookId));
-
-            List<JpaBookAuthorEntity> bookAuthors = byBook.getOrDefault(proj.getId(), List.of());
-            bookStat.setAuthors(bookAuthors.stream()
-                    .map(e -> {
-                        Author author = Author.builder()
-                                .id(e.getAuthorId())
-                                .fullName(Objects.nonNull(e.getAuthor()) ? e.getAuthor().getFullName() : null)
-                                .avatar(Objects.nonNull(e.getAuthor()) ? e.getAuthor().getAvatar() : null)
-                                .bio(Objects.nonNull(e.getAuthor()) ? e.getAuthor().getBio() : null)
-                                .build();
-                        return BookAuthor.builder()
-                                .id(e.getId())
-                                .author(author)
-                                .build();
-                    })
-                    .toList());
-        }
-
-        if (Objects.nonNull(categoryEntities) && !categoryEntities.isEmpty()) {
-            Map<Long, List<JpaBookCategoryEntity>> byBook = categoryEntities.stream()
-                    .collect(Collectors.groupingBy(JpaBookCategoryEntity::getBookId));
-
-            List<JpaBookCategoryEntity> bookCategories = byBook.getOrDefault(proj.getId(), List.of());
-            bookStat.setCategories(bookCategories.stream()
-                    .map(e -> {
-                        Category category = Category.builder()
-                                .id(e.getCategoryId())
-                                .name(Objects.nonNull(e.getCategory()) ? e.getCategory().getName() : null)
-                                .description(Objects.nonNull(e.getCategory()) ? e.getCategory().getDescription() : null)
-                                .build();
-                        return BookCategory.builder()
-                                .id(e.getId())
-                                .category(category)
-                                .build();
-                    })
-                    .toList());
-        }
-
         return bookStat;
     }
 
     /** A bestseller row; {@code previousPurchases} is dropped when there is no earlier window to compare with. */
-    public static BookStat toBookStat(BookSalesProjection row, boolean hasPrevious) {
+    public BookStat toBookStat(BookSalesProjection row, boolean hasPrevious) {
         return BookStat.builder()
                 .id(row.getId())
                 .title(row.getTitle())

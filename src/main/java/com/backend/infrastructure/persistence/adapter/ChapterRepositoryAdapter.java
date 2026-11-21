@@ -73,7 +73,7 @@ public class ChapterRepositoryAdapter implements ChapterRepository {
     public Chapter update(Chapter chapter) {
         jpaChapterRepository.updateChapter(chapter.getId(), chapter.getTitle(), chapter.getChapterOrder(),
                 chapter.getDuration(), chapter.getAudioUrl(), chapter.getContent(),
-                chapter.getStatus(), chapter.getReadingSpeed(), chapter.getAudioJobId());
+                chapter.getStatus(), chapter.getReadingSpeed());
         return chapter;
     }
 
